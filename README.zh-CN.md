@@ -1,13 +1,17 @@
 # sOFD
 
+**Super OFD, Simple OFD — or whatever you wish.**
+
+> 开头那句把 sOFD 拆成 *Super OFD* 和 *Simple OFD*，也表明名字怎么念都行。
+
 **OFD 文档的完整 Rust 引擎** —— 打开、渲染、转换、打印、签章、编辑、检索、合规审计，
 一套 API 全覆盖。纯 Rust，零 unsafe，遵循 GB/T 33190-2016。
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](https://github.com/emfox/sOFD/blob/HEAD/README.md) | [简体中文](https://github.com/emfox/sOFD/blob/HEAD/README.zh-CN.md)
 
 [![Rust](https://img.shields.io/badge/rust-1.92%2B-orange)](https://www.rust-lang.org/)
 [![Edition](https://img.shields.io/badge/edition-2024-blue)](https://doc.rust-lang.org/edition-guide/rust-2024/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](https://github.com/emfox/sOFD/blob/HEAD/LICENSE)
 [![Standard](https://img.shields.io/badge/standard-GB%2FT%2033190--2016-red)]()
 
 ```rust
@@ -26,9 +30,9 @@ sOFD 是 [GB/T 33190-2016《电子文件存储与交换格式 版式文档》](h
 当前发布版本为 `0.5.0`：所有 crate 统一改名为 `sofd`，门面即
 `cargo add sofd` 与 `use sofd::Document`；文档画出来的内容不变，
 35 个样例在改名前后的渲染结果逐字节一致。本版本提供了什么见
-[`CHANGELOG`](CHANGELOG.md)，尚待完成的具体工作见
+[`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md)，尚待完成的具体工作见
 [issue 列表](https://github.com/emfox/sOFD/issues)，
-它服务于哪些大方向见 [`docs/Roadmap.md`](docs/Roadmap.md)。
+它服务于哪些大方向见 [`docs/Roadmap.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Roadmap.md)。
 
 本文档分两部分：前半部分给使用 sOFD 的人，后半部分给参与开发的人。
 
@@ -52,11 +56,11 @@ sOFD 是 [GB/T 33190-2016《电子文件存储与交换格式 版式文档》](h
 
 | 形态 | 示例 | 展示的内容 |
 |---|---|---|
-| CLI | [`command_line.rs`](crates/sofd-cli/examples/command_line.rs) | 按路径打开、读出文档声明的内容、逐页渲染、校验签名 |
-| C ABI | [`c_abi.rs`](crates/sofd-ffi/examples/c_abi.rs) | C 宿主会发起的同一组调用，对照生成的[头文件](crates/sofd-ffi/include/sofd.h) |
-| 浏览器 | [`browser.rs`](crates/sofd-wasm/examples/browser.rs) | 从 Rust 侧看到的 JS 边界：位图、SVG、检索 |
-| HTTP | [`http_service.rs`](crates/sofd-server/examples/http_service.rs) | 路由、存储与优雅退出，可挂进你自己的进程 |
-| 桌面 | [`desktop_viewer.rs`](crates/sofd-reader/examples/desktop_viewer.rs) | 阅读器界面画进一个 `egui::Ui`，无窗口、无显示服务 |
+| CLI | [`command_line.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-cli/examples/command_line.rs) | 按路径打开、读出文档声明的内容、逐页渲染、校验签名 |
+| C ABI | [`c_abi.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-ffi/examples/c_abi.rs) | C 宿主会发起的同一组调用，对照生成的[头文件](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-ffi/include/sofd.h) |
+| 浏览器 | [`browser.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-wasm/examples/browser.rs) | 从 Rust 侧看到的 JS 边界：位图、SVG、检索 |
+| HTTP | [`http_service.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-server/examples/http_service.rs) | 路由、存储与优雅退出，可挂进你自己的进程 |
+| 桌面 | [`desktop_viewer.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-reader/examples/desktop_viewer.rs) | 阅读器界面画进一个 `egui::Ui`，无窗口、无显示服务 |
 
 `cargo build --workspace --examples` 可构建其中四个；浏览器那个需要
 `--target wasm32-unknown-unknown`，CI 就在该目标上构建它。
@@ -88,7 +92,7 @@ crate 目前尚未发布到注册表：哪些会发布、发布前还差什么�
 
 21 个 crate 会进入注册表，但其中只有一部分是接口。加上 `sofd` 就够用；
 它依赖的那些 crate 是被 cargo 一起带过来的，并不是让你逐个点名。哪些是哪一类，
-见 [Architecture.md 第 3 节](docs/Architecture.md#3-crate-inventory)；
+见 [Architecture.md 第 3 节](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md#3-crate-inventory)；
 `python3 scripts/publish_order.py` 会打印依赖闭包——从 `sofd` 出发
 是全部 21 个，而单独发布 `sofd-crypto` 只需要 3 个。
 
@@ -112,15 +116,15 @@ cargo install sofd-cli        # 装出 sofd 命令
 GB/T 33476 共三部分，本项目遵循的是第 1、2 部分。GM/T 0099-2020 是国家密码管理局
 发布的密码行业标准，因此在行业标准平台而非国家标准平台检索。
 
-条款级覆盖情况见 [`compliance/gb-t-33190.toml`](compliance/gb-t-33190.toml)，
-判定方法见 [`compliance/CLAUSES.md`](compliance/CLAUSES.md)：已登记 56 条，
-全部为 `verified`。条款号由 [`scripts/gbt33190.py`](scripts/gbt33190.py) 从标准的
+条款级覆盖情况见 [`compliance/gb-t-33190.toml`](https://github.com/emfox/sOFD/blob/HEAD/compliance/gb-t-33190.toml)，
+判定方法见 [`compliance/CLAUSES.md`](https://github.com/emfox/sOFD/blob/HEAD/compliance/CLAUSES.md)：已登记 56 条，
+全部为 `verified`。条款号由 [`scripts/gbt33190.py`](https://github.com/emfox/sOFD/blob/HEAD/scripts/gbt33190.py) 从标准的
 转录文本中读取——逐条读取带编号的标题，并与标准印刷的目录页核对，
 因此不可能引用标准中不存在的条款。内核能用哪些字形绘制、不能用哪些，
-逐字体列在 [`docs/Fonts.md`](docs/Fonts.md)；
-与其他阅读器的逐页对比结果见 [`docs/Interop.md`](docs/Interop.md)。
+逐字体列在 [`docs/Fonts.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Fonts.md)；
+与其他阅读器的逐页对比结果见 [`docs/Interop.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Interop.md)。
 签名能证明什么、不能证明什么，以及标准为何把签发者交给调用方判断，
-见 [`docs/Trust.md`](docs/Trust.md)。
+见 [`docs/Trust.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Trust.md)。
 
 ## 背景
 
@@ -186,7 +190,7 @@ OFD 和 PDF 都是版式文档，区别在于 OFD 是开放的 ZIP + XML 容器�
 ```
 
 关键在 `sofd-display`：所有输出后端读取同一份扁平化后的显示列表，
-导出结果因此不会与预览产生偏差。[`docs/Architecture.md`](docs/Architecture.md)
+导出结果因此不会与预览产生偏差。[`docs/Architecture.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md)
 第 3 节以表格形式给出同一份清单，逐 crate 列出职责与发布状态。
 
 ## 一份文档的流向
@@ -287,16 +291,16 @@ python3 scripts/check_all.py
 
 新代码需要测试。不要引入 `unsafe`；`sofd-ffi` 是唯一有文档记录的例外，
 因为 C ABI 必须用到它。代码、注释、提交信息与 issue 一律使用英文：
-[docs/Conventions.md](docs/Conventions.md)。
+[docs/Conventions.md](https://github.com/emfox/sOFD/blob/HEAD/docs/Conventions.md)。
 
-性能基线与运行方式见 [`docs/Performance.md`](docs/Performance.md)。
+性能基线与运行方式见 [`docs/Performance.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Performance.md)。
 
 ## 许可证
 
-[Apache-2.0](LICENSE)
+[Apache-2.0](https://github.com/emfox/sOFD/blob/HEAD/LICENSE)
 
 阅读器的图标来自 GNOME 项目的 Adwaita symbolic 图标集，按 CC BY-SA 3.0 US 使用，
-详见 [NOTICE.md](NOTICE.md)。
+详见 [NOTICE.md](https://github.com/emfox/sOFD/blob/HEAD/NOTICE.md)。
 
 ## 相关资源
 

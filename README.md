@@ -1,14 +1,16 @@
 # sOFD
 
-**A complete Rust engine for OFD documents** — open, render, convert, print,
-sign, edit, search and audit, behind one API. Pure Rust, zero unsafe, built to
+**Super OFD, Simple OFD — or whatever you wish.**
+
+A complete Rust engine for OFD documents: open, render, convert, print, sign,
+edit, search and audit, behind one API. Pure Rust, zero unsafe, built to
 GB/T 33190-2016.
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](https://github.com/emfox/sOFD/blob/HEAD/README.md) | [简体中文](https://github.com/emfox/sOFD/blob/HEAD/README.zh-CN.md)
 
 [![Rust](https://img.shields.io/badge/rust-1.92%2B-orange)](https://www.rust-lang.org/)
 [![Edition](https://img.shields.io/badge/edition-2024-blue)](https://doc.rust-lang.org/edition-guide/rust-2024/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](https://github.com/emfox/sOFD/blob/HEAD/LICENSE)
 [![Standard](https://img.shields.io/badge/standard-GB%2FT%2033190--2016-red)]()
 
 ```rust
@@ -28,9 +30,9 @@ fontconfig, reached through `font-kit` by the reader on Linux.
 The current release is `0.5.0`. It renames every crate to `sofd`, so the facade
 is `cargo add sofd` and `use sofd::Document`; what a document draws is
 unchanged, and the 35 samples render byte-identically before and after. What it
-offers is in the [`CHANGELOG`](CHANGELOG.md); concrete work still to do is in
+offers is in the [`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md); concrete work still to do is in
 the [issue tracker](https://github.com/emfox/sOFD/issues), and the direction it
-serves is in [`docs/Roadmap.md`](docs/Roadmap.md).
+serves is in [`docs/Roadmap.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Roadmap.md).
 
 This document has two halves: the first is for anyone using sOFD, the second
 for anyone working on it.
@@ -56,11 +58,11 @@ somewhere, `cargo run` away:
 
 | Form | Example | What it shows |
 |---|---|---|
-| CLI | [`command_line.rs`](crates/sofd-cli/examples/command_line.rs) | open from a path, read what the document declares, render every page, verify signatures |
-| C ABI | [`c_abi.rs`](crates/sofd-ffi/examples/c_abi.rs) | the same calls a C host makes, against the generated [header](crates/sofd-ffi/include/sofd.h) |
-| Browser | [`browser.rs`](crates/sofd-wasm/examples/browser.rs) | the JS boundary from the Rust side: raster, SVG, search |
-| HTTP | [`http_service.rs`](crates/sofd-server/examples/http_service.rs) | the router, the store and a graceful shutdown, mounted in your own process |
-| Desktop | [`desktop_viewer.rs`](crates/sofd-reader/examples/desktop_viewer.rs) | the reader's interface drawn into an `egui::Ui`, with no window and no display |
+| CLI | [`command_line.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-cli/examples/command_line.rs) | open from a path, read what the document declares, render every page, verify signatures |
+| C ABI | [`c_abi.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-ffi/examples/c_abi.rs) | the same calls a C host makes, against the generated [header](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-ffi/include/sofd.h) |
+| Browser | [`browser.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-wasm/examples/browser.rs) | the JS boundary from the Rust side: raster, SVG, search |
+| HTTP | [`http_service.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-server/examples/http_service.rs) | the router, the store and a graceful shutdown, mounted in your own process |
+| Desktop | [`desktop_viewer.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-reader/examples/desktop_viewer.rs) | the reader's interface drawn into an `egui::Ui`, with no window and no display |
 
 `cargo build --workspace --examples` builds four of them; the browser one needs
 `--target wasm32-unknown-unknown`, and CI builds it there.
@@ -94,7 +96,7 @@ what is left before they can, is
 Twenty-one crates reach a registry, but only some of them are interfaces. Add
 `sofd` and you are done; the crates it depends on come along because
 cargo requires them, not because you were meant to name them. Which is which is
-in [Architecture.md § 3](docs/Architecture.md#3-crate-inventory), and
+in [Architecture.md § 3](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md#3-crate-inventory), and
 `python3 scripts/publish_order.py` prints the dependency closure — from
 `sofd` that is all twenty-one, while `sofd-crypto` alone needs three.
 
@@ -122,18 +124,18 @@ Cryptography Administration, so it lives on the industry standards platform
 rather than the national standards one.
 
 Clause-level coverage lives in
-[`compliance/gb-t-33190.toml`](compliance/gb-t-33190.toml) and the method
-behind it in [`compliance/CLAUSES.md`](compliance/CLAUSES.md): 56 clauses are
+[`compliance/gb-t-33190.toml`](https://github.com/emfox/sOFD/blob/HEAD/compliance/gb-t-33190.toml) and the method
+behind it in [`compliance/CLAUSES.md`](https://github.com/emfox/sOFD/blob/HEAD/compliance/CLAUSES.md): 56 clauses are
 registered, every one of them `verified`. The clause numbers are read out of the
-standard's transcribed text by [`scripts/gbt33190.py`](scripts/gbt33190.py),
+standard's transcribed text by [`scripts/gbt33190.py`](https://github.com/emfox/sOFD/blob/HEAD/scripts/gbt33190.py),
 which reads each numbered heading and checks the result against the contents
 pages the standard prints, so a row cannot cite a clause the standard does not
 have. What the engine can and cannot draw with is set out face by face in
-[`docs/Fonts.md`](docs/Fonts.md). How it compares to other readers in the field,
+[`docs/Fonts.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Fonts.md). How it compares to other readers in the field,
 page by page against a second vendor's output, is in
-[`docs/Interop.md`](docs/Interop.md). What a signature can and cannot settle,
+[`docs/Interop.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Interop.md). What a signature can and cannot settle,
 and why the standards leave the issuer to the caller, is in
-[`docs/Trust.md`](docs/Trust.md).
+[`docs/Trust.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Trust.md).
 
 ## Background
 
@@ -205,7 +207,7 @@ depends on; boxes below the facade are pulled in only when a feature names them.
 
 The keystone is `sofd-display`: every output backend reads the same
 flattened list, so an export cannot drift from the preview. Section 3 of
-[`docs/Architecture.md`](docs/Architecture.md) carries the same inventory as a
+[`docs/Architecture.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md) carries the same inventory as a
 table, with the responsibility and registry status of each crate.
 
 ## Where a document goes
@@ -313,17 +315,17 @@ python3 scripts/check_all.py
 
 New code needs tests. Do not introduce `unsafe`; `sofd-ffi` is the only
 documented exemption, because a C ABI requires it. Code, comments, commit
-messages and issues are English only: [docs/Conventions.md](docs/Conventions.md).
+messages and issues are English only: [docs/Conventions.md](https://github.com/emfox/sOFD/blob/HEAD/docs/Conventions.md).
 
 Performance baselines, and how to run them, are in
-[`docs/Performance.md`](docs/Performance.md).
+[`docs/Performance.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Performance.md).
 
 ## License
 
-[Apache-2.0](LICENSE)
+[Apache-2.0](https://github.com/emfox/sOFD/blob/HEAD/LICENSE)
 
 The reader's icons are the Adwaita symbolic set, drawn by the GNOME Project and
-used here under CC BY-SA 3.0 US; see [NOTICE.md](NOTICE.md).
+used here under CC BY-SA 3.0 US; see [NOTICE.md](https://github.com/emfox/sOFD/blob/HEAD/NOTICE.md).
 
 ## Related
 

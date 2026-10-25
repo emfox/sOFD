@@ -41,7 +41,11 @@ ALLOWLIST_CJK_LITERALS = {
 
 # Lines exempt from the language rule even inside otherwise English files.
 # The bilingual README pair must cross-link using the other language's own name.
-ALLOWLIST_LINE_RE = re.compile(r"\[\u7b80\u4f53\u4e2d\u6587\]\(README\.zh-CN\.md\)")
+# The target is absolute because a published README resolves relative links
+# against the repository, not against the crate page.
+ALLOWLIST_LINE_RE = re.compile(
+    r"\[\u7b80\u4f53\u4e2d\u6587\]\((?:\S*/)?README\.zh-CN\.md\)"
+)
 
 # Documentation that must stay English. Everything else under docs/ is checked too.
 DOC_SUFFIXES = {".md", ".rst"}
