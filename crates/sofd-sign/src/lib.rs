@@ -491,7 +491,7 @@ pub fn read_coverage(package: &mut Package, list_loc: &str) -> Result<Vec<Covera
 /// A signed-value file holds the proof either as raw DER or as base64 text.
 fn b64_ish(bytes: &[u8]) -> Vec<u8> {
     match std::str::from_utf8(bytes) {
-        Ok(text) => base64_decode(text.trim()).unwrap_or_else(|| bytes.to_vec()),
+        Ok(text) => sofd_common::base64::decode(text).unwrap_or_else(|| bytes.to_vec()),
         Err(_) => bytes.to_vec(),
     }
 }
@@ -525,7 +525,7 @@ fn absorb_text(
     timestamp: bool,
 ) {
     if let Some(index) = pending {
-        if ref_digest && let Some(bytes) = base64_decode(text) {
+        if ref_digest && let Some(bytes) = sofd_common::base64::decode(text) {
             signature.references[index].check_value = bytes;
         }
         return;
@@ -535,7 +535,7 @@ fn absorb_text(
     } else if signed_value {
         signature.signed_value_ref = Some(text.to_string());
     } else if cert {
-        if let Some(bytes) = base64_decode(text) {
+        if let Some(bytes) = sofd_common::base64::decode(text) {
             signature.certificate = Some(bytes);
         }
     } else if method {
@@ -544,7 +544,7 @@ fn absorb_text(
         signature.sign_time = Some(text.to_string());
     } else if timestamp {
         // The timestamp travels as base64 DER, like `Cert` and `CheckValue`.
-        if let Some(bytes) = base64_decode(text) {
+        if let Some(bytes) = sofd_common::base64::decode(text) {
             signature.timestamp = Some(bytes);
         } else {
             signature.timestamp = Some(text.as_bytes().to_vec());
@@ -714,24 +714,4 @@ pub fn signed_digest(package: &mut Package, sig: &Signature) -> Result<Option<Ve
 /// algorithm name or as its object identifier.
 fn is_sm3(method: &str) -> bool {
     method.eq_ignore_ascii_case("SM3") || method == sofd_crypto::SM3_OID
-}
-
-fn base64_decode(text: &str) -> Option<Vec<u8>> {
-    const TABLE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = Vec::with_capacity(text.len() / 4 * 3);
-    let mut acc: u32 = 0;
-    let mut bits: u32 = 0;
-    for ch in text.bytes() {
-        if ch == b'=' || ch.is_ascii_whitespace() {
-            continue;
-        }
-        let v = TABLE.iter().position(|c| *c == ch)? as u32;
-        acc = (acc << 6) | v;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((acc >> bits) as u8);
-        }
-    }
-    Some(out)
 }

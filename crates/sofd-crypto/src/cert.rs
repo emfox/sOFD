@@ -137,7 +137,9 @@ impl Certificate {
     /// Parse a PEM-encoded certificate (the first BEGIN CERTIFICATE block).
     pub fn parse_pem(pem: &str) -> Result<Self, OfdError> {
         let text = strip_pem_armor(pem)?;
-        let der = base64_decode(text)?;
+        let der = sofd_common::base64::decode(text).ok_or_else(|| {
+            OfdError::Crypto(CryptoError::Operation("invalid base64 in PEM".into()))
+        })?;
         Self::parse_der(&der)
     }
 
@@ -264,28 +266,6 @@ fn strip_pem_armor(pem: &str) -> Result<&str, OfdError> {
         ))
     })?;
     Ok(body[..end].trim())
-}
-
-fn base64_decode(text: &str) -> Result<Vec<u8>, OfdError> {
-    const TABLE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = Vec::with_capacity(text.len() / 4 * 3);
-    let mut acc: u32 = 0;
-    let mut bits: u32 = 0;
-    for ch in text.bytes() {
-        if ch == b'=' || ch.is_ascii_whitespace() {
-            continue;
-        }
-        let v = TABLE.iter().position(|c| *c == ch).ok_or_else(|| {
-            OfdError::Crypto(CryptoError::Operation("invalid base64 in PEM".into()))
-        })? as u32;
-        acc = (acc << 6) | v;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((acc >> bits) as u8);
-        }
-    }
-    Ok(out)
 }
 
 fn hex_of(bytes: Vec<u8>) -> String {

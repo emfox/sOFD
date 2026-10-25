@@ -11,6 +11,7 @@ keywords = ["ofd", "sm2", "sm3", "sm4", "digital-signature"]
 categories = ["cryptography", "authentication"]
 
 [dependencies]
+sofd-common.workspace = true
 sofd-error.workspace = true
 sm2.workspace = true
 signature.workspace = true
