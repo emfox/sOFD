@@ -33,7 +33,9 @@ ROOT = Path(__file__).resolve().parent.parent
 # A registry entry is what a stranger reads before deciding to add the crate, so
 # each of these is a question they will otherwise have to answer by reading the
 # source. `license` and `repository` come from the workspace, so a crate that
-# inherits them passes without restating them.
+# inherits them passes without restating them. `readme` comes from the workspace
+# too, or points at one the crate writes for itself; either is fine, and the
+# crate's own is what an interface uses.
 REQUIRED = ("description", "license", "repository", "readme")
 
 # Features removed because they compiled and changed nothing. A name that comes
@@ -69,13 +71,15 @@ def package_block(text: str) -> str:
 
 
 def inherited(block: str, field: str) -> bool:
-    """Whether the field is stated here or inherited from the workspace."""
+    """Whether the field is stated here, inherited from the workspace, or set.
+
+    `readme.workspace = true` and `readme = "README.md"` both satisfy a
+    registry: the first points at the repository's page, the second at one the
+    crate writes. What the check rejects is the absence of either.
+    """
     if re.search(rf"^{field}\s*=\s*\S", block, re.M):
-        return not re.search(rf"^{field}\.workspace\s*=\s*true", block, re.M)
-    pattern = rf"^{field}(\.workspace\s*=\s*true|\s*=\s*\S)"
-    if re.search(pattern, block, re.M):
         return True
-    return False
+    return re.search(rf"^{field}\.workspace\s*=\s*true", block, re.M) is not None
 
 
 def publishes(block: str) -> bool:
