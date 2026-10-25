@@ -47,6 +47,7 @@ question has a shape.
 | **A public extension surface** for colour profiles, font providers and render backends | The three traits can be guessed, but an extension point without a worked example is a guess at a requirement. It waits until somebody forks a crate to plug something in, because that fork says what the trait has to be. [#12](https://github.com/emfox/sOFD/issues/12) |
 | **A cache for what a window redraws** | The stated budgets are met without one, so the shape of the answer depends on a measurement nobody has taken. [#6](https://github.com/emfox/sOFD/issues/6) |
 | **Which constructs `office` and `ocr` would name, if implemented** | A DOCX or OOXML conversion in one direction and OCR in the other each needs a model before it needs code, and nobody has asked for either. [#10](https://github.com/emfox/sOFD/issues/10) |
+| **Whether version numbers should stay uniform across the twenty-one crates** | The workspace states one version for all of them, so a leaf's patch spends every crate's version. Whether that costs enough to be worth changing is not yet measurable, because nothing has shipped twice on the current scheme. [`Versioning.md`](Versioning.md) states the case, the costs and the order the work would go in |
 | **Tracking revisions of GB/T 33190** | Nothing is pending today. This is the standing task that keeps it that way rather than work with a shape. |
 
 ## Standing constraints
