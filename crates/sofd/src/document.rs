@@ -340,6 +340,44 @@ impl Document {
             .collect()
     }
 
+    /// Everything worth showing about each signature: who signed, when their
+    /// certificate runs, and how many files the proof covers.
+    /// [`verify_signatures`](Self::verify_signatures) answers whether the proof
+    /// holds; this answers what it is about, which is what a reader asks next.
+    /// The invoice seal's text comes from the certificate, not the container.
+    #[cfg(feature = "sign")]
+    pub fn signature_details(&mut self) -> Result<Vec<sofd_sign::details::SignatureDetails>> {
+        let refs = self.signatures()?;
+        // Coverage is read once for the whole list: it walks the container,
+        // and asking per signature would walk it once per signature.
+        let list_loc = self
+            .parsed
+            .ofd
+            .doc_bodies
+            .first()
+            .and_then(|body| body.signatures.as_ref())
+            .map(|loc| loc.value.clone());
+        let coverage = list_loc
+            .and_then(|loc| sofd_sign::details::coverage_summary(&mut self.package, &loc).ok());
+        let mut out = Vec::with_capacity(refs.len());
+        for entry in &refs {
+            let mut signature = sofd_sign::read_signature(&mut self.package, &entry.base_loc)?;
+            signature.read_check_value(&mut self.package)?;
+            let certificate = signature
+                .certificate
+                .as_deref()
+                .and_then(|der| sofd_crypto::Certificate::parse_der(der).ok());
+            let mut described =
+                sofd_sign::details::describe(&signature, certificate.as_ref(), coverage.as_ref());
+            // The descriptor does not state its own path, so a details list
+            // whose entries all read as `None` would say nothing about which
+            // signature is which; the entry that named this file does.
+            described.id = described.id.or_else(|| Some(entry.base_loc.clone()));
+            out.push(described);
+        }
+        Ok(out)
+    }
+
     /// The seals a document draws, each resolved onto the page it sits on.
     /// Clause 18.2.3: a stamp names its page by id, so the id is joined to the
     /// page index here, and the seal image travels ready to draw.
@@ -361,6 +399,7 @@ impl Document {
                     boundary: placement.boundary,
                     clip: placement.clip,
                     image: placement.image,
+                    sealed: placement.sealed,
                 });
             }
         }
@@ -424,6 +463,13 @@ pub struct Seal {
     pub clip: Option<sofd_common::Rect>,
     /// The seal image bytes, empty when none was named or found.
     pub image: Vec<u8>,
+    /// The seal the signature carries inside itself, when it carries one.
+    ///
+    /// This is where an invoice's seal actually is. GB/T 38540 keeps it in
+    /// `SES_Signature.toSign.eseal`, and its picture is usually an entire OFD
+    /// document with the seal drawn as text, so a reader draws that document
+    /// rather than laying a seal out from a specification.
+    pub sealed: Option<sofd_crypto::SealPicture>,
 }
 
 /// An annotation resolved onto the page it belongs to.

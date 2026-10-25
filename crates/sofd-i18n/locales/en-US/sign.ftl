@@ -22,6 +22,18 @@ sign-algorithm = Algorithm: { $algo }
 sign-issuer = Issuer: { $issuer }
 sign-export-report = Export Verification Report
 sign-panel-title = Signatures
+sign-valid-until = Certificate: { $from } to { $to }
+sign-covers = { $count ->
+    [0] The signature covers no files
+    [one] The signature covers { $count } file
+   *[other] The signature covers { $count } files
+}, { $loose ->
+    [0] with nothing outside every signature
+    [one] with { $loose } file outside every signature
+   *[other] with { $loose } files outside every signature
+}
+sign-seal-text = Supervision seal: { $text }
+sign-seal-details = Seal Details
 
 # Annotations, clause 15. Read apart from the pages they mark up.
 annot-panel-title = Annotations

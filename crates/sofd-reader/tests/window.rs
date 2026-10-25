@@ -939,3 +939,38 @@ fn the_canvas_is_drawn_in_its_own_colour() {
     });
     assert!(painted, "the canvas well was never painted");
 }
+
+#[test]
+fn an_invoice_seal_answers_a_click_with_what_the_signature_says() {
+    // Notice 2020 no. 1 replaces the printed seal with a signed one and tells a
+    // reader to open it. So the seal is clickable, and what opens states the
+    // three lines the seal prints, which travel inside the signature.
+    let bytes = std::fs::read(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../tests/fixtures/ofdrw/999.ofd"
+    ))
+    .expect("the invoice fixture");
+    let mut app = App::new();
+    app.open_bytes(&bytes, Some("999.ofd"))
+        .expect("the invoice opens");
+    // Reading the seals is what the panel does on its first draw, and it is
+    // also what makes the seal a place the pointer can land on.
+    app.set_signatures_open(true);
+    // The seal is drawn at 90, 8 and is 30 by 20 millimetres, so its middle is
+    // at 105, 18. The centre of a ring is empty paper and still the seal.
+    let hit = app
+        .seal_at(0, (105.0, 18.0))
+        .expect("the middle of the seal is the seal");
+    assert_eq!(hit, 0, "the invoice carries one signature");
+    assert!(
+        app.seal_at(0, (10.0, 10.0)).is_none(),
+        "the page beside the seal is not the seal"
+    );
+
+    // The panel states the seal's own text, which is what a person compares
+    // against the invoice in their hand, and how much the proof covers.
+    let harness = harness(app);
+    harness.get_by_label_contains("Supervision seal: 全国统一发票监制章");
+    harness.get_by_label_contains("The signature covers 20 files");
+    harness.get_by_label_contains("Certificate: 2020-07-23 to 2030-07-23");
+}

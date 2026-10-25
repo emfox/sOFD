@@ -306,19 +306,18 @@ fn narrow(window: sofd_common::Rect, dpi: f32) -> sofd_common::Rect {
     sofd_common::Rect::new(window.x, window.y, window.w.min(most), window.h.min(most))
 }
 
-/// Composite one seal onto the page raster, scaled to its boundary. A seal
-/// with no bytes, or one whose image will not decode, is skipped rather than
-/// failing the page, exactly as a missing image resource is.
+/// Composite one seal onto the page raster, scaled to its boundary. A seal is
+/// drawn, not laid out: GB/T 38540 keeps it inside the signature, as a raster
+/// image or as a whole OFD document, and the second case is a nested render
+/// because its positions, rotations and typeface travel in the document. A seal
+/// that will not decode is skipped, as a missing image resource is.
 fn stamp_seal(
     raster: &mut image::RgbaImage,
     seal: &sofd::Seal,
     dpi: f64,
     window: Option<sofd_common::Rect>,
 ) {
-    if seal.image.is_empty() {
-        return;
-    }
-    let Ok(seal_image) = image::load_from_memory(&seal.image) else {
+    let Some(drawn) = draw_seal(seal, dpi) else {
         return;
     };
     let mm = dpi / MM_PER_INCH;
@@ -334,8 +333,135 @@ fn stamp_seal(
     if dw <= 0 || dh <= 0 {
         return;
     }
-    let scaled = seal_image
+    let scaled = drawn
         .resize_exact(dw as u32, dh as u32, image::imageops::FilterType::Triangle)
         .to_rgba8();
     image::imageops::overlay(raster, &scaled, dx, dy);
+}
+
+/// A seal's appearance as an image, whichever way the signature states it.
+fn draw_seal(seal: &sofd::Seal, dpi: f64) -> Option<image::DynamicImage> {
+    if let Some(sealed) = &seal.sealed {
+        // Drawn at the page's resolution, so it stays sharp at every zoom. The
+        // picture states its size in millimetres, which is what makes it a seal
+        // rather than a picture of one.
+        if sealed.kind.eq_ignore_ascii_case("ofd") {
+            let inner = sofd::Document::open_bytes(&sealed.data).ok()?;
+            // Only one page is asked for: a seal document holds exactly one,
+            // and rendering whatever else it might hold would paste the wrong
+            // thing over the invoice.
+            let options = RenderOptions {
+                dpi: dpi_at(dpi),
+                ..RenderOptions::default()
+            };
+            let png = inner.to_png(0, &options).ok()?;
+            return image::load_from_memory_with_format(&png, image::ImageFormat::Png).ok();
+        }
+        return image::load_from_memory(&sealed.data).ok();
+    }
+    if seal.image.is_empty() {
+        return None;
+    }
+    image::load_from_memory(&seal.image).ok()
+}
+
+/// The DPI a seal document is drawn at: the page's own, so the nested render
+/// arrives at the seal's stated millimetre size and the paste below scales it to
+/// the annotation's box by construction rather than by a factor computed here.
+fn dpi_at(wanted: f64) -> f64 {
+    wanted.clamp(f64::from(MIN_DPI), f64::from(MAX_DPI))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The invoice in the fixtures carries its seal the way GB/T 38540 says to:
+    /// inside the signed value, as a nested OFD document, with no `Seal`
+    /// element anywhere for the descriptor to point at. Rendering it therefore
+    /// has to go through the nested document, and this is the test that says so
+    /// — a reader that only looked for `Seal` drew nothing on this file for a
+    /// long time, and the page looked complete without it.
+    #[test]
+    fn an_invoice_seal_is_read_from_inside_the_signature() {
+        let bytes = fixture("tests/fixtures/ofdrw/999.ofd");
+        let Some(bytes) = bytes else {
+            return; // The fixture is not shipped with every build.
+        };
+        let mut doc = sofd::Document::open_bytes(&bytes).expect("the fixture opens");
+        let seals = doc.seals().expect("the seals read");
+        assert_eq!(seals.len(), 1, "the invoice carries one seal");
+        let seal = &seals[0];
+        let sealed = seal
+            .sealed
+            .as_ref()
+            .expect("the seal travels inside the signature");
+        assert_eq!(sealed.kind, "ofd", "the seal is a nested document");
+        assert_eq!(
+            (sealed.width, sealed.height),
+            (30, 20),
+            "the size notice 2018 no. 41 states, in millimetres"
+        );
+        assert!(
+            sealed.data.starts_with(b"PK"),
+            "a nested document, not an image"
+        );
+        // The annotation puts it where the issuer put it: 30 by 20 mm at 90, 8.
+        assert_eq!(seal.boundary.w, 30.0);
+        assert_eq!(seal.boundary.h, 20.0);
+    }
+
+    /// The seal draws in red and covers the box it was placed in. The page has
+    /// a white background, so red pixels inside that box are the seal and
+    /// nothing else is.
+    #[test]
+    fn the_seal_reaches_the_page() {
+        let Some(bytes) = fixture("tests/fixtures/ofdrw/999.ofd") else {
+            return;
+        };
+        let mut doc = sofd::Document::open_bytes(&bytes).expect("the fixture opens");
+        let seals = doc.seals().expect("the seals read");
+        let page = seals[0].page;
+        let drawn =
+            render_page_with_seals(&doc, page, 96.0, &seals, None).expect("the page renders");
+        let mm = 96.0 / MM_PER_INCH;
+        let (x0, y0) = (
+            (seals[0].boundary.x * mm) as usize,
+            (seals[0].boundary.y * mm) as usize,
+        );
+        let (x1, y1) = (
+            ((seals[0].boundary.x + seals[0].boundary.w) * mm) as usize,
+            ((seals[0].boundary.y + seals[0].boundary.h) * mm) as usize,
+        );
+        let mut red = 0;
+        let mut total = 0;
+        for y in y0..y1.min(drawn.image.height()) {
+            for x in x0..x1.min(drawn.image.width()) {
+                let pixel = drawn.image.pixels[y * drawn.image.width() + x];
+                total += 1;
+                if pixel.r() > 150 && pixel.g() < 120 && pixel.b() < 120 {
+                    red += 1;
+                }
+            }
+        }
+        assert!(total > 0, "the seal box is on the page");
+        // A ring plus three lines of text is a fifth of the box, not a trace and
+        // not a filled rectangle: both extremes would mean the wrong thing was
+        // pasted.
+        let share = red as f64 / total as f64;
+        assert!(
+            share > 0.05 && share < 0.6,
+            "red covers {:.1}% of the seal box",
+            share * 100.0
+        );
+    }
+
+    /// Read a fixture from the workspace root, which is where `cargo test` runs
+    /// a package's tests from.
+    fn fixture(path: &str) -> Option<Vec<u8>> {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()?
+            .parent()?;
+        std::fs::read(root.join(path)).ok()
+    }
 }

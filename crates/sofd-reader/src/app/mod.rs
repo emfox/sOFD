@@ -124,7 +124,7 @@ pub struct PrintReport {
 /// What the reader needs to know about one signature. The verdict comes from
 /// the engine; who signed and when come from the descriptor, read alongside
 /// it, so the panel never reaches into the engine itself.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SignatureReport {
     /// The signature's own identifier, as written in the document.
     pub id: Option<String>,
@@ -136,6 +136,26 @@ pub struct SignatureReport {
     pub signed_at: Option<String>,
     /// The algorithm named in the descriptor.
     pub algorithm: Option<String>,
+    /// What the certificate says about the signer: the issuer, the window it is
+    /// valid in, and for an invoice the seal's own text. Kept on the report
+    /// rather than fetched when a dialog opens, because reading it costs a
+    /// second pass over the container and the panel needs it to draw.
+    pub details: sofd_sign::details::SignatureDetails,
+    /// Where the seals this signature carries are drawn, one entry per stamp.
+    pub seals: Vec<SealBox>,
+}
+
+/// One seal's place on a page, in page millimetres.
+///
+/// This is what makes a seal clickable: the reader hit-tests the pointer
+/// against these boxes rather than against the drawn pixels, so the whole seal
+/// answers to a click even where its ink is thin.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SealBox {
+    /// The page the seal is on, as an index.
+    pub page: usize,
+    /// Where it sits, in page millimetres.
+    pub boundary: sofd_common::Rect,
 }
 
 /// How one signature stands. Three states rather than two: a proof that fails

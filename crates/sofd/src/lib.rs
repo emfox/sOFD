@@ -23,4 +23,4 @@ pub use sofd_render::RenderOptions;
 #[cfg(feature = "search")]
 pub use sofd_search::SearchOptions;
 #[cfg(feature = "sign")]
-pub use sofd_sign::{TimestampStatus, VerifyStatus};
+pub use sofd_sign::{SealText, TimestampStatus, VerifyStatus};

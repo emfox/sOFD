@@ -22,6 +22,16 @@ sign-algorithm = 算法：{ $algo }
 sign-issuer = 颁发机构：{ $issuer }
 sign-export-report = 导出验签报告
 sign-panel-title = 签名
+sign-valid-until = 证书有效期：{ $from } 至 { $to }
+sign-covers = { $count ->
+    [0] 签名未覆盖任何文件
+   *[other] 签名覆盖 { $count } 个文件
+}，{ $loose ->
+    [0] 没有文件落在签名范围之外
+   *[other] 另有 { $loose } 个文件不在任何签名范围内
+}
+sign-seal-text = 监制章：{ $text }
+sign-seal-details = 印章详情
 
 # Annotations, clause 15. Read apart from the pages they mark up.
 annot-panel-title = 注释

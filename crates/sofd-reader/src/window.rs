@@ -827,10 +827,29 @@ fn draw_signatures(ui: &mut Ui, app: &mut App) {
                     let details = [
                         app.signature_signer_label(report),
                         app.signature_time_label(report),
+                        app.signature_issuer_label(report),
+                        app.signature_validity_label(report),
                         app.signature_algorithm_label(report),
+                        // The seal's text is what a reader checks against the
+                        // paper in front of them, so it is stated before the
+                        // question of how much of the file the proof covers.
+                        app.signature_seal_label(report),
+                        Some(app.signature_coverage_label(report)),
                     ];
                     for line in details.into_iter().flatten() {
                         ui.label(toned(ui, app, line, Token::Dim, Style::Caption));
+                    }
+                    // A file no signature covers is the one thing in the
+                    // package that could have changed without the proof
+                    // noticing, so it is named rather than counted.
+                    for loose in &report.details.uncovered {
+                        ui.label(toned(
+                            ui,
+                            app,
+                            loose.clone(),
+                            Token::Unverified,
+                            Style::Caption,
+                        ));
                     }
                     ui.add_space(theme::Space::Medium.points());
                 }
@@ -1024,6 +1043,18 @@ fn draw_one_page(ui: &mut Ui, app: &mut App, page: usize) {
         // occupies on screen, so a spread marks the right page.
         draw_highlights(ui, app, page, response.rect, size);
         draw_annotations_on(ui, app, page, response.rect, size);
+        // A seal answers to a click, which is how notice 2020 no. 1 says an
+        // invoice is checked. The hit test is in page space, so zoom is moot.
+        if response.clicked() || response.secondary_clicked() {
+            let on_seal = ui
+                .ctx()
+                .pointer_interact_pos()
+                .and_then(|at| point_in_page(app, page, response.rect, size, at))
+                .is_some_and(|(hit_page, point)| app.seal_at(hit_page, point).is_some());
+            if on_seal {
+                app.set_signatures_open(true);
+            }
+        }
     });
 }
 
@@ -1094,6 +1125,30 @@ fn draw_highlights(ui: &Ui, app: &App, page: usize, area: egui::Rect, drawn: egu
 }
 
 /// Map a hit rectangle from page space onto the space the page was drawn in.
+/// A pointer position translated into page space, in millimetres. Hit tests run
+/// there rather than in pixels, so a seal answers the same at every zoom, and a
+/// point outside the page is rejected rather than clamped onto its edge.
+fn point_in_page(
+    app: &App,
+    page: usize,
+    area: egui::Rect,
+    drawn: egui::Vec2,
+    pointer: egui::Pos2,
+) -> Option<(usize, (f64, f64))> {
+    let page_box = app.page_size_mm(page)?;
+    if !area.contains(pointer) {
+        return None;
+    }
+    let sx = f64::from(page_box.0.max(1.0)) / f64::from(drawn.x.max(1.0));
+    let sy = f64::from(page_box.1.max(1.0)) / f64::from(drawn.y.max(1.0));
+    let x = f64::from(pointer.x - area.min.x) * sx;
+    let y = f64::from(pointer.y - area.min.y) * sy;
+    if x < 0.0 || y < 0.0 || x > f64::from(page_box.0) || y > f64::from(page_box.1) {
+        return None;
+    }
+    Some((page, (x, y)))
+}
+
 fn scale_hit(
     hit: sofd_common::Rect,
     page_box: (f32, f32),

@@ -616,6 +616,34 @@ fn gb_t_33190_18_2_2_coverage_names_what_a_signature_protects() {
 }
 
 #[test]
+fn a_reference_that_starts_with_a_slash_protects_its_file() {
+    // Issuers write `FileRef` with a leading slash and the container lists
+    // without one. Comparing the spellings directly reported every referenced
+    // file as also uncovered, which reads as a document that protects nothing.
+    let entries = vec![
+        (
+            "Signs/Signs.xml",
+            br#"<Signs><Sign ID="s" BaseLoc="Signs/Sign_0.xml"/></Signs>"#.to_vec(),
+        ),
+        (
+            SIG_FILE,
+            descriptor("s", &[("SM3", "/Doc_0/Document.xml")]).into_bytes(),
+        ),
+        ("Doc_0/Document.xml", b"sealed".to_vec()),
+    ];
+    let mut package = open(&entries);
+    let reports = read_coverage(&mut package, "Signs/Signs.xml").expect("coverage");
+    assert_eq!(reports[0].covered, vec!["/Doc_0/Document.xml"]);
+    assert!(
+        !reports[0]
+            .uncovered
+            .contains(&"Doc_0/Document.xml".to_string()),
+        "the file the reference names is protected, got {:?}",
+        reports[0].uncovered
+    );
+}
+
+#[test]
 fn gb_t_33190_18_2_2_a_later_signature_slides_under_the_earlier_one() {
     // The incremental-update property: adding a second signature leaves the
     // first one's scope intact, and a file the second one protects is no

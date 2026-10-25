@@ -83,6 +83,14 @@ pub enum MessageId {
     SignExportReport,
     /// Heading on the signature panel in the reader
     SignPanelTitle,
+    /// The certificate's validity window, from and to
+    SignValidUntil,
+    /// How many files a signature covers, and how many nothing covers
+    SignCovers,
+    /// The three lines an invoice seal prints
+    SignSealText,
+    /// The details of one seal, opened by clicking it
+    SignSealDetails,
 
     // Annotation module
     /// Heading on the annotation panel in the reader
@@ -159,6 +167,16 @@ pub enum MessageId {
     CliSignEntry,
     /// The document declares no signatures
     CliSignNone,
+    /// The certificate's validity window, from and to
+    CliCertValidity,
+    /// The validator that wrote the signature
+    CliSignProvider,
+    /// How many files the signature covers and how many nothing covers
+    CliSignCoverage,
+    /// Where the seals are drawn, one box per stamp
+    CliSignStamps,
+    /// The three lines an invoice seal prints
+    CliSignSeal,
     /// Prefix for a reported error
     CliError,
 
@@ -228,6 +246,10 @@ impl MessageId {
             Self::SignIssuer => "sign-issuer",
             Self::SignExportReport => "sign-export-report",
             Self::SignPanelTitle => "sign-panel-title",
+            Self::SignValidUntil => "sign-valid-until",
+            Self::SignCovers => "sign-covers",
+            Self::SignSealText => "sign-seal-text",
+            Self::SignSealDetails => "sign-seal-details",
 
             // Annotation
             Self::AnnotPanelTitle => "annot-panel-title",
@@ -271,6 +293,11 @@ impl MessageId {
             Self::CliPrintPlan => "cli-print-plan",
             Self::CliSignEntry => "cli-sign-entry",
             Self::CliSignNone => "cli-sign-none",
+            Self::CliCertValidity => "cli-cert-validity",
+            Self::CliSignProvider => "cli-sign-provider",
+            Self::CliSignCoverage => "cli-sign-coverage",
+            Self::CliSignStamps => "cli-sign-stamps",
+            Self::CliSignSeal => "cli-sign-seal",
             Self::CliError => "cli-error",
 
             // Errors
@@ -332,6 +359,10 @@ impl MessageId {
         Self::SignIssuer,
         Self::SignExportReport,
         Self::SignPanelTitle,
+        Self::SignValidUntil,
+        Self::SignCovers,
+        Self::SignSealText,
+        Self::SignSealDetails,
         // Annotation
         Self::AnnotPanelTitle,
         Self::AnnotCount,
@@ -369,6 +400,11 @@ impl MessageId {
         Self::CliPrintPlan,
         Self::CliSignEntry,
         Self::CliSignNone,
+        Self::CliCertValidity,
+        Self::CliSignProvider,
+        Self::CliSignCoverage,
+        Self::CliSignStamps,
+        Self::CliSignSeal,
         Self::CliError,
         // Errors
         Self::ErrNotOfd,
@@ -396,6 +432,9 @@ impl MessageId {
                 | Self::SignSignedAt
                 | Self::SignAlgorithm
                 | Self::SignIssuer
+                | Self::SignValidUntil
+                | Self::SignCovers
+                | Self::SignSealText
                 | Self::EditWarnInvalidateSignature
                 | Self::SearchResultCount
                 | Self::ErrPageOutOfRange
@@ -418,6 +457,11 @@ impl MessageId {
                 | Self::CliAuditFinding
                 | Self::CliPrintPlan
                 | Self::CliSignEntry
+                | Self::CliCertValidity
+                | Self::CliSignProvider
+                | Self::CliSignCoverage
+                | Self::CliSignStamps
+                | Self::CliSignSeal
                 | Self::CliError
         )
     }

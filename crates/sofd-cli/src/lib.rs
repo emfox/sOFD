@@ -15,9 +15,10 @@ use sofd_archive::Severity;
 use sofd_error::{FontError, FormatError, OfdError};
 use sofd_font::FontSource;
 use sofd_i18n::format::LocalizedFormat;
-use sofd_i18n::{I18n, Locale, MessageId};
+use sofd_i18n::{FluentValue, I18n, Locale, MessageId};
 use sofd_io::FileSource;
 use sofd_print::{PaperSize, PrintSettings};
+use sofd_sign::details::SignatureDetails;
 
 use crate::cli::{Cli, Command, FormatArg, PaperArg};
 
@@ -407,19 +408,26 @@ fn verify(path: &Path, i18n: &I18n) -> Result<Report> {
         result => result?,
     };
     let statuses = doc.verify_signatures()?;
-    let lines: Vec<String> = refs
-        .iter()
-        .zip(&statuses)
-        .map(|(sig, status)| {
-            i18n.text_with(
-                MessageId::CliSignEntry,
-                [
-                    ("loc", sig.base_loc.clone().into()),
-                    ("status", verify_label(status, i18n).into()),
-                ],
-            )
-        })
-        .collect();
+    // Who signed, when, and how much of the file the proof covers: a verdict on
+    // its own says a signature holds and nothing about what it is over, which
+    // is the part a reader carrying an invoice needs.
+    let details = doc.signature_details().unwrap_or_default();
+    let mut lines: Vec<String> = Vec::new();
+    for (index, (sig, status)) in refs.iter().zip(&statuses).enumerate() {
+        lines.push(i18n.text_with(
+            MessageId::CliSignEntry,
+            [
+                ("loc", sig.base_loc.clone().into()),
+                ("status", verify_label(status, i18n).into()),
+            ],
+        ));
+        let Some(detail) = details.get(index) else {
+            continue;
+        };
+        for line in signature_detail_lines(detail, i18n) {
+            lines.push(line);
+        }
+    }
     let ok = statuses.iter().all(|s| matches!(s, VerifyStatus::Valid));
     Ok(Report {
         text: lines.join("\n"),
@@ -531,6 +539,74 @@ fn paper_size(paper: PaperArg) -> PaperSize {
         PaperArg::Letter => PaperSize::Letter,
         PaperArg::Legal => PaperSize::Legal,
     }
+}
+
+/// The lines under a verdict: who signed, when, and what the proof covers.
+///
+/// Quiet about what it does not know, rather than printing `unknown` five
+/// times: a signature with no provider line has no provider, and saying so adds
+/// a row nobody reads.
+fn signature_detail_lines(detail: &SignatureDetails, i18n: &I18n) -> Vec<String> {
+    // One row per fact the descriptor or the certificate actually states. A
+    // signature with no provider gets no provider row, rather than a row
+    // reading "unknown" that nobody can act on.
+    let mut rows: Vec<(MessageId, Vec<(&str, String)>)> = Vec::new();
+    if let Some(name) = &detail.common_name {
+        rows.push((MessageId::SignSigner, vec![("name", name.clone())]));
+    }
+    if let Some(time) = &detail.signed_at {
+        rows.push((MessageId::SignSignedAt, vec![("time", time.clone())]));
+    }
+    if let Some(issuer) = &detail.issuer {
+        rows.push((MessageId::SignIssuer, vec![("issuer", issuer.clone())]));
+    }
+    if let (Some(from), Some(to)) = (&detail.not_before, &detail.not_after) {
+        rows.push((
+            MessageId::CliCertValidity,
+            vec![("from", from.clone()), ("to", to.clone())],
+        ));
+    }
+    if let Some(method) = &detail.check_method {
+        rows.push((MessageId::SignAlgorithm, vec![("algo", method.clone())]));
+    }
+    if let Some(provider) = &detail.provider {
+        rows.push((MessageId::CliSignProvider, vec![("name", provider.clone())]));
+    }
+    rows.push((
+        MessageId::CliSignCoverage,
+        vec![
+            ("count", detail.covered.to_string()),
+            ("loose", detail.uncovered.len().to_string()),
+        ],
+    ));
+    // A stamp box matters for an invoice and nothing else, so it is reported
+    // only when there is one.
+    if !detail.stamps.is_empty() {
+        rows.push((
+            MessageId::CliSignStamps,
+            vec![(
+                "list",
+                detail
+                    .stamps
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join("; "),
+            )],
+        ));
+    }
+    if let Some(seal) = &detail.seal {
+        rows.push((MessageId::CliSignSeal, vec![("text", seal.row())]));
+    }
+    rows.into_iter()
+        .map(|(id, fields)| {
+            let args: Vec<(&str, FluentValue)> = fields
+                .into_iter()
+                .map(|(key, value)| (key, value.into()))
+                .collect();
+            i18n.text_with(id, args)
+        })
+        .collect()
 }
 
 fn verify_label(status: &VerifyStatus, i18n: &I18n) -> String {

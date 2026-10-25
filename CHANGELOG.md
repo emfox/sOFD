@@ -8,6 +8,14 @@ release is written up is in
 
 ## [Unreleased]
 
+### Added
+
+- **The invoice supervision seal is drawn on the page and read back by
+  `sofd verify`.** An invoice keeps its seal inside the signature rather than
+  beside it, so a reader that looked for a `Seal` element drew nothing; the
+  seal's three lines now come from the certificate, and clicking it opens the
+  signature that carries it.
+
 ## [0.5.1] - 2026-10-25
 
 ### Added

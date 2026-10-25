@@ -87,6 +87,15 @@ fn fixture_path() -> PathBuf {
     path
 }
 
+/// A shipped fixture by its path under `tests/fixtures`, for the commands
+/// whose answer only a real document can give.
+fn fixture(relative: &str) -> PathBuf {
+    let path =
+        PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/fixtures")).join(relative);
+    assert!(path.exists(), "fixture missing: {}", path.display());
+    path
+}
+
 fn report_for(args: &[&str]) -> Report {
     let cli = sofd_cli::parse(args).expect("parse");
     let i18n = sofd_cli::i18n_for(&cli);
@@ -120,16 +129,9 @@ fn info_reports_what_the_document_declares() {
 fn info_localizes_to_chinese() {
     let path = fixture_path();
     let report = report_for(&["info", "--locale", "zh-CN", path.to_str().unwrap()]);
-    // Escaped, not literal: the source stays English by convention.
+    assert!(report.text.contains("页数：1"), "{}", report.text);
     assert!(
-        report.text.contains("\u{9875}\u{6570}\u{ff1a}1"),
-        "{}",
-        report.text
-    );
-    assert!(
-        report
-            .text
-            .contains("\u{9875}\u{9762}\u{5c3a}\u{5bf8}\u{ff1a}210.0 x 297.0 \u{6beb}\u{7c73}"),
+        report.text.contains("页面尺寸：210.0 x 297.0 毫米"),
         "{}",
         report.text
     );
@@ -451,6 +453,34 @@ fn verify_without_signatures_fails_the_run() {
         "{}",
         report.text
     );
+}
+
+#[test]
+fn verify_names_the_seal_an_invoice_was_issued_under() {
+    // A real invoice: its seal is inside the signed value rather than in the
+    // container. `verify` should say whose seal it is, where it is drawn and how
+    // much the proof covers, since a bare "valid" says none of that.
+    let path = fixture("ofdrw/999.ofd");
+    let report = report_for(&["verify", "--locale", "zh-CN", path.to_str().unwrap()]);
+    assert!(report.ok, "{}", report.text);
+    assert!(
+        report
+            .text
+            .contains("监制章：全国统一发票监制章／国家税务总局／重庆市税务局"),
+        "{}",
+        report.text
+    );
+    assert!(
+        report.text.contains("印章位置：90 8 30 20"),
+        "{}",
+        report.text
+    );
+    assert!(
+        report.text.contains("签署工具：KingGrid"),
+        "{}",
+        report.text
+    );
+    assert!(report.text.contains("有效"), "{}", report.text);
 }
 
 #[test]

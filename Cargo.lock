@@ -4678,6 +4678,7 @@ dependencies = [
  "sofd-io",
  "sofd-package",
  "sofd-print",
+ "sofd-sign",
  "tracing",
  "tracing-subscriber",
 ]
@@ -4896,6 +4897,7 @@ dependencies = [
  "sofd-error",
  "sofd-i18n",
  "sofd-print",
+ "sofd-sign",
  "sofd-testkit",
  "tracing",
  "wasm-bindgen",

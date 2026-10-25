@@ -5,6 +5,8 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod details;
+
 use sofd_crypto::{Certificate, TimeStampToken, TrustAnchors, sm2_verify, sm3, validate_path};
 use sofd_error::{OfdError, SignatureError};
 use sofd_package::Package;
@@ -400,11 +402,114 @@ pub struct SealPlacement {
     pub image: Vec<u8>,
     /// Archive path of the seal image, when one is named.
     pub image_ref: Option<String>,
+    /// The seal a sealed signature carries, when it carries one. GB/T 38540
+    /// puts it inside the signature: `SES_Signature.toSign.eseal` holds a
+    /// `SES_Seal` whose picture is an image or, more often, a whole OFD
+    /// document. An invoice has no `Seal` element to point at, so looking for
+    /// one is how a reader ends up drawing nothing.
+    pub sealed: Option<sofd_crypto::SealPicture>,
 }
 
-/// Resolve a signature's stamps into drawable placements. Clause 18.2.3: the
+/// The three lines an invoice seal prints, read from the certificate. Notice
+/// 2018 no. 41 fixes the ring: [`SEAL_TOP`], then [`SEAL_MIDDLE`], then the
+/// bureau. An issuer writes all three into one `CN`, and the text travels
+/// inside the certificate, so changing a character breaks the signature.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SealText {
+    /// Upper arc.
+    pub top: String,
+    /// Middle line.
+    pub middle: String,
+    /// Lower arc, the province bureau, as the certificate spells it.
+    pub bottom: String,
+}
+
+/// Upper arc of the ring, as notice 2018 no. 41 prints it.
+pub const SEAL_TOP: &str = "全国统一发票监制章";
+
+/// Middle line of the seal.
+pub const SEAL_MIDDLE: &str = "国家税务总局";
+
+/// What separates the three lines when they are set on one row. A full-width
+/// solidus: one line in a narrow panel, and not a word a translator would
+/// change.
+const SEAL_LINE_BREAK: char = '／';
+
+impl SealText {
+    /// The three lines on one row, for a panel or a command line too narrow to
+    /// stack them.
+    pub fn row(&self) -> String {
+        format!(
+            "{}{SEAL_LINE_BREAK}{}{SEAL_LINE_BREAK}{}",
+            self.top, self.middle, self.bottom
+        )
+    }
+
+    /// Split an invoice seal's `CN` into its three lines. `None` when the name
+    /// is not one: a seal that some other issuer drew has its own text, and
+    /// printing the fixed ring over it would be a claim that issuer never made.
+    pub fn from_subject_cn(cn: &str) -> Option<Self> {
+        let rest = cn.strip_prefix(SEAL_TOP)?;
+        let bottom = rest.strip_prefix(SEAL_MIDDLE)?;
+        if bottom.is_empty() {
+            return None;
+        }
+        Some(Self {
+            top: SEAL_TOP.to_string(),
+            middle: SEAL_MIDDLE.to_string(),
+            bottom: bottom.to_string(),
+        })
+    }
+}
+
+impl Signature {
+    /// The seal this signature carries, when it carries one. The seal lives
+    /// inside the signed value, a second file, so a caller holding only the
+    /// descriptor has not seen it yet; reading the envelope is what makes an
+    /// invoice show its seal at all, since they keep everything out of the
+    /// descriptor.
+    pub fn sealed_picture(&self, package: &mut Package) -> Option<sofd_crypto::SealPicture> {
+        // Read the envelope whatever the descriptor already said: the seal is
+        // inside it, not beside it, so the descriptor being complete is no
+        // reason to stop short of the file that holds the picture.
+        let mut signature = self.clone();
+        signature.read_check_value(package).ok()?;
+        let loc = signature.signed_value_ref.as_deref()?;
+        let bytes = package.read_optional(loc).ok()??;
+        sofd_crypto::sealed_picture(&bytes)
+    }
+
+    /// The text the certificate names, when it names an invoice seal. This is
+    /// not how a seal is drawn — the seal is a picture the reader pastes. It is
+    /// what a dialog can say, and it cannot have been retyped.
+    pub fn seal_name(&self) -> Option<SealText> {
+        // The envelope is read by `verify_signature` before a verdict is
+        // reached, so the certificate is in hand by then; a caller that asks
+        // this first still gets an answer when the descriptor embeds one.
+        let certificate = Certificate::parse_der(self.certificate.as_deref()?).ok()?;
+        SealText::from_subject_cn(common_name(certificate.subject()))
+    }
+}
+
+/// The common name of a distinguished name. Both spellings of the type are
+/// accepted, because `x509-parser` renders `CN=…` in some builds and `cn=…` in
+/// others, and a reader that knew one would find no seal in half of them.
+fn common_name(subject: &str) -> &str {
+    subject
+        .split(',')
+        .find_map(|part| {
+            let (kind, value) = part.split_once('=')?;
+            match kind.trim() {
+                "CN" | "cn" => Some(value.trim()),
+                _ => None,
+            }
+        })
+        .unwrap_or_default()
+}
+
+/// Resolve a signature's stamps into drawable placements (clause 18.2.3). The
 /// descriptor names the seal image beside itself and each `StampAnnot` says
-/// where on which page it is drawn. A missing image keeps the empty placement.
+/// where on which page it goes; a missing image keeps the empty placement.
 pub fn read_seals(
     package: &mut Package,
     base_loc: &str,
@@ -419,6 +524,9 @@ pub fn read_seals(
         Some(path) => package.read_optional(path)?.unwrap_or_default(),
         None => Vec::new(),
     };
+    // Read once rather than per stamp: every placement of this signature is
+    // drawn from the same seal.
+    let sealed = signature.sealed_picture(package);
     Ok(signature
         .stamps
         .iter()
@@ -429,6 +537,7 @@ pub fn read_seals(
             clip: stamp.clip,
             image: image.clone(),
             image_ref: image_ref.clone(),
+            sealed: sealed.clone(),
         })
         .collect())
 }
@@ -449,6 +558,13 @@ pub struct Coverage {
     pub uncovered: Vec<String>,
 }
 
+/// A path as the container states it: no leading slash. Issuers write `FileRef`
+/// with the slash and the container lists without, so one form for the
+/// comparison keeps every referenced file from also reading as uncovered.
+fn archive_path(path: &str) -> String {
+    path.trim_start_matches('/').to_string()
+}
+
 /// Report what each signature in the list covers. The union of every
 /// signature's covered set is subtracted from the container, so a file that
 /// any signature protects is not reported as vulnerable to a later edit.
@@ -463,7 +579,9 @@ pub fn read_coverage(package: &mut Package, list_loc: &str) -> Result<Vec<Covera
             .iter()
             .map(|reference| reference.file_ref.clone())
             .collect();
-        protected.extend(covered.iter().cloned());
+        // One spelling for the comparison: issuers write `FileRef` with the
+        // leading slash, the container lists without one.
+        protected.extend(covered.iter().map(|path| archive_path(path)));
         reports.push(Coverage {
             id: entry.id.clone(),
             base_loc: entry.base_loc.clone(),
@@ -473,8 +591,8 @@ pub fn read_coverage(package: &mut Package, list_loc: &str) -> Result<Vec<Covera
     }
     // The descriptor files themselves are part of the container, and listing
     // one as uncovered would be noise: it is not content a reader draws.
-    protected.extend(refs.iter().map(|entry| entry.base_loc.clone()));
-    protected.insert(list_loc.to_string());
+    protected.extend(refs.iter().map(|entry| archive_path(&entry.base_loc)));
+    protected.insert(archive_path(list_loc));
     let mut uncovered: Vec<String> = package
         .entries()
         .iter()
@@ -714,4 +832,57 @@ pub fn signed_digest(package: &mut Package, sig: &Signature) -> Result<Option<Ve
 /// algorithm name or as its object identifier.
 fn is_sm3(method: &str) -> bool {
     method.eq_ignore_ascii_case("SM3") || method == sofd_crypto::SM3_OID
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The `CN` of the certificate in `tests/fixtures/ofdrw/999.ofd`, a real
+    /// invoice from Chongqing: the ring, the bureau, then the province.
+    #[test]
+    fn an_invoice_seal_splits_into_its_three_lines() {
+        let text = SealText::from_subject_cn("全国统一发票监制章国家税务总局重庆市税务局")
+            .expect("an invoice seal names all three");
+        assert_eq!(text.top, SEAL_TOP);
+        assert_eq!(text.middle, SEAL_MIDDLE);
+        assert_eq!(text.bottom, "重庆市税务局");
+        assert_eq!(text.row(), "全国统一发票监制章／国家税务总局／重庆市税务局");
+    }
+
+    /// A plain signature and a company seal carry their own subject. Printing
+    /// the fixed ring over one would claim what its issuer never claimed.
+    #[test]
+    fn a_seal_that_is_not_the_invoice_one_prints_nothing() {
+        assert!(SealText::from_subject_cn("某某公司合同专用章").is_none());
+        assert!(SealText::from_subject_cn("全国统一发票监制章").is_none());
+        assert!(SealText::from_subject_cn("").is_none());
+        // The ring and the bureau with no province after them is truncated.
+        assert!(SealText::from_subject_cn("全国统一发票监制章国家税务总局").is_none());
+    }
+
+    /// A province spelled with a region and a city keeps both, because that is
+    /// what the certificate says and what the seal on paper reads.
+    #[test]
+    fn a_bureau_keeps_every_character_the_certificate_states() {
+        let text = SealText::from_subject_cn("全国统一发票监制章国家税务总局广西壮族自治区税务局")
+            .expect("a region is still a province");
+        assert_eq!(text.bottom, "广西壮族自治区税务局");
+    }
+
+    /// `sofd-crypto` renders a subject through `x509-parser`, and the attribute
+    /// type comes out in either case depending on the build. A reader that knew
+    /// only one spelling would find no seal in half the invoices it opened.
+    #[test]
+    fn the_common_name_is_found_whichever_case_writes_it() {
+        assert_eq!(
+            common_name("O=重庆,CN=全国统一发票监制章国家税务总局重庆市税务局,OU=测试"),
+            "全国统一发票监制章国家税务总局重庆市税务局"
+        );
+        assert_eq!(
+            common_name("cn=全国统一发票监制章国家税务总局重庆市税务局"),
+            "全国统一发票监制章国家税务总局重庆市税务局"
+        );
+        assert_eq!(common_name("O=重庆,OU=测试"), "");
+    }
 }

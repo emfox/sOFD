@@ -34,4 +34,15 @@ cli-print-plan = { $pages ->
 }, { $paper } at { $dpi } dpi
 cli-sign-entry = { $loc }: { $status }
 cli-sign-none = The document declares no signatures
+cli-cert-validity = Certificate valid from { $from } to { $to }
+cli-sign-provider = Signed with: { $name }
+cli-sign-coverage = { $count ->
+    [one] The signature covers { $count } file
+   *[other] The signature covers { $count } files
+}, { $loose ->
+    [one] with { $loose } file outside every signature
+   *[other] with { $loose } files outside every signature
+}
+cli-sign-stamps = Seal boxes: { $list }
+cli-sign-seal = Supervision seal: { $text }
 cli-error = error: { $message }
