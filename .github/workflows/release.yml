@@ -114,11 +114,19 @@ jobs:
             --version "$VERSION" --out dist --dist dist \
             --system "${{ matrix.name }}"
 
+      # One archive per system and no others: what `release_package.py`
+      # writes is `dist/sofd-<version>-<system>` plus an extension, and the
+      # extension is the system's own — `.zip` for Windows and macOS, `.tar.gz`
+      # for Linux. Naming only `.tar.gz` here is how a Windows reader would go
+      # missing from the release without the job failing.
       - name: Hand the reader to the packing job
         uses: actions/upload-artifact@v4
         with:
           name: reader-${{ matrix.name }}
-          path: dist/sofd-*.tar.gz
+          path: |
+            dist/sofd-*-linux.tar.gz
+            dist/sofd-*-windows.zip
+            dist/sofd-*-macos.zip
           if-no-files-found: error
 
   # The same reader, built for the browser. It is a separate job because its

@@ -20,8 +20,14 @@ workflow builds each product and this packs what the build left behind.
 `reader` is the one product that is not one archive. The three desktop builds
 are three downloads of about twenty megabytes each, and a reader for Linux
 should not have to fetch a macOS binary to get one file: a reader for one
-system is named `sofd-<version>-<system>.tar.gz` and holds that executable
-alone, which is also what its own checksum then covers.
+system holds that executable alone, which is also what its own checksum then
+covers.
+
+Its archive is the one of the system it runs on, because a download that needs
+a tool installed first is not a portable build. Windows has had a ZIP reader
+since it was Windows, Linux has had `tar.gz`, and macOS has a ZIP that keeps
+the executable bit a bare binary loses in transit. `FORMAT` states which is
+which; nothing here guesses from the file name.
 
 Usage:
     python3 scripts/release_package.py reader  --version 0.5.1 --out dist --dist build \
@@ -59,6 +65,17 @@ INSIDE = {
     "macos": "sofd-reader",
     "windows": "sofd-reader.exe",
 }
+# The archive each system opens without being asked to install anything else.
+# Windows ships a ZIP reader and nothing for `.tar.gz`; macOS ships `zip` and
+# `tar`, but a ZIP is what preserved the executable bit when this was checked,
+# and it is what a macOS user expects to double-click. Linux gets `tar.gz`,
+# which keeps the mode bits and is what `tar xf` in a build script already
+# reads.
+FORMAT = {
+    "linux": "tar.gz",
+    "macos": "zip",
+    "windows": "zip",
+}
 
 # The FFI library under each name a linker is given, plus its header.
 FFI_LIBRARIES = ("libsofd_ffi.so", "libsofd_ffi.a")
@@ -69,6 +86,20 @@ def product(name: str, version: str) -> str:
     return f"sofd-{version}-{name}"
 
 
+def _native(system: str) -> str:
+    """The extension a system's own archive has, spelled out.
+
+    Deliberately not `FORMAT[system]`: this is the answer the self-test is
+    checking, and a test that reads it from the table under test agrees with
+    whatever the table says, including a Windows reader shipped as `.tar.gz`.
+    """
+    return {
+        "linux": ".tar.gz",
+        "macos": ".zip",
+        "windows": ".zip",
+    }[system]
+
+
 def require(paths: list[Path], product_name: str) -> None:
     """Stop on a missing input rather than shipping a half-filled archive."""
     missing = [str(p) for p in paths if not p.exists()]
@@ -77,22 +108,49 @@ def require(paths: list[Path], product_name: str) -> None:
 
 
 def write_zip(archive: Path, root: Path) -> None:
-    """Zip every file below `root`, with `root` itself as the top directory."""
+    """Zip every file below `root`, with `root` itself as the top directory.
+
+    The mode is set on the member rather than taken from the file: `ZipInfo`
+    from `write()` carries an MS-DOS attribute word, and what a reader on Linux
+    or macOS uses to decide "this is executable" is the Unix mode in the
+    external-attributes field. Without it, an unpacked binary is a file the
+    system refuses to run — which is exactly the failure a portable build
+    cannot have.
+    """
     archive.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
         for path in sorted(root.rglob("*")):
-            bundle.write(path, path.relative_to(root.parent))
+            info = zipfile.ZipInfo.from_file(path, path.relative_to(root.parent))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            if path.is_dir():
+                bundle.writestr(info, b"")
+                continue
+            # `from_file` records the mode in the high 16 bits, which is where
+            # every unarchiver reads it from; `external_attr` needs it there.
+            mode = path.stat().st_mode
+            info.external_attr = (mode & 0xFFFF) << 16
+            bundle.writestr(info, path.read_bytes())
 
 
 def write_tar(archive: Path, root: Path) -> None:
     """The same layout as a `.tar.gz`, which keeps the executable bit."""
     archive.parent.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(archive, "w:gz") as bundle:
-        bundle.add(root, arcname=root.name)
+    with tarfile.open(archive, "w:gz") as tar:
+        tar.add(root, arcname=root.name)
+
+
+def pack(archive: Path, root: Path, fmt: str) -> None:
+    """Write `root` as `fmt`, which is `tar.gz` or `zip`."""
+    if fmt == "tar.gz":
+        write_tar(archive, root)
+    elif fmt == "zip":
+        write_zip(archive, root)
+    else:
+        raise SystemExit(f"error: {fmt} is not an archive this writes")
 
 
 def reader(version: str, out: Path, dist: Path, system: str) -> Path:
-    """One desktop build, one archive, named for the system it runs on."""
+    """One desktop build, one archive in that system's own format."""
     source = dist / DESKTOP[system]
     require([source], f"the {system} reader")
     name = product(system, version)
@@ -104,8 +162,8 @@ def reader(version: str, out: Path, dist: Path, system: str) -> Path:
     # The build is unsigned and the file is what a user runs, so the bit that
     # makes it run has to survive the archive.
     target.chmod(0o755)
-    archive = out / f"{name}.tar.gz"
-    write_tar(archive, staging)
+    archive = out / f"{name}.{FORMAT[system]}"
+    pack(archive, staging, FORMAT[system])
     shutil.rmtree(staging)
     return archive
 
@@ -194,14 +252,29 @@ def check_layout(tmp: Path) -> list[tuple[str, bool]]:
 
     for system, inside in INSIDE.items():
         bundle = reader("1.2.3", out, dist, system)
-        with tarfile.open(bundle) as tar:
-            members = {member.name: member for member in tar.getmembers()}
         entry = f"sofd-1.2.3-{system}/{inside}"
+        # Each system's own format is the answer being checked, so the format is
+        # read back out of the archive rather than compared with `FORMAT`: a
+        # table that changed its mind would still pass a comparison with itself.
+        if zipfile.is_zipfile(bundle):
+            with zipfile.ZipFile(bundle) as archive:
+                members = {name: archive.getinfo(name) for name in archive.namelist()}
+            mode = members[entry].external_attr >> 16
+            # A ZIP records the directory only if something wrote it; the file
+            # under it is what an unarchiver creates the directory from, so the
+            # layout is one member and the top directory is implied.
+            layout = set(members) == {entry}
+        else:
+            with tarfile.open(bundle) as archive:
+                members = {member.name: member for member in archive.getmembers()}
+            mode = members[entry].mode
+            # `tar` writes the directory itself, and the executable beside it.
+            layout = set(members) == {f"sofd-1.2.3-{system}", entry}
         checks.append((
-            f"the {system} reader ships alone, as {inside}",
-            bundle.name == f"sofd-1.2.3-{system}.tar.gz"
-            and set(members) == {f"sofd-1.2.3-{system}", entry}
-            and bool(members[entry].mode & 0o111),
+            f"the {system} reader ships alone, as {inside}, in a format {system} opens",
+            layout
+            and bundle.name.endswith(_native(system))
+            and bool(mode & 0o111),
         ))
 
     bundle = web("1.2.3", out, page, pkg)
