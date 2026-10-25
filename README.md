@@ -27,10 +27,10 @@ fixed-layout electronic documents](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo
 Parsing and rendering are written from scratch; the one C library in the tree is
 fontconfig, reached through `font-kit` by the reader on Linux.
 
-The current release is `0.5.0`. It renames every crate to `sofd`, so the facade
-is `cargo add sofd` and `use sofd::Document`; what a document draws is
-unchanged, and the 35 samples render byte-identically before and after. What it
-offers is in the [`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md); concrete work still to do is in
+The current release is `0.5.1`. It publishes `sofd-cli`, so `cargo install
+sofd-cli` puts a `sofd` command on the PATH, and it stops the archival rewrite
+from mistaking a `<` inside a comment for a tag. What it offers is in the
+[`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md); concrete work still to do is in
 the [issue tracker](https://github.com/emfox/sOFD/issues), and the direction it
 serves is in [`docs/Roadmap.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Roadmap.md).
 

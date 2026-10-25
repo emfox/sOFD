@@ -27,9 +27,9 @@ sOFD 是 [GB/T 33190-2016《电子文件存储与交换格式 版式文档》](h
 的 Rust 实现。从解析到渲染全部自研，仓库里唯一的 C 库是 fontconfig——
 由 reader 在 Linux 上经 `font-kit` 调用。
 
-当前发布版本为 `0.5.0`：所有 crate 统一改名为 `sofd`，门面即
-`cargo add sofd` 与 `use sofd::Document`；文档画出来的内容不变，
-35 个样例在改名前后的渲染结果逐字节一致。本版本提供了什么见
+当前发布版本为 `0.5.1`：发布 `sofd-cli` 后，
+`cargo install sofd-cli` 就能装上 `sofd` 命令；归档重写不再把注释里的 `<`
+当成标签。本版本提供了什么见
 [`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md)，尚待完成的具体工作见
 [issue 列表](https://github.com/emfox/sOFD/issues)，
 它服务于哪些大方向见 [`docs/Roadmap.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Roadmap.md)。

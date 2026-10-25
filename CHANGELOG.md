@@ -8,10 +8,27 @@ release is written up is in
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-25
+
 ### Added
 
 - **`cargo install sofd-cli` puts a `sofd` command on the PATH.** The one crate
   a user needed to install was the one crate no registry had.
+
+### Changed
+
+- **`sofd-convert::base64` moved to `sofd_common::base64`.** Four crates each
+  carried the same table, so the encoder now lives once.
+
+### Removed
+
+- **The `mmap` feature of `sofd-io`.** It enabled a dependency nothing called.
+
+### Fixed
+
+- **Archiving keeps a document whole when a `<` appears inside a comment, a
+  CDATA section or an escaped attribute value.** Those were read as tags, so a
+  stripped element could leave its text behind in the page.
 
 ## [0.5.0] - 2026-10-25
 

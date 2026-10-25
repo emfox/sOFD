@@ -52,7 +52,7 @@ members = [
 default-members = ["crates/sofd", "crates/sofd-cli"]
 
 [workspace.package]
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 # The one place the minimum is stated; README and docs restate it. Verified by
 # checking the workspace under this exact toolchain, not by trying to infer it.
@@ -64,27 +64,27 @@ authors = ["OFD Team"]
 
 [workspace.dependencies]
 # Internal crates: paths declared once so each crate stays consistent
-sofd-common   = { path = "crates/sofd-common",   version = "0.5.0" }
-sofd-error    = { path = "crates/sofd-error",    version = "0.5.0" }
-sofd-io       = { path = "crates/sofd-io",       version = "0.5.0" }
-sofd-model    = { path = "crates/sofd-model",    version = "0.5.0" }
-sofd-xml      = { path = "crates/sofd-xml",      version = "0.5.0" }
-sofd-package  = { path = "crates/sofd-package",  version = "0.5.0" }
-sofd-i18n     = { path = "crates/sofd-i18n",     version = "0.5.0" }
-sofd-geometry = { path = "crates/sofd-geometry", version = "0.5.0" }
-sofd-font     = { path = "crates/sofd-font",     version = "0.5.0" }
-sofd-display  = { path = "crates/sofd-display",  version = "0.5.0" }
-sofd-parser   = { path = "crates/sofd-parser",   version = "0.5.0" }
-sofd-render   = { path = "crates/sofd-render",   version = "0.5.0" }
-sofd-sign     = { path = "crates/sofd-sign",     version = "0.5.0" }
-sofd-crypto   = { path = "crates/sofd-crypto",   version = "0.5.0" }
-sofd-convert  = { path = "crates/sofd-convert",  version = "0.5.0", default-features = false }
-sofd-edit     = { path = "crates/sofd-edit",     version = "0.5.0" }
-sofd-search   = { path = "crates/sofd-search",   version = "0.5.0" }
-sofd-archive  = { path = "crates/sofd-archive",  version = "0.5.0" }
-sofd-print    = { path = "crates/sofd-print",    version = "0.5.0" }
-sofd          = { path = "crates/sofd",          version = "0.5.0" }
-sofd-testkit  = { path = "crates/sofd-testkit",  version = "0.5.0" }
+sofd-common   = { path = "crates/sofd-common",   version = "0.5.1" }
+sofd-error    = { path = "crates/sofd-error",    version = "0.5.1" }
+sofd-io       = { path = "crates/sofd-io",       version = "0.5.1" }
+sofd-model    = { path = "crates/sofd-model",    version = "0.5.1" }
+sofd-xml      = { path = "crates/sofd-xml",      version = "0.5.1" }
+sofd-package  = { path = "crates/sofd-package",  version = "0.5.1" }
+sofd-i18n     = { path = "crates/sofd-i18n",     version = "0.5.1" }
+sofd-geometry = { path = "crates/sofd-geometry", version = "0.5.1" }
+sofd-font     = { path = "crates/sofd-font",     version = "0.5.1" }
+sofd-display  = { path = "crates/sofd-display",  version = "0.5.1" }
+sofd-parser   = { path = "crates/sofd-parser",   version = "0.5.1" }
+sofd-render   = { path = "crates/sofd-render",   version = "0.5.1" }
+sofd-sign     = { path = "crates/sofd-sign",     version = "0.5.1" }
+sofd-crypto   = { path = "crates/sofd-crypto",   version = "0.5.1" }
+sofd-convert  = { path = "crates/sofd-convert",  version = "0.5.1", default-features = false }
+sofd-edit     = { path = "crates/sofd-edit",     version = "0.5.1" }
+sofd-search   = { path = "crates/sofd-search",   version = "0.5.1" }
+sofd-archive  = { path = "crates/sofd-archive",  version = "0.5.1" }
+sofd-print    = { path = "crates/sofd-print",    version = "0.5.1" }
+sofd          = { path = "crates/sofd",          version = "0.5.1" }
+sofd-testkit  = { path = "crates/sofd-testkit",  version = "0.5.1" }
 
 # External dependencies: versions pinned in one place
 zip        = { version = "9", default-features = false, features = ["deflate", "deflate64", "time"] }

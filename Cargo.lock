@@ -4628,7 +4628,7 @@ dependencies = [
 
 [[package]]
 name = "sofd"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "rayon",
  "sofd-archive",
@@ -4654,7 +4654,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-archive"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "serde",
  "sofd-error",
@@ -4665,7 +4665,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-cli"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -4684,7 +4684,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-common"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "bitflags 2.13.2",
  "serde",
@@ -4692,7 +4692,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-convert"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "criterion",
  "image",
@@ -4711,7 +4711,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-crypto"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cipher",
  "der",
@@ -4730,7 +4730,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-display"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -4742,7 +4742,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-edit"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "sofd",
  "sofd-common",
@@ -4756,14 +4756,14 @@ dependencies = [
 
 [[package]]
 name = "sofd-error"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "sofd-ffi"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "cbindgen",
  "sofd",
@@ -4774,7 +4774,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-font"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "font-kit",
  "serde",
@@ -4787,11 +4787,11 @@ dependencies = [
 
 [[package]]
 name = "sofd-fuzz"
-version = "0.5.0"
+version = "0.5.1"
 
 [[package]]
 name = "sofd-geometry"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "serde",
  "sofd-common",
@@ -4799,7 +4799,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-i18n"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "fluent",
  "fluent-bundle",
@@ -4812,7 +4812,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-io"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "hayro-jbig2",
  "image",
@@ -4823,7 +4823,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-model"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "proptest",
  "serde",
@@ -4834,7 +4834,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-package"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "proptest",
  "sofd-error",
@@ -4845,7 +4845,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-parser"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "criterion",
  "proptest",
@@ -4867,7 +4867,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-print"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "sofd-common",
  "sofd-display",
@@ -4880,7 +4880,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-reader"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "android-activity",
  "eframe",
@@ -4906,7 +4906,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-render"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "image",
  "sofd-common",
@@ -4921,7 +4921,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-search"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "criterion",
  "sofd-common",
@@ -4936,7 +4936,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-server"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "axum",
  "serde",
@@ -4955,7 +4955,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-sign"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "serde",
  "sofd-common",
@@ -4969,7 +4969,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-testkit"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "sofd-common",
  "sofd-crypto",
@@ -4980,7 +4980,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-wasm"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "console_error_panic_hook",
  "serde",
@@ -4995,7 +4995,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-xml"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "proptest",
  "quick-xml 0.42.0",

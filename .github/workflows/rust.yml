@@ -349,9 +349,11 @@ jobs:
 
   semver:
     runs-on: ubuntu-latest
-    # A breaking public-API change should fail here rather than surprise a
-    # downstream user. The baseline is the latest `v*` tag, and the job is a
-    # no-op before the first one exists rather than a false alarm.
+    # A break against a version somebody can already depend on should fail here
+    # rather than surprise them. The baseline is a published release, so the job
+    # is a no-op against a tree that no registry has served yet. The version it
+    # compares against is the same one `sofd-cli` will carry, because the
+    # manifests move together.
     steps:
       - uses: actions/checkout@v4
         with:
@@ -365,15 +367,55 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
 
-      - name: Find the latest release tag
-        id: baseline
+      # Read from the manifest rather than from the tag that will eventually
+      # carry it, so the question is "is the version this tree declares
+      # published", which is the one a break has to answer.
+      - name: Read the version the tree declares
+        id: layout
         run: |
-          tag=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          if [ -z "$tag" ]; then
-            echo "No release tag yet, so there is no published API to protect."
+          version=$(grep -m1 -A8 '^\[workspace.package\]' Cargo.toml \
+            | sed -n 's/^version *= *"\(.*\)"/\1/p')
+          if [ -z "$version" ]; then
+            echo "No version under [workspace.package] in Cargo.toml." >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "This tree declares $version."
+
+      # The registry, not the tag list, decides the baseline. A tag is a tree
+      # this project built; a version in this answer is one a caller can put in
+      # a manifest, and only the second is something a break can hurt. It also
+      # survives a registry outage, because the query is a plain GET rather than
+      # a build.
+      #
+      # The query asks about `sofd-cli` because it publishes last: the crates
+      # depend leafwards, so a version of it on crates.io means the whole set
+      # is there. Nothing is looked up before 0.6.0, the first release meant to
+      # reach a registry.
+      - name: Find the latest published release
+        id: baseline
+        env:
+          VERSION: ${{ steps.layout.outputs.version }}
+        run: |
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if ! echo "$VERSION" | grep -Eq '^[1-9][0-9]*\.[0-9]+\.[0-9]+$'; then
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "$VERSION is not a release, so there is nothing to compare."
+            exit 0
+          fi
+          url="https://crates.io/api/v1/crates/sofd-cli/$VERSION"
+          code=$(curl -sS --max-time 30 -o response.json -w '%{http_code}' \
+            -H 'User-Agent: sofd-ci (https://github.com/emfox/sOFD)' "$url")
+          if [ "$code" = 404 ]; then
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "$VERSION is not on crates.io, so a break against it reaches nobody."
+          elif [ "$code" = 200 ]; then
+            echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+            echo "Comparing against v$VERSION, which crates.io serves."
           else
-            echo "Comparing against $tag"
+            echo "crates.io answered HTTP $code for $url:" >&2
+            cat response.json >&2
+            exit 1
           fi
 
       - name: Install cargo-semver-checks
@@ -384,22 +426,28 @@ jobs:
 
       # Two comparisons, because either one alone leaves a gap.
       #
-      # Against the tag: the tagged tree carries the version that tag shipped,
-      # so `0.1.1` is held to releasing `0.1.0`'s API without a break.
+      # Against the release: the tagged tree carries the version that release
+      # shipped, so `0.6.1` is held to releasing `0.6.0`'s API without a break.
       #
-      # Against the parent commit, which `docs/Roadmap.md` R7 makes the one
-      # that matters. A version already on a registry cannot be replaced, so a
-      # break merged without a version bump spends the next version on a fix.
-      # Comparing neighbours is what sees the bump a commit intends: against
-      # the tag both trees carry the same manifest version, which
-      # cargo-semver-checks reads as "no change" and answers with "a patch
-      # would do", while against the parent a `0.1.0` to `0.2.0` bump is a
-      # minor release and a break is allowed in it.
+      # Against the parent commit, which is what sees a break merged into a
+      # version nobody has published yet. A version on a registry cannot be
+      # replaced, so a break merged without a version bump spends the next
+      # version on a fix. Comparing neighbours is what sees the bump a commit
+      # intends: against the release both trees carry the same manifest
+      # version, which cargo-semver-checks reads as "no change" and answers
+      # with "a patch would do", while against the parent a `0.6.0` to `0.7.0`
+      # bump is a minor release and a break is allowed in it.
+      #
+      # That is the whole of the rule: a break is a failure when it would land
+      # on a published version, and is free when the line it lands on is still
+      # being written. What `CHANGELOG.md` calls finished and what the policy
+      # enforces stay separate; the changelog is for a reader, the gate is for
+      # a dependency.
       #
       # cargo-semver-checks skips a crate that states `publish = false`, so the
-      # published set in each manifest is what this gate covers: the five
-      # shells, the testkit and i18n never reach a consumer and are skipped.
-      - name: Check the public API against the last release
+      # published set in each manifest is what this gate covers: the shells,
+      # the testkit and i18n never reach a consumer and are skipped.
+      - name: Check the public API against the published release
         if: steps.baseline.outputs.tag != ''
         run: cargo semver-checks check-release --baseline-rev ${{ steps.baseline.outputs.tag }}
 
