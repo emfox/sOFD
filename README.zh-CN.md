@@ -27,9 +27,9 @@ sOFD 是 [GB/T 33190-2016《电子文件存储与交换格式 版式文档》](h
 的 Rust 实现。从解析到渲染全部自研，仓库里唯一的 C 库是 fontconfig——
 由 reader 在 Linux 上经 `font-kit` 调用。
 
-当前发布版本为 `0.5.1`：发布 `sofd-cli` 后，
-`cargo install sofd-cli` 就能装上 `sofd` 命令；归档重写不再把注释里的 `<`
-当成标签。本版本提供了什么见
+当前发布版本为 `0.5.1`，也是第一个发到 crates.io 的版本：全部 21 个 crate 都在上面，
+所以 `cargo add sofd` 与 `cargo install sofd-cli` 都能用。本版本还让归档重写不再把
+注释里的 `<` 当成标签。本版本提供了什么见
 [`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md)，尚待完成的具体工作见
 [issue 列表](https://github.com/emfox/sOFD/issues)，
 它服务于哪些大方向见 [`docs/Roadmap.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Roadmap.md)。
@@ -88,19 +88,24 @@ python3 scripts/release_checksums.py verify .
 sha256sum -c SHA256SUMS          # 或者完全不依赖本项目
 ```
 
-crate 目前尚未发布到注册表：哪些会发布、发布前还差什么，见
-[issue #4](https://github.com/emfox/sOFD/issues/4)。
-
-21 个 crate 会进入注册表，但其中只有一部分是接口。加上 `sofd` 就够用；
-它依赖的那些 crate 是被 cargo 一起带过来的，并不是让你逐个点名。哪些是哪一类，
-见 [Architecture.md 第 3 节](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md#3-crate-inventory)；
+全部 21 个 crate 都已以 `0.5.1` 发布到 crates.io。但其中只有一部分是接口：加上
+`sofd` 就够用，它依赖的那些 crate 是被 cargo 一起带过来的，并不是让你逐个点名。
+哪些是哪一类，见
+[Architecture.md 第 3 节](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md#3-crate-inventory)；
 `python3 scripts/publish_order.py` 会打印依赖闭包——从 `sofd` 出发
 是全部 21 个，而单独发布 `sofd-crypto` 只需要 3 个。
 
 命令行工具也在其中，发布名是 `sofd-cli`，因为 `sofd` 这个名字留给了库：
 
-```
+```bash
 cargo install sofd-cli        # 装出 sofd 命令
+```
+
+在自己的项目里用：
+
+```bash
+cargo add sofd                # 门面：渲染、签章、转换、打印、检索
+cargo add sofd-io             # FileSource，打开文档的来源
 ```
 
 ## 遵循的规范

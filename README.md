@@ -27,9 +27,10 @@ fixed-layout electronic documents](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo
 Parsing and rendering are written from scratch; the one C library in the tree is
 fontconfig, reached through `font-kit` by the reader on Linux.
 
-The current release is `0.5.1`. It publishes `sofd-cli`, so `cargo install
-sofd-cli` puts a `sofd` command on the PATH, and it stops the archival rewrite
-from mistaking a `<` inside a comment for a tag. What it offers is in the
+The current release is `0.5.1`, the first one on crates.io: all twenty-one crates
+are there, so `cargo add sofd` works as well as `cargo install sofd-cli`. It also
+stops the archival rewrite from mistaking a `<` inside a comment for a tag. What
+it offers is in the
 [`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md); concrete work still to do is in
 the [issue tracker](https://github.com/emfox/sOFD/issues), and the direction it
 serves is in [`docs/Roadmap.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Roadmap.md).
@@ -91,22 +92,26 @@ python3 scripts/release_checksums.py verify .
 sha256sum -c SHA256SUMS          # or without this project at all
 ```
 
-The crates themselves are not on a registry yet: which of them will publish, and
-what is left before they can, is
-[issue #4](https://github.com/emfox/sOFD/issues/4).
-
-Twenty-one crates reach a registry, but only some of them are interfaces. Add
-`sofd` and you are done; the crates it depends on come along because
-cargo requires them, not because you were meant to name them. Which is which is
-in [Architecture.md § 3](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md#3-crate-inventory), and
-`python3 scripts/publish_order.py` prints the dependency closure — from
+All twenty-one crates are on crates.io at `0.5.1`. Only some of them are
+interfaces: add `sofd` and you are done, and the crates it depends on come along
+because cargo requires them, not because you were meant to name them. Which is
+which is in
+[Architecture.md § 3](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md#3-crate-inventory),
+and `python3 scripts/publish_order.py` prints the dependency closure — from
 `sofd` that is all twenty-one, while `sofd-crypto` alone needs three.
 
 The command is one of them, published as `sofd-cli` because `sofd` is the
 library:
 
-```
+```bash
 cargo install sofd-cli        # installs the `sofd` command
+```
+
+In a project of your own:
+
+```bash
+cargo add sofd                # the facade: render, sign, convert, print, search
+cargo add sofd-io             # FileSource, the file a Document is opened from
 ```
 
 ## What it reads
