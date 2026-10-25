@@ -135,12 +135,12 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked
 
-      # `--lib` because the crate also has a `[[bin]]`. wasm-pack otherwise
-      # builds the binary and fails: the module with `#[wasm_bindgen]` exports
-      # is the `cdylib` in `[lib]`, and the binary has none.
+      # `--no-opt` because wasm-opt means fetching binaryen from GitHub, and a
+      # release that fails when that download does is a release that is not
+      # reproducible. The size it saves is not worth an unavailable artefact.
       - name: Build the reader for the browser
         run: |
-          wasm-pack build crates/sofd-reader --lib --release --target web \
+          wasm-pack build crates/sofd-reader --target web --release --no-opt \
             --out-dir pkg
 
       # The page and the module it loads ship together: one without the other
