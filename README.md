@@ -74,7 +74,7 @@ product, named for the release it came from:
 
 | Artefact | For | How it runs |
 |---|---|---|
-| `sofd-<version>-reader.tar.gz` | Desktop: Linux, macOS, Windows | unpack; each system's executable is in it, run the one for yours |
+| `sofd-<version>-linux.tar.gz`, `-macos`, `-windows` | Desktop | unpack and run the `sofd-reader` inside; one download per system, so a user fetches only their own |
 | `sofd-<version>-web.zip` | Browser | unpack; serve `site/` over HTTP, because a `file://` page cannot load the module |
 | `sofd-<version>-android.apk` | Android 7.0+ (arm64) | sideload; signed with a throwaway debug key, not a store upload |
 | `sofd-<version>-uos-amd64.deb` | UOS Desktop V20 | `dpkg -i`, or install it from the file manager |

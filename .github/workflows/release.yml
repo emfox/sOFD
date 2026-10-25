@@ -40,6 +40,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The step that packs this system's reader is Python, and a Windows
+      # runner has no interpreter on `PATH` until one is asked for.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -90,14 +96,20 @@ jobs:
           esac
           ls -la dist
 
-      # One system is built per job and all three reach the release as a
-      # single `sofd-<version>-reader.tar.gz`, so they are handed to `pack`
-      # rather than attached here.
-      - name: Hand the executable to the packing job
+      # Each system's reader ships on its own: a download of twenty megabytes
+      # should not carry two other systems' binaries with it.
+      - name: Package the reader
+        shell: bash
+        run: |
+          python3 scripts/release_package.py reader \
+            --version "${GITHUB_REF_NAME#v}" --out dist --dist dist \
+            --system "${{ matrix.name }}"
+
+      - name: Hand the reader to the packing job
         uses: actions/upload-artifact@v4
         with:
           name: reader-${{ matrix.name }}
-          path: dist/sofd-reader-*
+          path: dist/sofd-*.tar.gz
           if-no-files-found: error
 
   # The same reader, built for the browser. It is a separate job because its
@@ -328,9 +340,9 @@ jobs:
   # written after the last of them lands, and a file that a downloader cannot
   # check is not worth shipping.
   #
-  # It also means the page carries products rather than parts. Five downloads
-  # become five: a reader, a WebAssembly build, an Android app, a UOS package
-  # and a C ABI library, each named for the release it came from.
+  # It also means the page carries products rather than parts: a reader per
+  # desktop system, a browser build, an Android app, a UOS package and a C ABI
+  # library, each named for the release it came from and the thing it runs on.
   pack:
     needs: [desktop, web, android, uos, artefacts]
     runs-on: ubuntu-latest
@@ -343,15 +355,8 @@ jobs:
           path: parts
           merge-multiple: true
 
-      # The desktop builds arrive as three files from three jobs, because one
-      # job cannot build all three systems. They reach the release as one
-      # archive, which is what the README describes.
-      - name: Pack the desktop reader
-        run: |
-          mkdir -p dist
-          cp parts/sofd-reader-* dist/
-          python3 scripts/release_package.py reader \
-            --version "${GITHUB_REF_NAME#v}" --out dist --dist dist
+      - name: Make the output directory
+        run: mkdir -p dist
 
       # The page and the module it loads are built by two jobs: neither can
       # build the other's half, and one without the other runs nothing.
@@ -363,7 +368,7 @@ jobs:
           python3 scripts/release_package.py web \
             --version "${GITHUB_REF_NAME#v}" --out dist --page page --pkg pkg
 
-      - name: Collect the remaining products
+      - name: Collect the products
         run: |
           cp parts/sofd-*.tar.gz parts/sofd-*.apk parts/sofd-*.deb dist/
           ls -la dist

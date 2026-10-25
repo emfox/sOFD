@@ -17,8 +17,15 @@ one in place gives the layout CI verified, and the checksum of that directory
 is the checksum of the archive's contents. Nothing here runs a compiler; the
 workflow builds each product and this packs what the build left behind.
 
+`reader` is the one product that is not one archive. The three desktop builds
+are three downloads of about twenty megabytes each, and a reader for Linux
+should not have to fetch a macOS binary to get one file: a reader for one
+system is named `sofd-<version>-<system>.tar.gz` and holds that executable
+alone, which is also what its own checksum then covers.
+
 Usage:
-    python3 scripts/release_package.py reader  --version 0.5.1 --out dist
+    python3 scripts/release_package.py reader  --version 0.5.1 --out dist --dist build \
+        --system linux
     python3 scripts/release_package.py web     --version 0.5.1 --out dist --page DIR --pkg DIR
     python3 scripts/release_package.py android --version 0.5.1 --out dist --apk PATH
     python3 scripts/release_package.py uos     --version 0.5.1 --out dist --deb PATH
@@ -38,8 +45,18 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-# The reader's three desktop builds, named for the system each runs on.
-DESKTOP = ("sofd-reader-linux", "sofd-reader-macos", "sofd-reader-windows.exe")
+# The reader's desktop builds, named for the system each runs on.
+DESKTOP = {
+    "linux": "sofd-reader-linux",
+    "macos": "sofd-reader-macos",
+    "windows": "sofd-reader-windows",
+}
+# What each one is called inside its archive, so an unpacked file runs as-is.
+INSIDE = {
+    "linux": "sofd-reader",
+    "macos": "sofd-reader",
+    "windows": "sofd-reader.exe",
+}
 
 # The FFI library under each name a linker is given, plus its header.
 FFI_LIBRARIES = ("libsofd_ffi.so", "libsofd_ffi.a")
@@ -72,20 +89,19 @@ def write_tar(archive: Path, root: Path) -> None:
         bundle.add(root, arcname=root.name)
 
 
-def reader(version: str, out: Path, dist: Path) -> Path:
-    """The three desktop builds, which are one product and three systems."""
-    sources = [dist / name for name in DESKTOP]
-    if not any(p.exists() for p in sources):
-        raise SystemExit(f"error: reader needs one of {', '.join(DESKTOP)} under {dist}")
-    # A job builds one system, so the archive holds whichever arrived and the
-    # last one to finish replaces it. The workflow packs once, after all three.
-    name = product("reader", version)
+def reader(version: str, out: Path, dist: Path, system: str) -> Path:
+    """One desktop build, one archive, named for the system it runs on."""
+    source = dist / DESKTOP[system]
+    require([source], f"the {system} reader")
+    name = product(system, version)
     staging = out / name
     shutil.rmtree(staging, ignore_errors=True)
     staging.mkdir(parents=True)
-    for source in sources:
-        if source.exists():
-            shutil.copy2(source, staging / source.name)
+    target = staging / INSIDE[system]
+    shutil.copy2(source, target)
+    # The build is unsigned and the file is what a user runs, so the bit that
+    # makes it run has to survive the archive.
+    target.chmod(0o755)
     archive = out / f"{name}.tar.gz"
     write_tar(archive, staging)
     shutil.rmtree(staging)
@@ -160,7 +176,7 @@ def check_layout(tmp: Path) -> list[tuple[str, bool]]:
     for directory in (out, dist, page, pkg, lib):
         directory.mkdir(parents=True)
 
-    for name in DESKTOP:
+    for name in DESKTOP.values():
         (dist / name).write_bytes(b"reader")
     (page / "index.html").write_text("<html></html>")
     (pkg / "sofd_reader.js").write_text("export {}")
@@ -171,14 +187,17 @@ def check_layout(tmp: Path) -> list[tuple[str, bool]]:
     (tmp / "reader.apk").write_bytes(b"apk")
     (tmp / "reader-uos-amd64.deb").write_bytes(b"deb")
 
-    bundle = reader("1.2.3", out, dist)
-    with tarfile.open(bundle) as tar:
-        names = tar.getnames()
-    checks.append((
-        "reader ships one archive for three systems",
-        bundle.name == "sofd-1.2.3-reader.tar.gz"
-        and all(f"sofd-1.2.3-reader/{name}" in names for name in DESKTOP),
-    ))
+    for system, inside in INSIDE.items():
+        bundle = reader("1.2.3", out, dist, system)
+        with tarfile.open(bundle) as tar:
+            members = {member.name: member for member in tar.getmembers()}
+        entry = f"sofd-1.2.3-{system}/{inside}"
+        checks.append((
+            f"the {system} reader ships alone, as {inside}",
+            bundle.name == f"sofd-1.2.3-{system}.tar.gz"
+            and set(members) == {f"sofd-1.2.3-{system}", entry}
+            and bool(members[entry].mode & 0o111),
+        ))
 
     bundle = web("1.2.3", out, page, pkg)
     with zipfile.ZipFile(bundle) as zip_file:
@@ -208,7 +227,7 @@ def check_layout(tmp: Path) -> list[tuple[str, bool]]:
     ))
 
     try:
-        reader("1.2.3", out, tmp / "empty")
+        reader("1.2.3", out, tmp / "empty", "linux")
     except SystemExit:
         checks.append(("an empty product fails rather than shipping", True))
     else:
@@ -238,6 +257,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--apk", type=Path, help="the built Android package")
     parser.add_argument("--deb", type=Path, help="the built Debian package")
     parser.add_argument("--lib", type=Path, help="the directory holding the FFI library and header")
+    parser.add_argument("--system", help="for reader: linux, macos or windows")
     args = parser.parse_args(argv)
 
     if args.what == "selftest":
@@ -246,10 +266,11 @@ def main(argv: list[str]) -> int:
         parser.error("--version is required")
 
     if args.what == "reader":
-        archive = reader(args.version, args.out, args.dist)
-        # The parts are replaced by the archive, so they do not ship beside it.
-        for name in DESKTOP:
-            (args.dist / name).unlink(missing_ok=True)
+        if args.system not in DESKTOP:
+            parser.error(f"--system must be one of {', '.join(DESKTOP)}")
+        archive = reader(args.version, args.out, args.dist, args.system)
+        # The part is replaced by the archive, so it does not ship beside it.
+        (args.dist / DESKTOP[args.system]).unlink(missing_ok=True)
     elif args.what == "web":
         archive = web(args.version, args.out, args.page, args.pkg)
     elif args.what == "android":
