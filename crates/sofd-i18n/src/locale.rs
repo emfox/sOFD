@@ -5,7 +5,9 @@
 use std::fmt;
 use std::str::FromStr;
 
+use fluent_langneg::{NegotiationStrategy, negotiate_languages};
 use serde::{Deserialize, Serialize};
+use unic_langid::LanguageIdentifier;
 
 use crate::BUILTIN_LOCALES;
 
@@ -43,6 +45,13 @@ impl Locale {
     /// The full tag.
     pub fn tag(&self) -> &str {
         &self.0
+    }
+
+    /// The tag as a parsed identifier, which is the form the negotiator reads.
+    /// A tag that parsed when this locale was built parses here too, so the
+    /// fallback is unreachable rather than a second guess at the input.
+    fn parsed(&self) -> LanguageIdentifier {
+        LanguageIdentifier::from_str(&self.0).unwrap_or_default()
     }
 
     /// Language subtag only, so `zh-CN` yields `zh`.
@@ -100,24 +109,24 @@ pub enum LocaleNegotiation {
 
 impl LocaleNegotiation {
     /// Pick the best available locale.
-    /// Matching runs exact tag, then same language ignoring region, then fallback:
-    /// with `{zh-CN, en-US}` available, `zh-TW` resolves to `zh-CN`.
+    /// The matching itself is `fluent-langneg`'s: it walks the requested tags in
+    /// order and narrows region and variants the way Unicode TR35 does, so a
+    /// caller's `zh-Hant-HK` still lands on `zh-CN` when that is what ships.
     pub fn negotiate(&self, available: &[Locale]) -> Locale {
-        let candidates: Vec<Locale> = match self {
-            Self::Fixed(l) => vec![l.clone()],
-            Self::PreferenceList(list) => list.clone(),
-            Self::System => vec![detect_system_locale()],
+        let requested: Vec<LanguageIdentifier> = match self {
+            Self::Fixed(l) => vec![l.parsed()],
+            Self::PreferenceList(list) => list.iter().map(Locale::parsed).collect(),
+            Self::System => vec![detect_system_locale().parsed()],
         };
+        let offered: Vec<LanguageIdentifier> = available.iter().map(Locale::parsed).collect();
 
-        for wanted in &candidates {
-            if let Some(l) = available.iter().find(|a| a.0 == wanted.0) {
-                return l.clone();
-            }
-            if let Some(l) = available.iter().find(|a| a.language() == wanted.language()) {
-                return l.clone();
-            }
+        let picked = negotiate_languages(&requested, &offered, None, NegotiationStrategy::Lookup);
+        if let Some(first) = picked.first() {
+            return Locale(first.to_string());
         }
 
+        // Nothing matched: the fallback is only usable when it shipped, and a
+        // build that carries no catalogue at all answers with the tag anyway.
         available
             .iter()
             .find(|a| a.0 == crate::FALLBACK_LOCALE)
