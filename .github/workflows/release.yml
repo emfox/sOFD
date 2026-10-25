@@ -130,29 +130,29 @@ jobs:
         with:
           shared-key: release-web
 
-      - name: Install wasm-bindgen
-        uses: taiki-e/install-action@v2
-        with:
-          tool: wasm-bindgen
+      # Pinned to the release the last one shipped from, so a page that built
+      # yesterday builds the same way today.
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
 
       # The page's entry point lives in the binary crate, beside the frame it
-      # wraps, so the binary is what `wasm-bindgen` turns into the module.
+      # wraps, so the binary is what wasm-pack turns into the module.
       - name: Build the reader for the browser
-        run: |
-          cargo build --release --target wasm32-unknown-unknown -p sofd-reader
-          wasm-bindgen --target web --out-name sofd_reader --no-typescript \
-            --out-dir crates/sofd-reader/pkg \
-            target/wasm32-unknown-unknown/release/sofd-reader.wasm
+        run: wasm-pack build crates/sofd-reader --release --target web
 
-      # The bindings are the only thing this job has that `artefacts` does not,
-      # and they do not ship alone: they are loaded by the page that job packs.
-      - name: Hand the bindings to the packing job
+      # The page and the module it loads ship together: one without the other
+      # runs nothing.
+      - name: Package the page
+        run: |
+          python3 scripts/release_package.py web \
+            --version "${GITHUB_REF_NAME#v}" --out dist \
+            --page crates/sofd-reader/web --pkg crates/sofd-reader/pkg
+
+      - name: Hand the page to the packing job
         uses: actions/upload-artifact@v4
         with:
-          name: bindings
-          path: |
-            crates/sofd-reader/pkg/*.js
-            crates/sofd-reader/pkg/*.wasm
+          name: web
+          path: dist/sofd-*.zip
           if-no-files-found: error
 
   # Android needs a native library the activity can load, and an archive the
@@ -226,8 +226,6 @@ jobs:
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
 
       # font-kit needs fontconfig headers to build its sys crate.
       - name: Install system dependencies
@@ -246,12 +244,6 @@ jobs:
       # shipped an out-of-date header would be caught here.
       - name: Check the generated C header is current
         run: git diff --exit-code crates/sofd-ffi/include/sofd.h
-
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - name: Build the WebAssembly bindings
-        run: wasm-pack build crates/sofd-wasm --release --target web
 
       # A library ships with the header a caller compiles against, under the
       # two names a linker is given: one archive, not three files.
@@ -343,6 +335,8 @@ jobs:
   # It also means the page carries products rather than parts: a reader per
   # desktop system, a browser build, an Android app, a UOS package and a C ABI
   # library, each named for the release it came from and the thing it runs on.
+  # Every one of them is assembled by the job that builds it, so the error that
+  # names a missing file lands in the job that was meant to produce it.
   pack:
     needs: [desktop, web, android, uos, artefacts]
     runs-on: ubuntu-latest
@@ -358,19 +352,9 @@ jobs:
       - name: Make the output directory
         run: mkdir -p dist
 
-      # The page and the module it loads are built by two jobs: neither can
-      # build the other's half, and one without the other runs nothing.
-      - name: Pack the browser reader
-        run: |
-          mkdir -p page pkg
-          cp crates/sofd-reader/web/index.html page/
-          cp parts/*.js parts/*.wasm pkg/
-          python3 scripts/release_package.py web \
-            --version "${GITHUB_REF_NAME#v}" --out dist --page page --pkg pkg
-
       - name: Collect the products
         run: |
-          cp parts/sofd-*.tar.gz parts/sofd-*.apk parts/sofd-*.deb dist/
+          cp parts/sofd-*.tar.gz parts/sofd-*.zip parts/sofd-*.apk parts/sofd-*.deb dist/
           ls -la dist
 
       - name: Read the release notes from the changelog
