@@ -373,6 +373,19 @@ jobs:
       - name: Check the manifest against the products
         run: python3 scripts/release_checksums.py verify dist
 
+      # A product renamed between attempts leaves its old file behind, and a
+      # release whose attachment list does not match the build is worse than one
+      # missing a file. The action overwrites same-named assets but never
+      # removes the rest, so the rest goes first.
+      - name: Clear the previous attempt's attachments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --json assets \
+            --jq '.assets[].name' | while read -r name; do
+              [ -n "$name" ] && gh release delete-asset "$GITHUB_REF_NAME" "$name" --yes
+            done || true
+
       - name: Attach the products to the release
         uses: softprops/action-gh-release@v2
         with:
@@ -381,3 +394,4 @@ jobs:
             dist/SHA256SUMS
           body_path: dist/RELEASE_NOTES.md
           generate_release_notes: false
+          fail_on_unmatched_files: true
