@@ -4722,6 +4722,7 @@ dependencies = [
  "sm2",
  "sm3",
  "sm4",
+ "sofd-common",
  "sofd-error",
  "tracing",
  "x509-parser",
@@ -4970,6 +4971,7 @@ dependencies = [
 name = "sofd-testkit"
 version = "0.5.0"
 dependencies = [
+ "sofd-common",
  "sofd-crypto",
  "sofd-error",
  "sofd-package",
