@@ -809,6 +809,7 @@ fn a_document_naming_an_unshipped_cjk_face_still_draws_its_text() {
     );
 }
 
+#[cfg(feature = "annot")]
 #[test]
 fn gb_t_33190_15_annotations_are_joined_back_to_their_pages() {
     // The index names pages by id, not by index, so reading the marks means
@@ -828,6 +829,7 @@ fn gb_t_33190_15_annotations_are_joined_back_to_their_pages() {
     assert!(marks[0].visible, "annotations are visible by default");
 }
 
+#[cfg(feature = "annot")]
 #[test]
 fn a_document_without_an_annotation_index_has_no_annotations() {
     // No index is not a failure: most documents carry no marks at all.
@@ -836,6 +838,7 @@ fn a_document_without_an_annotation_index_has_no_annotations() {
     assert_eq!(document.annotations().expect("annotations"), Vec::new());
 }
 
+#[cfg(feature = "annot")]
 #[test]
 fn an_annotation_file_that_will_not_read_costs_only_its_own_page() {
     // A document whose first page names a file that is not there still
