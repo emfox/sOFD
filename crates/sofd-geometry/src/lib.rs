@@ -1,6 +1,7 @@
 //! Geometry and transforms.
-//! Backend-independent [`Path`] and [`Affine`]. Curve math uses `kurbo` behind our
-//! own API, so a breaking dependency upgrade does not ripple outward.
+//! Backend-independent [`Path`] and [`Affine`], written out here rather than
+//! re-exported: an arc becomes cubics exactly once, so the raster, the SVG and
+//! the PDF backend cannot round the same curve three different ways.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]

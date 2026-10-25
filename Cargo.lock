@@ -2744,18 +2744,6 @@ dependencies = [
 
 [[package]]
 name = "kurbo"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce9729cc38c18d86123ab736fd2e7151763ba226ac2490ec092d1dd148825e32"
-dependencies = [
- "arrayvec",
- "euclid",
- "serde",
- "smallvec",
-]
-
-[[package]]
-name = "kurbo"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b60dfc32f652b926df6192e55525b16d186c69d47876c3ead4da5cc9f8450e2"
@@ -3576,7 +3564,7 @@ checksum = "839c8299360d2e998bdb106dc0a6cd71dcc5f4df51df1b620361bf50e283cca6"
 dependencies = [
  "bytemuck",
  "color",
- "kurbo 0.13.1",
+ "kurbo",
  "linebender_resource_handle",
  "smallvec",
 ]
@@ -4555,9 +4543,6 @@ name = "smallvec"
 version = "1.16.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "smithay-client-toolkit"
@@ -4807,7 +4792,6 @@ version = "0.5.0"
 name = "sofd-geometry"
 version = "0.5.0"
 dependencies = [
- "kurbo 0.12.0",
  "serde",
  "sofd-common",
 ]
@@ -4831,7 +4815,6 @@ version = "0.5.0"
 dependencies = [
  "hayro-jbig2",
  "image",
- "memmap2",
  "sofd-display",
  "sofd-error",
  "tracing",
