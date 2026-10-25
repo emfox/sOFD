@@ -69,14 +69,16 @@ somewhere, `cargo run` away:
 
 ## Getting the artefacts
 
-Pushing a `v*` tag builds the reader for every platform `egui` runs on, and
-publishes it beside the C ABI library and the engine's WebAssembly bindings:
+Pushing a `v*` tag builds every delivery form and publishes one archive per
+product, named for the release it came from:
 
-| Artefact | Platform | How it runs |
+| Artefact | For | How it runs |
 |---|---|---|
-| `sofd-reader-linux`, `-macos`, `-windows.exe` | Desktop | run the file directly |
-| `sofd-reader-web.zip` | Browser | unzip and serve over HTTP; a `file://` page cannot load the module |
-| `sofd-reader-android.apk` | Android 7.0+ (arm64) | sideload; signed with a throwaway debug key, not a store upload |
+| `sofd-<version>-reader.tar.gz` | Desktop: Linux, macOS, Windows | unpack; each system's executable is in it, run the one for yours |
+| `sofd-<version>-web.zip` | Browser | unpack; serve `site/` over HTTP, because a `file://` page cannot load the module |
+| `sofd-<version>-android.apk` | Android 7.0+ (arm64) | sideload; signed with a throwaway debug key, not a store upload |
+| `sofd-<version>-uos-amd64.deb` | UOS Desktop V20 | `dpkg -i`, or install it from the file manager |
+| `sofd-<version>-ffi.tar.gz` | C, C++, or anything with a C ABI | link the library inside and include `sofd.h` beside it |
 
 iOS is the one `egui` platform left out: an app for it can only be installed
 after a macOS signing and packaging step, and no key ships with this project.

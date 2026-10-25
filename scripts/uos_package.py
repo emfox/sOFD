@@ -17,8 +17,8 @@ system installs and then refuses to start, so `--check-glibc` reads the
 symbols the binary asks for and fails the build rather than the user.
 
 Usage:
-    python3 scripts/uos_package.py --binary PATH --version 0.3.0 --out DIR
-    python3 scripts/uos_package.py --binary PATH --version 0.3.0 --out DIR --check-glibc
+    python3 scripts/uos_package.py --binary PATH --version 0.5.1 --out DIR
+    python3 scripts/uos_package.py --binary PATH --version 0.5.1 --out DIR --check-glibc
     python3 scripts/uos_package.py selftest
 
 Exit code: 0 on success, 1 on failure.
@@ -55,7 +55,9 @@ def gzip_bytes(data: bytes) -> bytes:
 
 
 PACKAGE = "sofd-reader"
-VERSION_FALLBACK = "0.3.0"
+# Only a fallback: the workflow passes the tag's version, and a package built
+# without one says so by carrying this rather than a number nobody chose.
+VERSION_FALLBACK = "0.5.1"
 MAINTAINER = "sOFD <sofd@example.invalid>"
 SECTION = "office"
 PRIORITY = "optional"

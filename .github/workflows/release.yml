@@ -90,19 +90,15 @@ jobs:
           esac
           ls -la dist
 
-      # The builds are unsigned, so the checksum is the only thing a
-      # downloader can hold a binary to. Each job names its own manifest
-      # because a same-named asset replaces rather than merges, and the job
-      # at the foot of this file merges them once every upload has landed.
-      - name: Checksum the executable
-        run: python3 scripts/release_checksums.py generate dist --sums SHA256SUMS.${{ matrix.name }}
-
-      - name: Attach the executable to the release
-        uses: softprops/action-gh-release@v2
+      # One system is built per job and all three reach the release as a
+      # single `sofd-<version>-reader.tar.gz`, so they are handed to `pack`
+      # rather than attached here.
+      - name: Hand the executable to the packing job
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            dist/sofd-reader-*
-            dist/SHA256SUMS.${{ matrix.name }}
+          name: reader-${{ matrix.name }}
+          path: dist/sofd-reader-*
+          if-no-files-found: error
 
   # The same reader, built for the browser. It is a separate job because its
   # output is a page rather than an executable: `wasm-bindgen` writes the module
@@ -136,36 +132,16 @@ jobs:
             --out-dir crates/sofd-reader/pkg \
             target/wasm32-unknown-unknown/release/sofd-reader.wasm
 
-      - name: Collect the page
-        run: |
-          mkdir -p dist
-          cp -r crates/sofd-reader/web dist/web
-          cp -r crates/sofd-reader/pkg dist/web/pkg
-          # The page imports the module by a relative path, so the directory
-          # can be served from anywhere, including straight off a disk.
-          cat > dist/web/serve.txt <<'EOF'
-          Serve this directory over HTTP; a browser will not load the module
-          from a file:// URL. Any static server works, for example:
-
-              python3 -m http.server --directory web 8080
-          EOF
-          ls -la dist/web
-
-      - name: Package the page
-        run: |
-          cd dist
-          zip -qr sofd-reader-web.zip web
-          ls -la
-
-      - name: Checksum the page
-        run: python3 scripts/release_checksums.py generate dist --sums SHA256SUMS.web
-
-      - name: Attach the page to the release
-        uses: softprops/action-gh-release@v2
+      # The bindings are the only thing this job has that `artefacts` does not,
+      # and they do not ship alone: they are loaded by the page that job packs.
+      - name: Hand the bindings to the packing job
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            dist/sofd-reader-web.zip
-            dist/SHA256SUMS.web
+          name: bindings
+          path: |
+            crates/sofd-reader/pkg/*.js
+            crates/sofd-reader/pkg/*.wasm
+          if-no-files-found: error
 
   # Android needs a native library the activity can load, and an archive the
   # system can install. The SDK and NDK are fetched here; the archive is put
@@ -215,15 +191,19 @@ jobs:
             --lib target/aarch64-linux-android/release/libsofd_reader.so \
             --out dist
 
-      - name: Checksum the package
-        run: python3 scripts/release_checksums.py generate dist --sums SHA256SUMS.android
+      - name: Name the package for the release
+        run: |
+          python3 scripts/release_package.py android \
+            --version "${GITHUB_REF_NAME#v}" --out dist \
+            --apk dist/sofd-reader-android.apk
+          rm dist/sofd-reader-android.apk
 
-      - name: Attach the package to the release
-        uses: softprops/action-gh-release@v2
+      - name: Hand the package to the packing job
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            dist/sofd-reader-android.apk
-            dist/SHA256SUMS.android
+          name: android
+          path: dist/sofd-*.apk
+          if-no-files-found: error
 
   # The libraries other programs link against, and the browser bindings of the
   # engine itself. These are the same on every desktop system, so one build.
@@ -255,47 +235,28 @@ jobs:
       - name: Check the generated C header is current
         run: git diff --exit-code crates/sofd-ffi/include/sofd.h
 
-      # The notes are read here because this job is the only one that always
-      # runs: read them in a job a matrix can skip, and the release ships empty.
-      - name: Read the release notes from the changelog
-        run: |
-          mkdir -p dist
-          python3 scripts/release_notes.py "$GITHUB_REF_NAME" > dist/RELEASE_NOTES.md
-
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build the WebAssembly bindings
         run: wasm-pack build crates/sofd-wasm --release --target web
 
-      - name: Collect the artefacts
+      # A library ships with the header a caller compiles against, under the
+      # two names a linker is given: one archive, not three files.
+      - name: Package the library
         run: |
-          mkdir -p dist
-          cp target/release/libsofd_ffi.so dist/ || true
-          cp target/release/libsofd_ffi.a dist/ || true
-          cp crates/sofd-ffi/include/sofd.h dist/
-          cp crates/sofd-wasm/pkg/*.js dist/ 2>/dev/null || true
-          cp crates/sofd-wasm/pkg/*.wasm dist/ 2>/dev/null || true
-          cp crates/sofd-wasm/pkg/*.d.ts dist/ 2>/dev/null || true
-          ls -la dist
+          mkdir -p dist/lib
+          cp target/release/libsofd_ffi.so target/release/libsofd_ffi.a \
+            crates/sofd-ffi/include/sofd.h dist/lib/
+          python3 scripts/release_package.py ffi \
+            --version "${GITHUB_REF_NAME#v}" --out dist --lib dist/lib
 
-      # Same reason as the desktop job: no signing key ships with a release, so
-      # every artefact is published beside the digest that identifies it.
-      - name: Checksum the artefacts
-        run: python3 scripts/release_checksums.py generate dist --sums SHA256SUMS.artefacts
-
-      - name: Attach the artefacts to the release
-        uses: softprops/action-gh-release@v2
+      - name: Hand the product to the packing job
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            dist/libsofd_ffi.*
-            dist/sofd.h
-            dist/*.js
-            dist/*.wasm
-            dist/*.d.ts
-            dist/SHA256SUMS.artefacts
-          body_path: dist/RELEASE_NOTES.md
-          generate_release_notes: false
+          name: ffi
+          path: dist/sofd-*.tar.gz
+          if-no-files-found: error
 
   # UOS Desktop V20 ships glibc 2.28 and nothing newer, so a reader built on a
   # current runner installs and then refuses to start. The build therefore
@@ -345,62 +306,86 @@ jobs:
             --out dist \
             --check-glibc
 
-      - name: Checksum the package
-        run: python3 scripts/release_checksums.py generate dist --sums SHA256SUMS.uos
-
       # The archive is named for the architecture it was built for, so it is
-      # matched by pattern rather than by a name the script would have to keep.
-      - name: Attach the package to the release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/sofd-reader-uos-*.deb
-            dist/SHA256SUMS.uos
+      # matched by pattern rather than by a name this file would have to keep.
+      - name: Name the package for the release
+        run: |
+          deb=$(ls dist/sofd-reader-uos-*.deb)
+          python3 scripts/release_package.py uos \
+            --version "${GITHUB_REF_NAME#v}" --out dist --deb "$deb"
+          rm "$deb"
 
-  # A release asset is replaced, never merged, by an upload of the same name.
-  # So the jobs above publish one manifest each and this one gathers them into
-  # the `SHA256SUMS` a downloader expects, then removes the parts.
-  checksums:
+      - name: Hand the package to the packing job
+        uses: actions/upload-artifact@v4
+        with:
+          name: uos
+          path: dist/sofd-*.deb
+          if-no-files-found: error
+
+  # Every job above builds, this one publishes. It exists because a release
+  # asset is replaced rather than merged by an upload of the same name, so the
+  # parts cannot be attached as they are built: the checksum manifest has to be
+  # written after the last of them lands, and a file that a downloader cannot
+  # check is not worth shipping.
+  #
+  # It also means the page carries products rather than parts. Five downloads
+  # become five: a reader, a WebAssembly build, an Android app, a UOS package
+  # and a C ABI library, each named for the release it came from.
+  pack:
     needs: [desktop, web, android, uos, artefacts]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Gather the manifests
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Gather what the builds produced
+        uses: actions/download-artifact@v4
+        with:
+          path: parts
+          merge-multiple: true
+
+      # The desktop builds arrive as three files from three jobs, because one
+      # job cannot build all three systems. They reach the release as one
+      # archive, which is what the README describes.
+      - name: Pack the desktop reader
         run: |
           mkdir -p dist
-          gh release download "$GITHUB_REF_NAME" --dir dist --pattern 'SHA256SUMS.*'
-          # A re-run finds the parts already merged and removed by the last
-          # one, so the manifest that is there is the whole of it.
-          if compgen -G 'dist/SHA256SUMS.*' > /dev/null; then
-            cat dist/SHA256SUMS.* | sort -k2 > dist/SHA256SUMS
-          else
-            gh release download "$GITHUB_REF_NAME" --dir dist --pattern 'SHA256SUMS' --clobber
-          fi
-          wc -l dist/SHA256SUMS
+          cp parts/sofd-reader-* dist/
+          python3 scripts/release_package.py reader \
+            --version "${GITHUB_REF_NAME#v}" --out dist --dist dist
 
-      # The merged file is checked against the assets themselves before it is
-      # published, so a manifest that could not be verified never ships.
-      - name: Check the manifest against the downloads
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # The page and the module it loads are built by two jobs: neither can
+      # build the other's half, and one without the other runs nothing.
+      - name: Pack the browser reader
         run: |
-          rm -rf assets
-          gh release download "$GITHUB_REF_NAME" --dir assets --clobber \
-            --pattern 'sofd-*' --pattern 'libsofd_ffi.*' \
-            --pattern 'sofd_*' --pattern 'sofd.h'
-          cp dist/SHA256SUMS assets/
-          python3 scripts/release_checksums.py verify assets
+          mkdir -p page pkg
+          cp crates/sofd-reader/web/index.html page/
+          cp parts/*.js parts/*.wasm pkg/
+          python3 scripts/release_package.py web \
+            --version "${GITHUB_REF_NAME#v}" --out dist --page page --pkg pkg
 
-      - name: Attach the manifest and drop the parts
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Collect the remaining products
         run: |
-          gh release upload "$GITHUB_REF_NAME" dist/SHA256SUMS --clobber
-          if compgen -G 'dist/SHA256SUMS.*' > /dev/null; then
-            for part in dist/SHA256SUMS.*; do
-              gh release delete-asset "$GITHUB_REF_NAME" "$(basename "$part")" --yes
-            done
-          fi
+          cp parts/sofd-*.tar.gz parts/sofd-*.apk parts/sofd-*.deb dist/
+          ls -la dist
+
+      - name: Read the release notes from the changelog
+        run: python3 scripts/release_notes.py "$GITHUB_REF_NAME" > dist/RELEASE_NOTES.md
+
+      # No signing key ships with this project, so the manifest is the only
+      # thing a download can be held to.
+      - name: Checksum the products
+        run: python3 scripts/release_checksums.py generate dist --sums SHA256SUMS
+
+      # A re-run attaches over the previous attempt, so the check is against
+      # the files this run made rather than against whatever was there.
+      - name: Check the manifest against the products
+        run: python3 scripts/release_checksums.py verify dist
+
+      - name: Attach the products to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/sofd-*
+            dist/SHA256SUMS
+          body_path: dist/RELEASE_NOTES.md
+          generate_release_notes: false

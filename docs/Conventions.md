@@ -150,6 +150,7 @@ next to the check that produced it. Grouped by what they need:
 | `policy` | `check_language.py`, `check_i18n.py --strict`, `check_commits.py`, `check_publish.py`, `publish_order.py`, `check_packaging.py` | `git`, and `cargo` for `check_packaging.py` |
 | `repo` | the checkers' own unit tests, `release_checksums.py selftest`, `pack_fixtures.py --check` | nothing |
 | `schema` | `validate_ofd.py --allow-foreign` over `compliance/fixtures` | `lxml` |
+| `package` | `android_package.py selftest`, `uos_package.py selftest`, `release_package.py selftest`; the last one also holds a release to one archive per product | nothing |
 | `rust` | `cargo fmt`, `clippy`, the `msrv` check, `build` and `test`, the golden images, the headless reader window, `check_compliance.py`, and the matrix freshness diff | `cargo`, `git`, and the Rust channel named by `rust-version` for `msrv` |
 | `samples` | `sample_fetch.py`, `--check` then `--parse`, once per set | the fetched samples, `cargo` |
 | `perf` | `run_benchmarks.py` then `check_performance.py` against the budget in [Performance.md](Performance.md) | `cargo` |

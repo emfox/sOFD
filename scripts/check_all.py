@@ -107,6 +107,9 @@ CHECKS: tuple[Check, ...] = (
     # this fails when the Chinese one states a different figure.
     Check("readme", "policy", (py("scripts/check_readme.py"),)),
     Check("android", "package", (py("scripts/android_package.py", "selftest"),)),
+    # A release attaches one archive per product rather than the parts a build
+    # leaves behind, so what a download contains is a promise this makes.
+    Check("release-package", "package", (py("scripts/release_package.py", "selftest"),)),
     Check("uos", "package", (py("scripts/uos_package.py", "selftest"),)),
     Check(
         "commits",

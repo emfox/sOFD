@@ -67,14 +67,15 @@ sOFD 是 [GB/T 33190-2016《电子文件存储与交换格式 版式文档》](h
 
 ## 获取构建产物
 
-推送 `v*` 标签会为每个 `egui` 支持的平台构建阅读器，并与 C ABI 库、内核的
-WebAssembly 绑定一同发布：
+推送 `v*` 标签会构建全部交付形态，每种产品发布一个归档，文件名带发布版本：
 
-| 产物 | 平台 | 运行方式 |
+| 产物 | 面向 | 运行方式 |
 |---|---|---|
-| `sofd-reader-linux`、`-macos`、`-windows.exe` | 桌面 | 直接运行 |
-| `sofd-reader-web.zip` | 浏览器 | 解压后用 HTTP 提供；`file://` 页面无法加载该模块 |
-| `sofd-reader-android.apk` | Android 7.0+（arm64） | 侧载；用一次性调试密钥签名，不能上架应用商店 |
+| `sofd-<version>-reader.tar.gz` | 桌面：Linux、macOS、Windows | 解压；各系统可执行文件都在其中，运行对应系统的那一个 |
+| `sofd-<version>-web.zip` | 浏览器 | 解压后用 HTTP 提供 `site/`；`file://` 页面无法加载该模块 |
+| `sofd-<version>-android.apk` | Android 7.0+（arm64） | 侧载；用一次性调试密钥签名，不能上架应用商店 |
+| `sofd-<version>-uos-amd64.deb` | UOS 桌面 V20 | `dpkg -i`，或在文件管理器中安装 |
+| `sofd-<version>-ffi.tar.gz` | C、C++ 或其他带 C ABI 的语言 | 链接包内库文件，并包含同目录的 `sofd.h` |
 
 iOS 是唯一被排除的 `egui` 平台：其应用必须经 macOS 签名打包后才能安装，
 而本项目不附带任何密钥。
