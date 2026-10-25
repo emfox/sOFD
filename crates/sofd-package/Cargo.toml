@@ -1,6 +1,6 @@
 [package]
 name = "sofd-package"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -11,8 +11,8 @@ keywords = ["ofd", "zip", "container", "archive"]
 categories = ["encoding", "filesystem"]
 
 [dependencies]
-sofd-error.workspace = true
-sofd-io.workspace = true
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-io = { path = "../sofd-io", version = "0.5" }
 zip.workspace = true
 tracing.workspace = true
 

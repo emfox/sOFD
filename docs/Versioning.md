@@ -132,35 +132,66 @@ python3 scripts/release_plan.py --since v0.5.1
 # ...
 ```
 
-## 5. The order the work would go in
+## 5. The order the work went in
 
-Each step is a merge that leaves the tree working, so the change can stop after
-any of them.
+Each step was a merge that left the tree working, so the change could stop after
+any of them. All six are done.
 
-| # | Step | Why here |
+| # | Step | Why there |
 | --- | --- | --- |
-| 1 | `scripts/check_versions.py` — every internal requirement resolves against crates.io | The safety net goes in before the thing it catches. It passes trivially while the workspace is uniform, which is the point: it is proven before it is needed |
+| 1 | `scripts/check_versions.py` — every internal requirement resolves against crates.io | The safety net goes in before the thing it catches. It passed trivially while the workspace was uniform, which was the point: proven before it was needed |
 | 2 | `scripts/release_plan.py` — which crates a change set has to ship | The release stops being "everything" before the manifests stop being uniform |
-| 3 | Move `version` from `[workspace.package]` into each of the twenty-one published manifests | The mechanical change. Nothing observes it yet |
-| 4 | Replace the `[workspace.dependencies]` version entries with per-crate intervals | The step that can go wrong. Step 1 is what says when it did |
-| 5 | Semver gate asks per crate instead of asking about `sofd-cli` | Cheap, and closes the gap the other four open |
-| 6 | `docs/Conventions.md` §6 and `README.md` state the new rule | Documentation last, when the rule has stopped moving |
+| 3 | Move `version` from `[workspace.package]` into each of the twenty-one published manifests | The mechanical change. Nothing observed it yet |
+| 4 | Replace the `[workspace.dependencies]` version entries with per-crate intervals | The step that could go wrong. Step 1 is what says when it did |
+| 5 | Semver gate asks per crate instead of asking about `sofd-cli` | Cheap, and closed the gap the other four opened |
+| 6 | `docs/Conventions.md` §6 and `README.md` state the new rule | Documentation last, once the rule had stopped moving |
 
-## 6. When to do it
+### 5.1 The tag, because a version can no longer name a release
 
-Not before a second release has gone out on the current scheme.
+A tag used to be `v<version>`, and that worked because there was one version.
+With a version per crate it does not: `v0.5.2` would name `sofd-next`, which is
+exactly why `release_plan.py` emits `cargo publish -p …` lines instead of a
+single command. So a tag names the **release**:
 
-The argument is not that the change is risky — steps 1 and 2 make it
-recoverable — but that its benefit is unmeasured. Nothing here has shipped
-twice yet, so the claim "a leaf's patch spends the whole workspace's version"
-has not cost anyone anything in practice. One more release establishes the
-cost; if it turns out to be small, the uniform scheme is also cheaper to keep,
-because it has one number to get right instead of twenty-one.
+```
+v0.6.1     release 0, version 0.6.1
+```
 
-## 7. The alternative, if the cost turns out to be small
+The extra number counts releases of that version line, and the last three are
+what the artefacts are named for — `sofd-0.6.1-linux.tar.gz` whatever versions
+the crates inside state. Two consequences worth stating:
+
+* The root manifest carries the prefix as
+  `[workspace.metadata.cargo-metadata.package] release = "z"`, so the tag shape
+  is in the tree rather than in a workflow pattern. `release_plan.py --since
+  @last` asks the registry which tag is the newest it serves, which is what makes
+  "changes since the last release" answerable without remembering a tag.
+* Every tag before this one stays as it is. `v0.5.1` reads as release `0`,
+  version `0.5.1`, so the rule has one shape from `v0.1.0` onward.
+
+## 6. When it was done
+
+After `0.5.1`, the first release on a registry, and before `0.5.2`.
+
+The plan originally said to wait for a second release, on the grounds that the
+benefit was unmeasured and the uniform scheme has one number to get right
+instead of twenty-one. It was done earlier for a reason that outranked both:
+`0.5.1` is the release everything published so far hangs off, and every later
+release would either have to carry every crate's version forward or undo the
+uniform scheme with a registry full of published versions to reconcile. Doing it
+while the tree was uniform meant steps 3 and 4 were mechanical, and step 1 could
+prove the result against twenty-one crates already on the registry.
+
+## 7. The alternative, if 0.5.2 shows the cost is too high
 
 Keep one version, and solve the annoyance where it actually shows up: the
 changelog. A release entry can say which crates moved and which were carried
 along for the version alone, so a reader is not asked to read twenty-one
-entries to find the two that changed. That is a documentation change rather
-than a manifest change, and it can be done at any time.
+entries to find the two that changed.
+
+Going back is cheap for the same reason going forward was: one `version` key in
+`[workspace.package]`, `version.workspace = true` in each manifest, and the
+intervals in the dependency tables collapse back to one number. The two scripts
+are the part worth keeping either way — `check_versions.py` would still catch a
+requirement that does not admit its dependency, and `release_plan.py` would
+still say which crates a change set touches.

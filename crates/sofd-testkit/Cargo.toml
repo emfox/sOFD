@@ -1,7 +1,7 @@
 [package]
 name = "sofd-testkit"
 description = "Shared fixtures for the sOFD test suites"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -10,8 +10,8 @@ repository.workspace = true
 publish = false
 
 [dependencies]
-sofd-common.workspace = true
-sofd-crypto.workspace = true
-sofd-error.workspace = true
-sofd-package.workspace = true
-sofd-sign.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-crypto = { path = "../sofd-crypto", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-package = { path = "../sofd-package", version = "0.5" }
+sofd-sign = { path = "../sofd-sign", version = "0.5" }

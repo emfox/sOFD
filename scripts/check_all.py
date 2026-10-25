@@ -96,6 +96,19 @@ CHECKS: tuple[Check, ...] = (
     # tree. This fails when the published set is not closed under its own
     # dependencies, which is the mistake that only shows up at release time.
     Check("publish-order", "policy", (py("scripts/publish_order.py", "--check"),)),
+    # With a version per crate, the two numbers a release has to agree on are
+    # the version a crate states and the interval each dependent states for it.
+    # A mismatch resolves to a different crate than the author meant, and only
+    # at release time, so it is checked here instead.
+    Check(
+        "versions",
+        "policy",
+        (py("scripts/check_versions.py", "--offline"),),
+    ),
+    # And `release_plan.py` is the tool that reads those numbers into an order,
+    # so it gets the same treatment as any other checker: a narrow answer is a
+    # wrong one. Its self-test builds a workspace and asks what it would ship.
+    Check("release-plan", "repo", (py("scripts/release_plan.py", "--selftest"),)),
     # A crate reaches a registry as the tarball cargo makes, which holds the
     # crate's own directory and not the repository above it. An `include_str!`
     # that climbs out of it therefore compiles here and fails at release time,

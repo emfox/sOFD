@@ -1,6 +1,6 @@
 [package]
 name = "sofd-convert"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -13,13 +13,13 @@ categories = ["multimedia::encoding"]
 # Conversion reads one display list and writes another format,
 # so it depends on display plus the relevant format readers and writers.
 [dependencies]
-sofd-common.workspace = true
-sofd-error.workspace = true
-sofd-display.workspace = true
-sofd-io.workspace = true
-sofd-geometry.workspace = true
-sofd-font.workspace = true
-sofd-render.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-display = { path = "../sofd-display", version = "0.5" }
+sofd-io = { path = "../sofd-io", version = "0.5" }
+sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
+sofd-font = { path = "../sofd-font", version = "0.5" }
+sofd-render = { path = "../sofd-render", version = "0.5" }
 image.workspace = true
 tracing.workspace = true
 lopdf = { workspace = true, optional = true }

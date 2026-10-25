@@ -95,6 +95,11 @@ sha256sum -c SHA256SUMS          # 或者完全不依赖本项目
 `python3 scripts/publish_order.py` 会打印依赖闭包——从 `sofd` 出发
 是全部 21 个，而单独发布 `sofd-crypto` 只需要 3 个。
 
+每个 crate 维护自己的版本号，`0.5.1` 时它们恰好一致。一次只改三个 crate 的发布，
+就只提升那三个，其余原地不动；所以该固定的是你实际点名的那个 crate 的版本——
+`cargo add` 写进去的就是它，而依赖的版本是它清单里声明的区间。代价与理由见
+[Versioning.md](https://github.com/emfox/sOFD/blob/HEAD/docs/Versioning.md)。
+
 命令行工具也在其中，发布名是 `sofd-cli`，因为 `sofd` 这个名字留给了库：
 
 ```bash

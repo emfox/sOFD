@@ -1,6 +1,6 @@
 [package]
 name = "sofd-edit"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -13,10 +13,10 @@ categories = ["text-processing"]
 # Editing applies undoable changes through the command pattern,
 # produces a new package, and persists it through the package layer.
 [dependencies]
-sofd-common.workspace = true
-sofd-error.workspace = true
-sofd-model.workspace = true
-sofd-package.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-model = { path = "../sofd-model", version = "0.5" }
+sofd-package = { path = "../sofd-package", version = "0.5" }
 tracing.workspace = true
 
 [dev-dependencies]

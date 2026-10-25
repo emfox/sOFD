@@ -1,6 +1,6 @@
 [package]
 name = "sofd-print"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -13,12 +13,12 @@ categories = ["multimedia::images"]
 # Printing consumes the same display list as screen rendering,
 # which is what keeps output faithful to the preview.
 [dependencies]
-sofd-common.workspace = true
-sofd-error.workspace = true
-sofd-display.workspace = true
-sofd-geometry.workspace = true
-sofd-render.workspace = true
-sofd-font.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-display = { path = "../sofd-display", version = "0.5" }
+sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
+sofd-render = { path = "../sofd-render", version = "0.5" }
+sofd-font = { path = "../sofd-font", version = "0.5" }
 tracing.workspace = true
 
 [package.metadata.cargo-semver-checks.lints]

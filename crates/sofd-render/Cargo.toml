@@ -1,6 +1,6 @@
 [package]
 name = "sofd-render"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -11,12 +11,12 @@ keywords = ["ofd", "raster", "render", "anti-aliasing", "tiny-skia"]
 categories = ["rendering", "multimedia::images"]
 
 [dependencies]
-sofd-common.workspace = true
-sofd-error.workspace = true
-sofd-geometry.workspace = true
-sofd-font.workspace = true
-sofd-display.workspace = true
-sofd-io.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
+sofd-font = { path = "../sofd-font", version = "0.5" }
+sofd-display = { path = "../sofd-display", version = "0.5" }
+sofd-io = { path = "../sofd-io", version = "0.5" }
 tiny-skia.workspace = true
 image.workspace = true
 tracing.workspace = true

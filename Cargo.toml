@@ -52,7 +52,6 @@ members = [
 default-members = ["crates/sofd", "crates/sofd-cli"]
 
 [workspace.package]
-version = "0.5.1"
 edition = "2024"
 # The one place the minimum is stated; README and docs restate it. Verified by
 # checking the workspace under this exact toolchain, not by trying to infer it.
@@ -63,28 +62,14 @@ readme = "README.md"
 authors = ["OFD Team"]
 
 [workspace.dependencies]
-# Internal crates: paths declared once so each crate stays consistent
-sofd-common   = { path = "crates/sofd-common",   version = "0.5.1" }
-sofd-error    = { path = "crates/sofd-error",    version = "0.5.1" }
-sofd-io       = { path = "crates/sofd-io",       version = "0.5.1" }
-sofd-model    = { path = "crates/sofd-model",    version = "0.5.1" }
-sofd-xml      = { path = "crates/sofd-xml",      version = "0.5.1" }
-sofd-package  = { path = "crates/sofd-package",  version = "0.5.1" }
-sofd-i18n     = { path = "crates/sofd-i18n",     version = "0.5.1" }
-sofd-geometry = { path = "crates/sofd-geometry", version = "0.5.1" }
-sofd-font     = { path = "crates/sofd-font",     version = "0.5.1" }
-sofd-display  = { path = "crates/sofd-display",  version = "0.5.1" }
-sofd-parser   = { path = "crates/sofd-parser",   version = "0.5.1" }
-sofd-render   = { path = "crates/sofd-render",   version = "0.5.1" }
-sofd-sign     = { path = "crates/sofd-sign",     version = "0.5.1" }
-sofd-crypto   = { path = "crates/sofd-crypto",   version = "0.5.1" }
-sofd-convert  = { path = "crates/sofd-convert",  version = "0.5.1", default-features = false }
-sofd-edit     = { path = "crates/sofd-edit",     version = "0.5.1" }
-sofd-search   = { path = "crates/sofd-search",   version = "0.5.1" }
-sofd-archive  = { path = "crates/sofd-archive",  version = "0.5.1" }
-sofd-print    = { path = "crates/sofd-print",    version = "0.5.1" }
-sofd          = { path = "crates/sofd",          version = "0.5.1" }
-sofd-testkit  = { path = "crates/sofd-testkit",  version = "0.5.1" }
+# Internal crates are no longer listed here. Each crate states the version
+# interval it needs, beside the dependency itself, because that is the number a
+# registry resolves and the number a release has to move. A single entry here
+# could only restate one version for all of them, which is the scheme
+# `docs/Versioning.md` replaces.
+#
+# A dev-dependency is the exception: declared path-only, so cargo drops it from
+# the manifest it packs. The aliases are below, for that reason alone.
 
 # External dependencies: versions pinned in one place
 zip        = { version = "9", default-features = false, features = ["deflate", "deflate64", "time"] }
@@ -161,6 +146,15 @@ pretty_assertions = "1"
 [workspace.metadata.cargo-semver-checks.lints]
 enum_variant_added = { required-update = "minor" }
 constructible_struct_adds_field = { required-update = "minor" }
+
+# The `z` in a release tag: `v0.5.1` carries its own version, `v0.6.1` is
+# `z.0.6.1`. The workspace ships 21 crates whose versions no longer have to
+# agree, so a tag cannot name one of them; it names the release instead, and
+# whatever each crate states at the tagged commit is what that crate publishes.
+# `cargo-metadata` on the root package is a free key to keep this in a manifest
+# rather than in a pattern hard-coded in a workflow.
+[workspace.metadata.cargo-metadata.package]
+release = "z"
 
 [profile.release]
 lto = "thin"

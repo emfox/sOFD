@@ -34,9 +34,20 @@ REPO_URL = "https://github.com/emfox/sOFD"
 
 
 def version_from_tag(tag: str) -> str:
-    """`v0.1.1` names the changelog section `0.1.1`."""
-    return tag[1:] if tag.startswith("v") else tag
+    """`v0.1.1` names the changelog section `0.1.1`.
 
+    A tag whose numbers no longer agree — `v0.6.1` for the second release, since
+    the crates under it carry their own versions — names the same section: the
+    release is what the changelog records, and the first three numbers are how
+    it is spelled. A one-time name is what makes the old tags stay readable.
+    """
+    named = tag[1:] if tag.startswith("v") else tag
+    # Four numbers is `v<release>.<major>.<minor>.<patch>`; three is a version
+    # the tag carries itself, which is how every tag up to `v0.5.1` is spelled.
+    parts = named.split(".")
+    if len(parts) == 4 and all(part.isdigit() for part in parts):
+        return ".".join(parts[1:])
+    return named
 
 def section(text: str, version: str) -> str:
     """The body of one version's section, heading excluded."""
@@ -93,6 +104,14 @@ A release. See [`docs/Roadmap.md`](docs/Roadmap.md).
         failures.append("a relative link was left relative")
     if "example.com/compare" in body:
         failures.append("a link definition survived")
+    # A release tag carries one more number than a version does, and both have
+    # to name the changelog section the same way. Reading too eagerly here would
+    # publish the notes for the wrong release.
+    named = {"v0.5.1": "0.5.1", "v1.2.3": "1.2.3", "v0.6.1": "0.6.1"}
+    for tag, version in named.items():
+        got = version_from_tag(tag)
+        if got != version:
+            failures.append(f"{tag} named the section {got}, not {version}")
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)
     if failures:

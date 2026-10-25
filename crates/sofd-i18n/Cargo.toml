@@ -1,6 +1,6 @@
 [package]
 name = "sofd-i18n"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -15,7 +15,7 @@ categories = ["localization"]
 # data, and presentation renders the localized text.
 
 [dependencies]
-sofd-error.workspace = true
+sofd-error = { path = "../sofd-error", version = "0.5" }
 fluent.workspace = true
 fluent-bundle.workspace = true
 fluent-langneg.workspace = true

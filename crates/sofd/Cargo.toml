@@ -1,6 +1,6 @@
 [package]
 name = "sofd"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -12,23 +12,26 @@ categories = ["parser-implementations", "multimedia::images"]
 
 # Facade crate: the only public surface, so internals can be refactored freely.
 [dependencies]
-sofd-common.workspace = true
-sofd-error.workspace = true
-sofd-io.workspace = true
-sofd-model.workspace = true
-sofd-package.workspace = true
-sofd-geometry.workspace = true
-sofd-font.workspace = true
-sofd-display.workspace = true
-sofd-parser.workspace = true
-sofd-render = { workspace = true, optional = true }
-sofd-crypto = { workspace = true, optional = true }
-sofd-sign = { workspace = true, optional = true }
-sofd-convert = { workspace = true, optional = true }
-sofd-edit = { workspace = true, optional = true }
-sofd-search = { workspace = true, optional = true }
-sofd-archive = { workspace = true, optional = true }
-sofd-print = { workspace = true, optional = true }
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-io = { path = "../sofd-io", version = "0.5" }
+sofd-model = { path = "../sofd-model", version = "0.5" }
+sofd-package = { path = "../sofd-package", version = "0.5" }
+sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
+sofd-font = { path = "../sofd-font", version = "0.5" }
+sofd-display = { path = "../sofd-display", version = "0.5" }
+sofd-parser = { path = "../sofd-parser", version = "0.5" }
+sofd-render = { path = "../sofd-render", version = "0.5", optional = true }
+sofd-crypto = { path = "../sofd-crypto", version = "0.5", optional = true }
+sofd-sign = { path = "../sofd-sign", version = "0.5", optional = true }
+# `default-features = false` because the facade turns PDF on through
+# `sofd-convert/pdf`, not through this crate's defaults; a default here would
+# bring a second path to the same dependency.
+sofd-convert = { path = "../sofd-convert", version = "0.5", optional = true, default-features = false }
+sofd-edit = { path = "../sofd-edit", version = "0.5", optional = true }
+sofd-search = { path = "../sofd-search", version = "0.5", optional = true }
+sofd-archive = { path = "../sofd-archive", version = "0.5", optional = true }
+sofd-print = { path = "../sofd-print", version = "0.5", optional = true }
 tracing.workspace = true
 rayon = { version = "1.11", optional = true }
 

@@ -1,7 +1,14 @@
 name: Release
 
-# Publishing is triggered by pushing a version tag, so the artefacts and the tag
-# can never disagree about what was built.
+# Publishing is triggered by pushing a tag, so the artefacts and the tag can
+# never disagree about what was built.
+#
+# The tag names the release, not a version. The workspace ships 21 crates whose
+# versions no longer have to agree, so a tag carrying one version would name the
+# wrong crate for every other. `v<release>.<major>.<minor>.<patch>`, then: the
+# first number is the release, the other three are the version the products are
+# named for, and `VERSION` below is those three read back off the tag.
+# `v0.5.1` is the last tag spelled as a bare version, and reads the same way.
 on:
   push:
     tags: ['v*']
@@ -101,8 +108,10 @@ jobs:
       - name: Package the reader
         shell: bash
         run: |
+          # The last three numbers of the tag; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
           python3 scripts/release_package.py reader \
-            --version "${GITHUB_REF_NAME#v}" --out dist --dist dist \
+            --version "$VERSION" --out dist --dist dist \
             --system "${{ matrix.name }}"
 
       - name: Hand the reader to the packing job
@@ -147,8 +156,10 @@ jobs:
       # runs nothing.
       - name: Package the page
         run: |
+          # The last three numbers of the tag; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
           python3 scripts/release_package.py web \
-            --version "${GITHUB_REF_NAME#v}" --out dist \
+            --version "$VERSION" --out dist \
             --page crates/sofd-reader/web --pkg crates/sofd-reader/pkg
 
       - name: Hand the page to the packing job
@@ -208,8 +219,10 @@ jobs:
 
       - name: Name the package for the release
         run: |
+          # The last three numbers of the tag; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
           python3 scripts/release_package.py android \
-            --version "${GITHUB_REF_NAME#v}" --out dist \
+            --version "$VERSION" --out dist \
             --apk dist/sofd-reader-android.apk
           rm dist/sofd-reader-android.apk
 
@@ -252,11 +265,13 @@ jobs:
       # two names a linker is given: one archive, not three files.
       - name: Package the library
         run: |
+          # The last three numbers of the tag; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
           mkdir -p dist/lib
           cp target/release/libsofd_ffi.so target/release/libsofd_ffi.a \
             crates/sofd-ffi/include/sofd.h dist/lib/
           python3 scripts/release_package.py ffi \
-            --version "${GITHUB_REF_NAME#v}" --out dist --lib dist/lib
+            --version "$VERSION" --out dist --lib dist/lib
 
       - name: Hand the product to the packing job
         uses: actions/upload-artifact@v4
@@ -307,9 +322,11 @@ jobs:
       # 2.28 system can run; the check fails here rather than at the user.
       - name: Assemble the package
         run: |
+          # The last three numbers of the tag; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
           python3 scripts/uos_package.py \
             --binary target/release/sofd-reader \
-            --version "${GITHUB_REF_NAME#v}" \
+            --version "$VERSION" \
             --out dist \
             --check-glibc
 
@@ -317,9 +334,11 @@ jobs:
       # matched by pattern rather than by a name this file would have to keep.
       - name: Name the package for the release
         run: |
+          # The last three numbers of the tag; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
           deb=$(ls dist/sofd-reader-uos-*.deb)
           python3 scripts/release_package.py uos \
-            --version "${GITHUB_REF_NAME#v}" --out dist --deb "$deb"
+            --version "$VERSION" --out dist --deb "$deb"
           rm "$deb"
 
       - name: Hand the package to the packing job

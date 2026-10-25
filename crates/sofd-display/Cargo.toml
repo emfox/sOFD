@@ -1,6 +1,6 @@
 [package]
 name = "sofd-display"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -13,10 +13,10 @@ categories = ["rendering"]
 # The display list is the shared IR for render, print and export.
 # It depends on geometry and fonts, never on a concrete backend.
 [dependencies]
-sofd-common.workspace = true
-sofd-error.workspace = true
-sofd-geometry.workspace = true
-sofd-font.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
+sofd-font = { path = "../sofd-font", version = "0.5" }
 serde.workspace = true
 
 [dev-dependencies]

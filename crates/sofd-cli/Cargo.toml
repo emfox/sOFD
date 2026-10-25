@@ -1,6 +1,6 @@
 [package]
 name = "sofd-cli"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -18,16 +18,16 @@ path = "src/main.rs"
 # The bin runs every capability, so it turns them all on: `edit` is named
 # though no subcommand edits yet, because a facade feature left off is a
 # capability the command cannot grow into without a manifest change.
-sofd = { workspace = true, features = ["render", "print", "sign", "convert", "pdf", "edit", "search", "archive", "async"] }
-sofd-error.workspace = true
-sofd-font.workspace = true
-sofd-i18n.workspace = true
-sofd-io.workspace = true
+sofd = { path = "../sofd", version = "0.5", features = ["render", "print", "sign", "convert", "pdf", "edit", "search", "archive", "async"] }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-font = { path = "../sofd-font", version = "0.5" }
+sofd-i18n = { path = "../sofd-i18n", version = "0.5" }
+sofd-io = { path = "../sofd-io", version = "0.5" }
 # Named directly because a `[features]` entry cannot turn on a passthrough
 # dependency, and the bin reaches `sofd-archive` and `sofd-print` for their
 # types. Being named here is also what makes them publishable.
-sofd-archive.workspace = true
-sofd-print.workspace = true
+sofd-archive = { path = "../sofd-archive", version = "0.5" }
+sofd-print = { path = "../sofd-print", version = "0.5" }
 clap = { version = "4", features = ["derive"] }
 anyhow.workspace = true
 tracing.workspace = true

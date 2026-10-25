@@ -100,6 +100,13 @@ which is in
 and `python3 scripts/publish_order.py` prints the dependency closure — from
 `sofd` that is all twenty-one, while `sofd-crypto` alone needs three.
 
+Each crate carries its own version, and at `0.5.1` they happen to agree. A
+release that changes three crates bumps those three and leaves the rest where
+they are, so the number to pin is the one `cargo add` writes for the crate you
+actually named; a dependency's version is the interval its manifest states.
+What that costs and why it is worth it is in
+[Versioning.md](https://github.com/emfox/sOFD/blob/HEAD/docs/Versioning.md).
+
 The command is one of them, published as `sofd-cli` because `sofd` is the
 library:
 

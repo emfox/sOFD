@@ -1,6 +1,6 @@
 [package]
 name = "sofd-crypto"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -11,8 +11,8 @@ keywords = ["ofd", "sm2", "sm3", "sm4", "digital-signature"]
 categories = ["cryptography", "authentication"]
 
 [dependencies]
-sofd-common.workspace = true
-sofd-error.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
 sm2.workspace = true
 signature.workspace = true
 getrandom.workspace = true

@@ -1,6 +1,6 @@
 [package]
 name = "sofd-io"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -11,8 +11,8 @@ keywords = ["ofd", "io", "image", "decoder", "jbig2"]
 categories = ["filesystem", "multimedia::images"]
 
 [dependencies]
-sofd-error.workspace = true
-sofd-display.workspace = true
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-display = { path = "../sofd-display", version = "0.5" }
 tracing.workspace = true
 image.workspace = true
 hayro-jbig2.workspace = true

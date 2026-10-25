@@ -1,6 +1,6 @@
 [package]
 name = "sofd-model"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -11,8 +11,8 @@ keywords = ["ofd", "document", "model", "gb-t-33190"]
 categories = ["parser-implementations"]
 
 [dependencies]
-sofd-common.workspace = true
-sofd-error.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
 serde.workspace = true
 serde_json.workspace = true
 

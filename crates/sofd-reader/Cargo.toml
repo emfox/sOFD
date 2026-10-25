@@ -1,7 +1,7 @@
 [package]
 name = "sofd-reader"
 description = "Native desktop reader for OFD documents"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -24,14 +24,14 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 # The facade re-exports the option and verdict types its own methods take, so
 # the reader names them through `sofd` and depends on nothing below.
-sofd = { workspace = true, features = ["render", "search", "pdf", "print", "annot"] }
+sofd = { path = "../sofd", version = "0.5", features = ["render", "search", "pdf", "print", "annot"] }
 # Search hits carry a page-space rectangle, and `Rect` is defined here.
-sofd-common.workspace = true
-sofd-i18n.workspace = true
-sofd-error.workspace = true
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-i18n = { path = "../sofd-i18n", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
 # The reader prints what it shows, so it plans print jobs through the facade
 # and names the settings types that go with them.
-sofd-print.workspace = true
+sofd-print = { path = "../sofd-print", version = "0.5" }
 egui.workspace = true
 # `eframe` is declared per target below, because Android refuses `accesskit`
 # unless the activity is a game one; the desktop feature set matches its

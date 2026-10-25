@@ -1,6 +1,6 @@
 [package]
 name = "sofd-xml"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -11,7 +11,7 @@ keywords = ["ofd", "xml", "parser", "quick-xml"]
 categories = ["parser-implementations"]
 
 [dependencies]
-sofd-error.workspace = true
+sofd-error = { path = "../sofd-error", version = "0.5" }
 quick-xml.workspace = true
 serde.workspace = true
 

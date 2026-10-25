@@ -300,6 +300,14 @@ that version has not been published.**
 when a change needs a larger version bump than the manifests declare. The
 workspace root carries the lint configuration.
 
+Each crate carries its own version. There is no `version` in
+`[workspace.package]`: a crate that changes states its new version in its own
+manifest, and every crate that depends on it states the interval it needs
+beside the dependency. The two numbers are what a release has to agree on, so
+`scripts/check_versions.py` fails when an interval does not admit the version
+of the crate it names, and `scripts/release_plan.py` computes the order a set
+of changed crates has to ship in.
+
 The tool has no configuration file of its own: a policy reaches it only through
 `[package.metadata.cargo-semver-checks.lints]`, and only for a crate that opts
 in with `workspace = true` there. So the policy is written once in the root
@@ -314,14 +322,14 @@ decisions depart from the crate's defaults:
 | --- | --- | --- |
 | `enum_variant_added` requires `minor` | Adding a variant to an exhaustive enum is allowed in a minor release | Every such enum names an outcome a caller must tell apart. `VerifyStatus` gained `Unchecked` because reporting an unchecked signature as tampered is worse than reporting nothing, and the alternative — a new enum returned from a new function — leaves the old function answering the question wrongly. A break still needs a version, which the check below enforces |
 | `constructible_struct_adds_field` requires `minor` | Adding a public field to a struct a caller can build with a literal is allowed in a minor release | The model is data. `TextObject` gained `ReadDirection` and `CharDirection` because the format has them and ignoring them drew turned text upright, so the field is the feature rather than an accident of it. A caller writing that literal has to add the field, which the compiler reports at the line to change |
-| The check runs twice, and only against published versions | Against the tree of the released version, and against `HEAD^1` | Against the release both trees carry that release's version, so a break answers "a patch would do"; against the parent it reads the bump the commit intends and answers "not a patch". Both compare a version that is on the registry with the one this tree declares |
+| The check runs twice, and only where a published version exists | Against the tag of the version that crate declares, and against `HEAD^1` | Against the release both trees carry that release's version, so a break answers "a patch would do"; against the parent it reads the bump the commit intends and answers "not a patch". Both compare a version that is on the registry with the one the crate declares. The second comparison runs over the whole workspace once any crate is published, and covers the unpublished ones too — they have a parent commit even when they have no release |
 
 The baseline is the crates.io API, not the tag list. A tag is a tree this
 project built; a version in a manifest is one a caller can depend on, and only
-the second is something a break can hurt. So the gate asks whether the version
-this tree declares — read from `[workspace.package]`, and checked against
-`sofd-cli`, which publishes last — is on the registry. If it is not, the job
-does nothing and says so.
+the second is something a break can hurt. So the gate asks, per crate, whether
+the version that crate declares is on the registry. A crate whose version is not
+there yet is skipped and named in the log; a run where no crate has been
+published at all does nothing and says so.
 
 That is what makes the two comparisons safe rather than merely conventional.
 Comparing neighbours is what ties a break to the number the next release will

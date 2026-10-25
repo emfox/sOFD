@@ -1,6 +1,6 @@
 [package]
 name = "sofd-font"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -11,8 +11,8 @@ keywords = ["ofd", "font", "truetype", "cff", "text"]
 categories = ["text-processing"]
 
 [dependencies]
-sofd-error.workspace = true
-sofd-geometry.workspace = true
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 skrifa.workspace = true
 serde.workspace = true
 tracing.workspace = true

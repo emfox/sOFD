@@ -1,6 +1,6 @@
 [package]
 name = "sofd-server"
-version.workspace = true
+version = "0.5.1"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -17,9 +17,9 @@ name = "sofd-server"
 path = "src/main.rs"
 
 [dependencies]
-sofd = { workspace = true, features = ["render", "sign", "convert", "search", "pdf"] }
-sofd-error.workspace = true
-sofd-font.workspace = true
+sofd = { path = "../sofd", version = "0.5", features = ["render", "sign", "convert", "search", "pdf"] }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+sofd-font = { path = "../sofd-font", version = "0.5" }
 axum.workspace = true
 tokio.workspace = true
 tower-http = { version = "0.6", features = ["cors", "limit", "trace", "timeout"] }
