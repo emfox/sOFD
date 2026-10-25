@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod base64;
 pub mod time;
 pub mod units;
 pub mod version;
