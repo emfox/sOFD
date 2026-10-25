@@ -45,11 +45,13 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-# The reader's desktop builds, named for the system each runs on.
+# The reader's desktop builds, named for the system each runs on. The Windows
+# one keeps its `.exe` here: the workflow copies the build out under this name,
+# and a file without the extension is one Explorer cannot start.
 DESKTOP = {
     "linux": "sofd-reader-linux",
     "macos": "sofd-reader-macos",
-    "windows": "sofd-reader-windows",
+    "windows": "sofd-reader-windows.exe",
 }
 # What each one is called inside its archive, so an unpacked file runs as-is.
 INSIDE = {
@@ -176,7 +178,10 @@ def check_layout(tmp: Path) -> list[tuple[str, bool]]:
     for directory in (out, dist, page, pkg, lib):
         directory.mkdir(parents=True)
 
-    for name in DESKTOP.values():
+    # Named the way the workflow's `Collect the executable` step names them,
+    # spelled out rather than read from DESKTOP: a self-test that takes its
+    # input from the table it is testing passes whatever the table says.
+    for name in ("sofd-reader-linux", "sofd-reader-macos", "sofd-reader-windows.exe"):
         (dist / name).write_bytes(b"reader")
     (page / "index.html").write_text("<html></html>")
     (pkg / "sofd_reader.js").write_text("export {}")

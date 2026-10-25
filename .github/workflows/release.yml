@@ -135,10 +135,13 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked
 
-      # The page's entry point lives in the binary crate, beside the frame it
-      # wraps, so the binary is what wasm-pack turns into the module.
+      # `--lib` because the crate also has a `[[bin]]`. wasm-pack otherwise
+      # builds the binary and fails: the module with `#[wasm_bindgen]` exports
+      # is the `cdylib` in `[lib]`, and the binary has none.
       - name: Build the reader for the browser
-        run: wasm-pack build crates/sofd-reader --release --target web
+        run: |
+          wasm-pack build crates/sofd-reader --lib --release --target web \
+            --out-dir pkg
 
       # The page and the module it loads ship together: one without the other
       # runs nothing.
