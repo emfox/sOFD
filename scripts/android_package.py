@@ -71,8 +71,10 @@ CONFIG_CHANGES = "|".join(
 # offers it. A share of the wrong type opens and is refused by the reader,
 # which says so, and that is better than a share menu with no reader in it.
 SEND_MIMES = ["application/ofd", "application/zip", "application/octet-stream"]
-# The workspace manifest, which is where the one version of everything lives.
-MANIFEST_TOML = Path(__file__).resolve().parent.parent / "Cargo.toml"
+# The reader crate's manifest. The `versionCode` is the reader's version, not a
+# workspace-wide one: there is no workspace-wide one any more, and the archive
+# holds the reader and nothing else.
+READER_TOML = Path(__file__).resolve().parent.parent / "crates" / "sofd-reader" / "Cargo.toml"
 
 
 def version_code(version: str) -> int:
@@ -91,12 +93,13 @@ def version_code(version: str) -> int:
     return major * 10_000 + minor * 100 + patch
 
 
-def workspace_version() -> str:
-    """The version named once in the workspace manifest."""
-    text = MANIFEST_TOML.read_text(encoding="utf-8")
-    match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+def reader_version() -> str:
+    """The version the reader crate states."""
+    text = READER_TOML.read_text(encoding="utf-8")
+    block = re.search(r"^\[package\]\n(.*?)(?=^\[|\Z)", text, re.M | re.S)
+    match = re.search(r'^version\s*=\s*"([^"]+)"', block.group(1) if block else "", re.M)
     if not match:
-        raise SystemExit(f"error: {MANIFEST_TOML} names no version")
+        raise SystemExit(f"error: {READER_TOML} names no version")
     return match.group(1)
 
 
@@ -271,7 +274,7 @@ def package(sdk: Path, library: Path, out: Path) -> Path:
     """
     work = Path(tempfile.mkdtemp(prefix="sofd-android-"))
     try:
-        version = workspace_version()
+        version = reader_version()
         manifest = write_manifest(work, version)
 
         # The resource table has to be the SDK's own binary form: the signer reads
@@ -319,7 +322,7 @@ def package(sdk: Path, library: Path, out: Path) -> Path:
 
 def selftest() -> int:
     """The parts that need no SDK: the manifest and the archive layout."""
-    version = workspace_version()
+    version = reader_version()
     rendered = manifest_text(version)
     assert f'package="{PACKAGE}"' in rendered
     assert f'android:value="{LIBRARY}"' in rendered
