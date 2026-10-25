@@ -15,7 +15,7 @@ and reviewable by contributors worldwide, all engineering artifacts use English.
 | `README` | Bilingual | `README.md` (English, default) + `README.zh-CN.md`, cross-linked |
 | `CHANGELOG` | English only | Release notes describe the product, not the people reading it; the README is the only bilingual document |
 | Other project documents (`docs/`) | English preferred | Chinese allowed only when a document is explicitly user-facing, and must be named `*.zh-CN.md` |
-| UI strings shown to end users | Any locale | Must live in `locales/<tag>/*.ftl`, never hardcoded |
+| UI strings shown to end users | Any locale | Must live in the `locales/<tag>/*.ftl` of the crate that embeds them, never hardcoded |
 
 ### 1.1 Document names
 
@@ -246,7 +246,7 @@ Seven exemptions exist, each deliberately narrow:
 | Exemption | Where | Why |
 | --- | --- | --- |
 | Whole file | any `*.zh-CN.md` | Section 1 asks a Chinese document to declare the language in its name, so the name is the exemption and a new translation needs no list edit |
-| Whole file | anything under `locales/` | Locale catalogues are the translation data |
+| Whole file | anything under a `locales/` directory | Locale catalogues are the translation data, wherever the crate that owns them keeps them |
 | Whole file and name | fetched test samples under `tests/fixtures/` | A sample is named by the producer that wrote it, and renaming one severs the only link back to where it came from |
 | Whole file | `docs/Conventions.md`, `scripts/check_language.py`, `scripts/check_i18n.py` | They exist to hold, quote or match Chinese |
 | Whole file | `scripts/sample_fetch.py` | Its pin lists spell out the producer's own file names, exactly like the samples they fetch |
