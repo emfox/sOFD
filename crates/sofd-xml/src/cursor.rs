@@ -127,6 +127,8 @@ pub struct Cursor<'a> {
     buf: Vec<u8>,
     depth: usize,
     max_depth: usize,
+    /// Where the tag the last event read began.
+    tag_start: usize,
     /// Elements opened but not yet closed, so a truncated document is caught.
     open: Vec<String>,
 }
@@ -160,6 +162,7 @@ impl<'a> Cursor<'a> {
             buf: Vec::new(),
             depth: 0,
             max_depth,
+            tag_start: 0,
             open: Vec::new(),
         }
     }
@@ -169,8 +172,35 @@ impl<'a> Cursor<'a> {
         self.depth
     }
 
+    /// Byte offset just past the event [`next_event`](Self::next_event) last
+    /// returned. Zero before the first event.
+    pub fn offset(&self) -> usize {
+        self.reader.buffer_position() as usize
+    }
+
+    /// Byte offset where the tag the last [`next_event`] read began, preceding
+    /// whitespace included. A caller rewriting a document in place needs both
+    /// ends of what it cuts, and a search for `<` finds the wrong one across an
+    /// end tag in between, so this is taken before the tag is parsed.
+    ///
+    /// [`next_event`]: Self::next_event
+    pub fn tag_start(&self) -> usize {
+        self.tag_start
+    }
+
     /// Read the next event.
     pub fn next_event(&mut self) -> Result<Event> {
+        let before = self.reader.buffer_position() as usize;
+        let event = self.next_inner();
+        if event.is_ok() {
+            self.tag_start = before;
+        }
+        event
+    }
+
+    /// The event loop proper, split out so [`next_event`](Self::next_event) can
+    /// bracket it with the offsets the tag occupies.
+    fn next_inner(&mut self) -> Result<Event> {
         loop {
             let pos = self.reader.buffer_position();
             let event = match self.reader.read_event_into(&mut self.buf) {
