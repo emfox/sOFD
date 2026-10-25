@@ -95,7 +95,7 @@ CHECKS: tuple[Check, ...] = (
     # cargo resolves that name from the registry once the crate leaves this
     # tree. This fails when the published set is not closed under its own
     # dependencies, which is the mistake that only shows up at release time.
-    Check("publish-order", "policy", (py("scripts/publish_order.py"),)),
+    Check("publish-order", "policy", (py("scripts/publish_order.py", "--check"),)),
     # A crate reaches a registry as the tarball cargo makes, which holds the
     # crate's own directory and not the repository above it. An `include_str!`
     # that climbs out of it therefore compiles here and fails at release time,

@@ -20,6 +20,7 @@ Usage:
     python3 scripts/publish_order.py            # the closure, in order
     python3 scripts/publish_order.py --commands  # as cargo publish lines
     python3 scripts/publish_order.py --closure sofd  # just one entry point
+    python3 scripts/publish_order.py --check     # assert the order holds
 
 Exit code: 0 when the closure is sound, 1 when a cycle or a missing crate
 makes it unbuildable.
@@ -69,9 +70,10 @@ def internal_deps(text: str, known: dict[str, Path]) -> set[str]:
     """
     body = re.split(r"^\[dev-dependencies\]", text, flags=re.M)[0]
     body = re.split(r"^\[package\.metadata", body, flags=re.M)[0]
-    # Only the real dependency sections count; a `[[bench]]` table naming a
-    # crate is not a dependency.
-    body = re.split(r"^\[\[", body, flags=re.M)[0]
+    # A `[[bench]]` table names the crate its benchmark lives in, which is not a
+    # dependency; drop only that table. `[[bin]]` and `[[test]]` sit among the
+    # real dependency tables, so cutting at the first `[[` would lose them.
+    body = re.sub(r"^\[\[bench\]\].*?(?=^\[|\Z)", "", body, flags=re.M | re.S)
     # Matched against `known` rather than a `sofd-*` pattern: the facade is
     # called `sofd`, and a pattern that insists on a suffix loses the one edge
     # every surface crate has.
@@ -85,31 +87,118 @@ def internal_deps(text: str, known: dict[str, Path]) -> set[str]:
 
 
 def closure(entries: list[str], deps: dict[str, set[str]], published: set[str]):
-    """The published crates reachable from `entries`, plus what is missing."""
-    seen: set[str] = set()
-    order: list[str] = []
+    """The published crates reachable from `entries`, plus what is missing.
+
+    Kahn's algorithm rather than a depth-first walk. A walk emits a crate the
+    first time it is reached, so a crate can land before a dependency of a
+    later entry — `sofd-cli` came out ahead of `sofd-i18n`, which it needs.
+    Repeatedly taking every crate whose dependencies are already in the order
+    cannot do that.
+    """
+    reachable: set[str] = set()
     missing: set[str] = set()
 
-    def visit(name: str, path: tuple[str, ...]) -> None:
-        if name in seen:
+    def walk(name: str, path: tuple[str, ...]) -> None:
+        if name in reachable:
             return
         if name in path:
             raise SystemExit(f"FATAL: dependency cycle {' -> '.join(path + (name,))}")
         if name not in published:
             missing.add(name)
+        reachable.add(name)
         for d in sorted(deps.get(name, ())):
-            visit(d, path + (name,))
-        seen.add(name)
-        order.append(name)
+            walk(d, path + (name,))
 
     for e in entries:
-        visit(e, ())
+        walk(e, ())
+
+    order: list[str] = []
+    done: set[str] = set()
+    while len(order) < len(reachable):
+        ready = sorted(
+            name
+            for name in reachable - done
+            if not (deps.get(name, set()) & reachable) - done
+        )
+        if not ready:
+            raise SystemExit(
+                f"FATAL: dependency cycle among {', '.join(sorted(reachable - done))}"
+            )
+        order.extend(ready)
+        done.update(ready)
     return order, missing
+
+
+def verify(order: list[str], deps: dict[str, set[str]], known: dict[str, Path]) -> int:
+    """Check the printed order against the dependency edges it claims to respect.
+
+    An edge that was never parsed cannot be checked, so the second question is
+    whether the parse saw the dependencies the manifest actually states: every
+    workspace crate named in a `[dependencies]` table has to appear in `deps`.
+    """
+    position = {name: i for i, name in enumerate(order)}
+    faults = [
+        (name, dep)
+        for name in order
+        for dep in sorted(deps.get(name, ()))
+        if dep in position and position[dep] > position[name]
+    ]
+    for name, dep in faults:
+        print(f"{name} is placed before {dep}, which it depends on", file=sys.stderr)
+
+    dropped = []
+    for name, path in sorted(known.items()):
+        stated = stated_deps(path.read_text(), known)
+        if stated - deps.get(name, set()):
+            dropped.append((name, sorted(stated - deps.get(name, set()))))
+    for name, lost in dropped:
+        print(f"{name} states {', '.join(lost)} but the parse missed it", file=sys.stderr)
+
+    if faults or dropped:
+        print(
+            f"FAILED: {len(faults)} edge(s) out of order, "
+            f"{len(dropped)} crate(s) with unparsed dependencies",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"OK: {len(order)} crate(s), every dependency ahead of the crate that needs it")
+    return 0
+
+
+def stated_deps(text: str, known: dict[str, Path]) -> set[str]:
+    """The workspace crates a manifest names under `[dependencies]`, however far down.
+
+    Deliberately a separate, simpler reading than `internal_deps`: it is what
+    the real parse is checked against, so sharing the code would share the bug.
+    """
+    found: set[str] = set()
+    inside = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("["):
+            inside = stripped == "[dependencies]"
+            continue
+        if not inside or "=" not in stripped or stripped.startswith("#"):
+            continue
+        key, rest = stripped.split("=", 1)
+        key = key.strip()
+        # The key is the crate's own name, or one it renames with `package`.
+        renamed = re.search(r'package\s*=\s*"([^"]+)"', rest)
+        if renamed and renamed.group(1) in known:
+            found.add(renamed.group(1))
+        elif key in known:
+            found.add(key)
+    return found
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--commands", action="store_true", help="print cargo publish lines")
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help="assert the order respects every dependency edge",
+    )
     ap.add_argument(
         "--closure",
         action="append",
@@ -145,6 +234,9 @@ def main() -> int:
         for m in sorted(missing):
             print(f"  {m}", file=sys.stderr)
         return 1
+
+    if args.check:
+        return verify(order, deps, known)
 
     if args.commands:
         for name in order:
