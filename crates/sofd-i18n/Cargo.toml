@@ -5,8 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-# Messages for the shell, which the engine does not emit.
-publish = false
+readme.workspace = true
 description = "sOFD localization message layer built on Fluent"
 keywords = ["ofd", "i18n", "localization", "fluent"]
 categories = ["localization"]

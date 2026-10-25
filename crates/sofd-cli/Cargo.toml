@@ -5,19 +5,27 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-# Ships as an application, not as a dependency.
-publish = false
+readme.workspace = true
+description = "The `sofd` command: inspect, render, convert, verify, search, audit and print an OFD document"
+keywords = ["ofd", "document", "cli", "render", "convert"]
+categories = ["command-line-utilities", "multimedia::images"]
 
 [[bin]]
 name = "sofd"
 path = "src/main.rs"
 
 [dependencies]
-sofd = { workspace = true, features = ["render", "sign", "convert", "print", "edit", "search", "archive", "async"] }
+# The bin runs every capability, so it turns them all on: `edit` is named
+# though no subcommand edits yet, because a facade feature left off is a
+# capability the command cannot grow into without a manifest change.
+sofd = { workspace = true, features = ["render", "print", "sign", "convert", "pdf", "edit", "search", "archive", "async"] }
 sofd-error.workspace = true
 sofd-font.workspace = true
 sofd-i18n.workspace = true
 sofd-io.workspace = true
+# Named directly because a `[features]` entry cannot turn on a passthrough
+# dependency, and the bin reaches `sofd-archive` and `sofd-print` for their
+# types. Being named here is also what makes them publishable.
 sofd-archive.workspace = true
 sofd-print.workspace = true
 clap = { version = "4", features = ["derive"] }
