@@ -216,7 +216,6 @@ fn doc_type_value(text: &str, at: usize, cut: usize) -> Option<(usize, usize)> {
     Some((quote_at + 1, quote_at + 1 + end))
 }
 
-
 /// The byte offset of the `OFD` root tag, whatever namespace prefix it wears.
 /// Only the first element counts: a comment or a declaration above it is not
 /// the root, and the parser tells the two apart where a search for `<OFD` cannot.
@@ -224,7 +223,9 @@ fn find_root_tag(text: &str) -> Option<usize> {
     let mut cursor = Cursor::new(text);
     loop {
         match cursor.next_event().ok()? {
-            Event::Start(node) if node.is("OFD") => return Some(tag_start(text, cursor.tag_start(), cursor.offset())),
+            Event::Start(node) if node.is("OFD") => {
+                return Some(tag_start(text, cursor.tag_start(), cursor.offset()));
+            }
             Event::Start(_) | Event::End(_) | Event::Text(_) => {}
             Event::Eof => return None,
         }

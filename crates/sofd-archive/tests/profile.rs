@@ -198,10 +198,22 @@ fn a_less_than_inside_an_attribute_value_is_not_a_tag_boundary() {
     // `Permissions` into the document as loose text.
     let document = r#"<ofd:Document xmlns:ofd="http://www.ofdspec.org/2016"><ofd:T Text="a &lt; b"/><ofd:Permissions><ofd:Edit>false</ofd:Edit></ofd:Permissions><ofd:Keep/></ofd:Document>"#;
     let out = rewrite_document(document);
-    assert!(!out.contains("Permissions"), "the element is gone, got {out}");
-    assert!(!out.contains("false"), "its content left with it, got {out}");
-    assert!(out.contains(r#"Text="a &lt; b""#), "the value is intact, got {out}");
-    assert!(out.contains("<ofd:Keep/>"), "the sibling survives, got {out}");
+    assert!(
+        !out.contains("Permissions"),
+        "the element is gone, got {out}"
+    );
+    assert!(
+        !out.contains("false"),
+        "its content left with it, got {out}"
+    );
+    assert!(
+        out.contains(r#"Text="a &lt; b""#),
+        "the value is intact, got {out}"
+    );
+    assert!(
+        out.contains("<ofd:Keep/>"),
+        "the sibling survives, got {out}"
+    );
 }
 
 #[test]
@@ -212,7 +224,10 @@ fn a_less_than_inside_a_comment_is_not_a_tag_boundary() {
         out.contains("<!-- use <ofd:Permissions> to lock -->"),
         "a comment is text, not structure, got {out}"
     );
-    assert!(out.contains("<ofd:Keep/>"), "the sibling survives, got {out}");
+    assert!(
+        out.contains("<ofd:Keep/>"),
+        "the sibling survives, got {out}"
+    );
 }
 
 #[test]
@@ -227,5 +242,8 @@ fn the_bytes_outside_a_removed_element_are_untouched() {
     let document = "<ofd:Document xmlns:ofd=\"http://www.ofdspec.org/2016\">\n  <ofd:VPreferences><ofd:PageMode>None</ofd:PageMode></ofd:VPreferences>\n  <ofd:Pages>\n    <ofd:Page ID=\"1\"/>\n  </ofd:Pages>\n</ofd:Document>";
     let out = rewrite_document(document);
     let expected = "<ofd:Document xmlns:ofd=\"http://www.ofdspec.org/2016\">\n  \n  <ofd:Pages>\n    <ofd:Page ID=\"1\"/>\n  </ofd:Pages>\n</ofd:Document>";
-    assert_eq!(out, expected, "the rewrite removes one span and changes nothing else");
+    assert_eq!(
+        out, expected,
+        "the rewrite removes one span and changes nothing else"
+    );
 }
