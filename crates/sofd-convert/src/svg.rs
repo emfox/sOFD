@@ -11,7 +11,6 @@ use sofd_error::Result;
 use sofd_font::FontManager;
 use sofd_geometry::{Affine, Path, PathSegment};
 
-use crate::base64;
 use crate::replay::{PageSink, PaintShape, PathShape, replay, text_paint_shape};
 use crate::{ConversionStats, TextExport};
 
@@ -824,7 +823,7 @@ fn data_uri(image: &ImageRef) -> Option<String> {
     };
     Some(format!(
         "data:{mime};base64,{}",
-        base64::encode(&image.data)
+        sofd_common::base64::encode(&image.data)
     ))
 }
 

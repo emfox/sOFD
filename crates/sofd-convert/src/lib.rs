@@ -7,7 +7,6 @@
 
 use sofd_font::Unresolved;
 
-pub mod base64;
 pub mod png;
 pub mod replay;
 pub mod svg;
