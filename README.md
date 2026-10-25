@@ -196,6 +196,7 @@ depends on; boxes below the facade are pulled in only when a feature names them.
   │          edit      parser, package, model                            │
   │          search    display, geometry                                 │
   │          archive   package, model                                    │
+  │          annot     nothing: the parser it reads is never optional    │
   └──────────────────────────────────────────────────────────────────────┘
 
   sofd-i18n      messages for the shells; the engine emits none

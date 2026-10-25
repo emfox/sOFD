@@ -178,6 +178,7 @@ OFD 和 PDF 都是版式文档，区别在于 OFD 是开放的 ZIP + XML 容器�
   │    edit      parser, package, model                                  │
   │    search    display, geometry                                       │
   │    archive   package, model                                          │
+  │    annot     无：它读的 parser 永远不是可选的                         │
   └──────────────────────────────────────────────────────────────────────┘
 
   sofd-i18n      供外壳使用的文案；引擎自身从不产生文案
