@@ -33,7 +33,7 @@ pdf     = ["dep:lopdf"]
 
 [dev-dependencies]
 criterion.workspace = true
-sofd = { path = "../sofd" }
+sofd = { path = "../sofd", version = "0.5" }
 sofd-testkit = { path = "../sofd-testkit" }
 
 [[bench]]

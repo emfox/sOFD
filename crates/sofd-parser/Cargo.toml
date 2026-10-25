@@ -25,11 +25,11 @@ tracing.workspace = true
 [dev-dependencies]
 proptest.workspace = true
 criterion.workspace = true
-sofd-render = { path = "../sofd-render" }
+sofd-render = { path = "../sofd-render", version = "0.5" }
 sofd-testkit = { path = "../sofd-testkit" }
 # The memory benchmark rasterizes a page, which is where a page's bytes go.
-sofd = { path = "../sofd" }
-sofd-convert = { path = "../sofd-convert" }
+sofd = { path = "../sofd", version = "0.5" }
+sofd-convert = { path = "../sofd-convert", version = "0.5" }
 
 [[bench]]
 name = "parse"

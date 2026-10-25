@@ -17,10 +17,10 @@ sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 tracing.workspace = true
 
 [dev-dependencies]
-sofd-font = { path = "../sofd-font" }
+sofd-font = { path = "../sofd-font", version = "0.5" }
 criterion.workspace = true
-sofd-package = { path = "../sofd-package" }
-sofd-parser = { path = "../sofd-parser" }
+sofd-package = { path = "../sofd-package", version = "0.5" }
+sofd-parser = { path = "../sofd-parser", version = "0.5" }
 sofd-testkit = { path = "../sofd-testkit" }
 
 [[bench]]

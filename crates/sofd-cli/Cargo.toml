@@ -35,4 +35,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde_json.workspace = true
 
 [dev-dependencies]
-sofd-package = { path = "../sofd-package" }
+sofd-package = { path = "../sofd-package", version = "0.5" }

@@ -17,10 +17,8 @@ So each requirement is asked two questions:
   sibling is published at all, since before a first release there is nothing
   to resolve against.
 
-While the workspace states one version for every crate, both questions reduce
-to the same answer and the check passes trivially. That is deliberate: it goes
-in before the thing it guards against, so the logic is exercised on a tree
-where the answer is known.
+The two questions are the reason this exists: neither can be answered from the
+other, and a mistake in either is invisible until a consumer's build fails.
 
 Usage:
     python3 scripts/check_versions.py            # check the workspace
@@ -97,19 +95,41 @@ def publishes_named(name: str) -> bool:
     raise SystemExit(f"FATAL: no member crate is named {name}")
 
 
+def tables(text: str) -> list[tuple[str, str]]:
+    """Each dependency table in a manifest, as (heading, body).
+
+    Three of them matter: `[dependencies]`, `[dev-dependencies]` and
+    `[build-dependencies]`. A dev-dependency still has to name a version — the
+    one sibling exempted is `sofd-testkit`, which cannot be named by version
+    because it is never published, so it is skipped by name below rather than
+    by table. A build-dependency would have to publish, and none does.
+    """
+    found = re.findall(
+        r"^\[(dependencies|dev-dependencies|build-dependencies)\]\n(.*?)(?=^\[|\Z)",
+        text,
+        re.M | re.S,
+    )
+    return list(found)
+
+
 def requirements(manifest: Path) -> list[tuple[str, str, str]]:
     """Each internal dependency this manifest states, as (key, crate, requirement).
 
-    Only `[dependencies]` matters. A dev-dependency is declared path-only so
-    that cargo drops it from the packed manifest, and a build-dependency would
-    have to publish as well, which none does.
+    A requirement of `""` means the entry states no version at all, which is a
+    fault for every crate a registry will serve. `""` from a dev-dependency on
+    `sofd-testkit` is expected: it is the one member that `publish = false`, so
+    a version on it would be a requirement on a crate no registry serves.
     """
     text = manifest.read_text(encoding="utf-8")
-    block = re.search(r"^\[dependencies\]\n(.*?)(?=^\[|\Z)", text, re.M | re.S)
-    if block is None:
-        return []
     found: list[tuple[str, str, str]] = []
-    for line in block.group(1).splitlines():
+    for heading, body in tables(text):
+        found.extend(_table_requirements(body))
+    return found
+
+
+def _table_requirements(block: str) -> list[tuple[str, str, str]]:
+    found: list[tuple[str, str, str]] = []
+    for line in block.splitlines():
         stripped = line.split("#", 1)[0].strip()
         if not stripped or "=" not in stripped:
             continue
@@ -366,9 +386,16 @@ def main() -> int:
                     continue
                 requirement = sibling
             if requirement == "":
-                faults.append(
-                    f"{name}: {key} states no version, so a registry cannot resolve it"
-                )
+                # `sofd-testkit` is the one member no registry will serve, so a
+                # version on it is the thing that cannot work. Read from that
+                # crate's own manifest rather than assumed from its name: a new
+                # crate that opts out is exempt without this check being edited.
+                if not any(
+                    publishes(m) is False and name_of(m) == crate for m in manifests
+                ):
+                    faults.append(
+                        f"{name}: {key} states no version, so a registry cannot resolve it"
+                    )
                 continue
             if parse(requirement) is None:
                 faults.append(

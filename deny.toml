@@ -32,6 +32,16 @@ ignore = [
 # a version pin already records every case here, so a duplicate is reported.
 multiple-versions = "warn"
 wildcards = "deny"
+# Every sibling crate states its interval, and the line above holds those to a
+# number — which is why a `dependencies` entry without one is still a failure.
+# `sofd-testkit` is the exception, and the exception is dev-only: it is the one
+# sibling that `publish = false`, so a version on it would be a requirement on a
+# crate no registry serves. cargo-deny has no per-crate way to say that, only
+# this switch, so what is given up is a dev-dependency on a *published* sibling
+# being allowed to drift. `scripts/check_versions.py` reads the same intervals
+# and does not care where they sit, so it still reports that.
+allow-wildcard-paths = true
+
 # Our own crates are always path dependencies; naming one from a registry
 # would silently build a different copy than the workspace.
 deny = [
