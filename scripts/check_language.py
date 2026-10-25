@@ -33,12 +33,6 @@ ALLOWLIST_FILES = {
 # no list edit, and Chinese in an English document still fails.
 ALLOWLIST_SUFFIX = ".zh-CN.md"
 
-# Files exempt as locale data. The whole file is skipped rather than its string
-# literals alone: the CJK in it is the day-period markers and no prose.
-ALLOWLIST_CJK_LITERALS = {
-    "crates/sofd-i18n/src/format.rs": "locale day-period markers",
-}
-
 # Lines exempt from the language rule even inside otherwise English files.
 # The bilingual README pair must cross-link using the other language's own name.
 # The target is absolute because a published README resolves relative links
@@ -91,9 +85,63 @@ def is_allowlisted(rel: str) -> bool:
     return any(rel.startswith(d.rstrip("/") + "/") for d in ALLOWLIST_DIRS)
 
 
-def allows_cjk_literals(rel: str) -> bool:
-    """Locale data files may hold CJK string literals; their comments are exempt too."""
-    return rel in ALLOWLIST_CJK_LITERALS
+# Section 4: prose a reader sees comes from the catalogue, so a CJK literal in
+# English source is data — a certificate's subject, a statute's wording — and a
+# line whose literals are the only prose is exempt. Three shapes still fail: a
+# comment; a literal bound to a bare name, which is a message no translator will
+# ever see; and a literal handed to a widget. A literal passed to a function is
+# data, whether the call binds its result or not, and that is the shape a test
+# writing down a certificate subject takes. Escapes were tried first and compiled
+# to the same bytes while making the source unreadable, which is the opposite of
+# what the rule is for.
+STRING_LITERAL_RE = re.compile(r'"(?:[^"\\]|\\.)*"')
+CHAR_LITERAL_RE = re.compile(r"'(?:[^'\\]|\\.)*'")
+IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+PROSE_BYTES = set(" \t!\"#$%&'()*+,-./0123456789:;<=>?@[\\]^_{|}~")
+# A test states the string it expects, so an assertion is exempt by nature.
+CATALOG_MARKERS = ("i18n", "MessageId::", "assert", "expect", "panic", "debug_assert")
+# A `const` or `static` names data the module carries, so it stays exempt.
+CONST_BIND_RE = re.compile(r"^(?:const|static)\b")
+BIND_RE = re.compile(r"^let\b[^=]*=\s*(.*)$")
+CALL_RHS_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:\s*(?:\.|::)\s*[A-Za-z_][A-Za-z0-9_]*)*\s*\(")
+# Functions that put their argument on the interface. Everywhere else a literal
+# is a value being parsed, hashed or compared, which is data.
+WIDGET_RE = re.compile(
+    r"^(?:[A-Za-z_][A-Za-z0-9_]*\s*(?:\.|::)\s*)*(?:push|push_str|set_\w+|label\w*)\s*\("
+)
+
+
+def holds_cjk_literal(line: str) -> bool:
+    """Whether the line carries a CJK string or character literal."""
+    literals = STRING_LITERAL_RE.findall(line) + CHAR_LITERAL_RE.findall(line)
+    return any(first_cjk(literal) for literal in literals)
+
+
+def binds_a_bare_literal(line: str) -> bool:
+    """Whether a `let` gives a literal a name with no function in between."""
+    bound = BIND_RE.match(line)
+    return bool(bound) and not CALL_RHS_RE.match(bound.group(1).strip())
+
+
+def builds_prose(line: str) -> bool:
+    """Whether the line makes the literal prose rather than passing data on."""
+    if any(marker in line for marker in CATALOG_MARKERS):
+        return False
+    if CONST_BIND_RE.match(line):
+        return False
+    return binds_a_bare_literal(line) or bool(WIDGET_RE.match(line))
+
+
+def is_external_string_literal(line: str) -> bool:
+    """Whether the line's only prose is inside its literals."""
+    stripped = line.strip()
+    if not stripped or COMMENT_RE.match(line) or not holds_cjk_literal(stripped):
+        return False
+    if builds_prose(stripped):
+        return False
+    outside = STRING_LITERAL_RE.sub("", stripped)
+    outside = IDENT_RE.sub("", CHAR_LITERAL_RE.sub("", outside))
+    return all(ch in PROSE_BYTES for ch in outside)
 
 
 def iter_targets() -> list[Path]:
@@ -118,8 +166,6 @@ def check_cjk(files: list[Path]) -> list[str]:
     errors: list[str] = []
     for p in files:
         rel = p.relative_to(REPO).as_posix()
-        if allows_cjk_literals(rel):
-            continue
         try:
             lines = p.read_text(encoding="utf-8").splitlines()
         except (UnicodeDecodeError, OSError):
@@ -127,7 +173,9 @@ def check_cjk(files: list[Path]) -> list[str]:
         hits = [
             (i, l)
             for i, l in enumerate(lines, 1)
-            if first_cjk(l) and not ALLOWLIST_LINE_RE.search(l)
+            if first_cjk(l)
+            and not ALLOWLIST_LINE_RE.search(l)
+            and not is_external_string_literal(l)
         ]
         if not hits:
             continue

@@ -18,12 +18,7 @@ const ROWS: &[Row] = &[
         "Hamburgefonstiv 123",
         true,
     ),
-    (
-        "sofd-cjk-subset.ttf",
-        "Noto Sans CJK SC",
-        "\u{4e2d}\u{56fd}\u{53d1}\u{7968}",
-        true,
-    ),
+    ("sofd-cjk-subset.ttf", "Noto Sans CJK SC", "中国发票", true),
     (
         "sofd-hebrew-subset.ttf",
         "Noto Sans Hebrew",
@@ -42,12 +37,7 @@ const ROWS: &[Row] = &[
         "Hamburgefonstiv",
         false,
     ),
-    (
-        "sofd-collection.ttc",
-        "Noto Sans CJK SC",
-        "\u{4e2d}\u{56fd}",
-        true,
-    ),
+    ("sofd-collection.ttc", "Noto Sans CJK SC", "中国", true),
 ];
 
 /// Load one matrix fixture into a fresh manager.
@@ -132,12 +122,12 @@ fn a_latin_face_is_proportional_rather_than_fixed_width() {
 #[test]
 fn a_cjk_face_maps_ideographs_and_gives_them_one_advance() {
     let (_, face) = face_of("sofd-cjk-subset.ttf", "Noto Sans CJK SC");
-    let text = "\u{4e2d}\u{56fd}\u{53d1}\u{7968}";
-    let widths: Vec<f64> = text
+    const TEXT: &str = "中国发票";
+    let widths: Vec<f64> = TEXT
         .chars()
         .map(|ch| face.advance_width(face.glyph_id(u32::from(ch)).expect("ideograph")))
         .collect();
-    for (ch, w) in text.chars().zip(&widths) {
+    for (ch, w) in TEXT.chars().zip(&widths) {
         assert!(
             (w - widths[0]).abs() < 1e-9,
             "{ch:?} shares the ideograph width"

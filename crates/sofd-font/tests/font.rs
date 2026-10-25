@@ -93,8 +93,8 @@ fn a_character_the_face_lacks_is_absent_rather_than_wrong() {
     let face = manager.face(id).expect("load");
     // A CJK ideograph is not in a Latin display face, and the honest answer is
     // `None` rather than a bogus glyph.
-    assert!(!face.has_codepoint('\u{4e2d}' as u32));
-    assert_eq!(face.glyph_id('\u{4e2d}' as u32), None);
+    assert!(!face.has_codepoint('中' as u32));
+    assert_eq!(face.glyph_id('中' as u32), None);
 }
 
 #[test]
@@ -179,7 +179,8 @@ fn a_character_with_no_face_is_absent_rather_than_a_blank_glyph() {
     // The fixture lacks the ideograph, so it cannot be drawn. The face says so
     // instead of handing back .notdef, which would draw an empty box where the
     // caller expected a character.
-    let resolved: Vec<Option<u16>> = "A\u{4e2d}"
+    const SAMPLE: &str = "A中";
+    let resolved: Vec<Option<u16>> = SAMPLE
         .chars()
         .map(|ch| face.glyph_id(u32::from(ch)))
         .collect();
@@ -242,7 +243,7 @@ fn a_fallback_is_found_for_a_codepoint_the_chain_covers() {
     assert_eq!(found, id);
     // A codepoint no face in the chain covers yields nothing rather than a
     // wrong face.
-    assert!(manager.fallback_for('\u{4e2d}' as u32).is_none());
+    assert!(manager.fallback_for('中' as u32).is_none());
 }
 
 #[test]
@@ -414,11 +415,11 @@ fn a_code_the_face_lacks_is_outlined_from_the_chain() {
     assert_eq!(latin.1.id(), narrow, "and is attributed to it");
 
     let han = manager
-        .outline_for_code(&face, '\u{4f60}' as u16, false)
+        .outline_for_code(&face, '你' as u16, false)
         .expect("a Han code resolves from the chain");
     assert_eq!(han.1.id(), wide, "from the pinned wide face, not the run's");
     assert!(
-        han.1.has_codepoint('\u{4f60}' as u32),
+        han.1.has_codepoint('你' as u32),
         "and that is the face that covers it"
     );
 }

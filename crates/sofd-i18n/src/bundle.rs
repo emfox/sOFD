@@ -467,7 +467,7 @@ mod tests {
     #[test]
     fn plain_messages_render_per_locale() {
         assert_eq!(english().text(MessageId::AppReady), "Ready");
-        assert_eq!(chinese().text(MessageId::AppReady), "\u{5c31}\u{7eea}");
+        assert_eq!(chinese().text(MessageId::AppReady), "就绪");
         // The product name is a proper noun and identical in both catalogues.
         assert_eq!(english().text(MessageId::AppName), "sOFD");
         assert_eq!(chinese().text(MessageId::AppName), "sOFD");
@@ -479,13 +479,13 @@ mod tests {
             MessageId::AppLoading,
             [("percent", fluent::FluentValue::from(42))],
         );
-        assert_eq!(en, "Loading\u{2026} (42%)");
+        assert_eq!(en, "Loading… (42%)");
 
         let zh = chinese().text_with(
             MessageId::AppLoading,
             [("percent", fluent::FluentValue::from(42))],
         );
-        assert_eq!(zh, "\u{52a0}\u{8f7d}\u{4e2d}\u{2026}\u{ff08}42%\u{ff09}");
+        assert_eq!(zh, "加载中…（42%）");
     }
 
     #[test]
@@ -503,7 +503,7 @@ mod tests {
         );
         assert_eq!(
             chinese().text_with(MessageId::ConvertProgress, args),
-            "\u{6b63}\u{5728}\u{8f6c}\u{6362}\u{ff1a}3 / 12"
+            "正在转换：3 / 12"
         );
     }
 
@@ -550,7 +550,7 @@ mod tests {
 
         i18n.set_locale(Locale::zh_cn());
         assert_eq!(i18n.locale(), &Locale::zh_cn());
-        assert_eq!(i18n.text(MessageId::CommonCancel), "\u{53d6}\u{6d88}");
+        assert_eq!(i18n.text(MessageId::CommonCancel), "取消");
     }
 
     #[test]

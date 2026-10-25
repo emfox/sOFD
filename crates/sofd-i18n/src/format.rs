@@ -101,11 +101,11 @@ impl LocalizedFormat {
         match self.locale.language() {
             "zh" => {
                 let (h12, ampm) = to_hour12(hh, "上午", "下午");
-                format!("{y}\u{5e74}{m}\u{6708}{d}\u{65e5} {ampm}{h12}:{mm:02}")
+                format!("{y}年{m}月{d}日 {ampm}{h12}:{mm:02}")
             }
             "ja" => {
                 let (h12, ampm) = to_hour12(hh, "午前", "午後");
-                format!("{y}\u{5e74}{m}\u{6708}{d}\u{65e5} {ampm}{h12}:{mm:02}")
+                format!("{y}年{m}月{d}日 {ampm}{h12}:{mm:02}")
             }
             _ => {
                 let mon = month_abbr(m);
@@ -124,8 +124,8 @@ impl LocalizedFormat {
     pub fn date(&self, unix_secs: i64) -> String {
         let (y, m, d, _, _) = civil_from_unix(unix_secs);
         match self.locale.language() {
-            "zh" => format!("{y}\u{5e74}{m}\u{6708}{d}\u{65e5}"),
-            "ja" => format!("{y}\u{5e74}{m}\u{6708}{d}\u{65e5}"),
+            "zh" => format!("{y}年{m}月{d}日"),
+            "ja" => format!("{y}年{m}月{d}日"),
             _ => format!("{} {d}, {y}", month_abbr(m)),
         }
     }
@@ -141,7 +141,7 @@ impl LocalizedFormat {
                 s.replace('.', &dot.to_string())
             }
         };
-        format!("{} \u{00d7} {} mm", fmt(w_mm), fmt(h_mm))
+        format!("{} × {} mm", fmt(w_mm), fmt(h_mm))
     }
 }
 
@@ -169,6 +169,7 @@ fn month_abbr(m: u32) -> &'static str {
 /// Digit grouping separator for a language.
 fn separator_for(tag: &str) -> char {
     match tag.split('-').next().unwrap_or(tag) {
+        // A narrow no-break space, which looks like a plain space in source.
         "fr" | "ru" | "sv" | "pl" | "cs" | "uk" => '\u{202F}',
         "de" | "it" | "es" | "pt" | "nl" | "da" | "tr" => '.',
         _ => ',',
@@ -340,7 +341,7 @@ mod tests {
     #[test]
     fn chinese_date_uses_the_year_month_day_markers() {
         let ts = 1_709_596_800;
-        assert_eq!(zh().date(ts), "2024\u{5e74}3\u{6708}5\u{65e5}");
+        assert_eq!(zh().date(ts), "2024年3月5日");
     }
 
     #[test]
@@ -363,16 +364,10 @@ mod tests {
         let base = 1_709_596_800;
         // 09:05 UTC is before noon.
         let morning = zh().datetime(base + 9 * 3600 + 5 * 60);
-        assert_eq!(
-            morning,
-            "2024\u{5e74}3\u{6708}5\u{65e5} \u{4e0a}\u{5348}9:05"
-        );
+        assert_eq!(morning, "2024年3月5日 上午9:05");
         // 15:00 UTC is after noon.
         let afternoon = zh().datetime(base + 15 * 3600);
-        assert_eq!(
-            afternoon,
-            "2024\u{5e74}3\u{6708}5\u{65e5} \u{4e0b}\u{5348}3:00"
-        );
+        assert_eq!(afternoon, "2024年3月5日 下午3:00");
     }
 
     #[test]
@@ -384,13 +379,13 @@ mod tests {
 
     #[test]
     fn page_size_uses_the_multiplication_sign_and_millimetres() {
-        assert_eq!(en().page_size(210.0, 297.0), "210.0 \u{00d7} 297.0 mm");
+        assert_eq!(en().page_size(210.0, 297.0), "210.0 × 297.0 mm");
     }
 
     #[test]
     fn page_size_follows_the_locale_decimal_mark() {
         let de = LocalizedFormat::new(Locale::new("de-DE"));
-        assert_eq!(de.page_size(210.0, 297.0), "210,0 \u{00d7} 297,0 mm");
+        assert_eq!(de.page_size(210.0, 297.0), "210,0 × 297,0 mm");
     }
 
     #[test]

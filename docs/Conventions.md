@@ -242,7 +242,7 @@ exemption list at all.
 Markdown or reST documentation. It fails on CJK characters in any of them and on
 comment blocks longer than three lines.
 
-Seven exemptions exist, each deliberately narrow:
+Five whole-file and two line-level exemptions exist, each deliberately narrow:
 
 | Exemption | Where | Why |
 | --- | --- | --- |
@@ -251,12 +251,29 @@ Seven exemptions exist, each deliberately narrow:
 | Whole file and name | fetched test samples under `tests/fixtures/` | A sample is named by the producer that wrote it, and renaming one severs the only link back to where it came from |
 | Whole file | `docs/Conventions.md`, `scripts/check_language.py`, `scripts/check_i18n.py` | They exist to hold, quote or match Chinese |
 | Whole file | `scripts/sample_fetch.py` | Its pin lists spell out the producer's own file names, exactly like the samples they fetch |
-| Whole file | `crates/sofd-i18n/src/format.rs` | Holds the locale day-period literals, which are Chinese and Japanese |
 | Single line | the `README.md` language switcher | The bilingual pair must cross-link by the other language's own name |
+| Single line | a line whose literals are its only prose | A certificate subject, a statute's wording, an expected string in a test: text this program reads rather than writes |
 
-The `format.rs` exemption covers the whole file rather than its string literals
-alone: the CJK in it is three literals and no prose, and a Rust lexer inside the
-checker would cost more than that risk is worth.
+The line exemption is what keeps the source readable, and it is why there is no
+escape convention. `SEAL_TOP` holds `全国统一发票监制章` in characters, not in
+`\u{...}` escapes: the two compile to the same bytes, and only one of them can
+be read and checked by the person reviewing it. A reviewer who has to decode a
+constant cannot tell a typo in the wording from a typo in the encoding, which
+is the one thing the wording must never be wrong about.
+
+Two shapes are still rejected even though a literal is all they hold: a literal
+bound to a bare name, and a call that writes to a widget. Chinese in either is
+prose that reached the interface without passing the catalogue, and would ship
+in English to a reader who cannot read it. A literal passed to a function stays
+exempt whether or not the call binds its result — `cargo fmt` breaks a long
+subject across lines, and the shape a test ends up with is a `let` whose right
+side is a call — as does a `const` or `static`, because there the literal is a
+value going in, not words coming out.
+
+`crates/sofd-i18n/src/format.rs` used to carry a whole-file exemption for the
+day-period literals it holds. Once the line rule learned to read a `format!`
+argument as data, no line in the file needed it, and the exemption was deleted
+rather than left behind as a place for prose to hide.
 
 The sample exemption covers names as well as contents, and it is why the
 samples are fetched rather than committed: none of them is source, none is

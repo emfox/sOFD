@@ -1475,7 +1475,7 @@ mod language {
         assert_ne!(english, chinese, "the page label did not follow");
         // The page counter in Chinese carries the character for "page".
         assert!(
-            chinese.contains('\u{9875}'),
+            chinese.contains('页'),
             "the label did not follow the catalogue: {chinese}"
         );
     }
@@ -1510,9 +1510,8 @@ mod language {
             .map(|locale| english.locale_name(locale))
             .collect();
         assert!(names.contains(&"English".to_string()), "{names:?}");
-        let chinese = "\u{7b80}\u{4f53}\u{4e2d}\u{6587}";
         assert!(
-            names.contains(&chinese.to_string()),
+            names.contains(&"简体中文".to_string()),
             "Chinese must be offered in Chinese whatever the menu language is: {names:?}"
         );
 
