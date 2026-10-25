@@ -839,15 +839,26 @@ mod tests {
     use super::*;
 
     /// The `CN` of the certificate in `tests/fixtures/ofdrw/999.ofd`, a real
-    /// invoice from Chongqing: the ring, the bureau, then the province.
+    /// invoice from Chongqing: the ring, the bureau, then the province. The
+    /// subject is written once and the bureau is the tail past the two fixed
+    /// parts, so the test cannot pass merely by repeating what it received.
     #[test]
     fn an_invoice_seal_splits_into_its_three_lines() {
-        let text = SealText::from_subject_cn("全国统一发票监制章国家税务总局重庆市税务局")
-            .expect("an invoice seal names all three");
+        const SUBJECT: &str = "全国统一发票监制章国家税务总局重庆市税务局";
+        let text = SealText::from_subject_cn(SUBJECT).expect("an invoice seal names all three");
         assert_eq!(text.top, SEAL_TOP);
         assert_eq!(text.middle, SEAL_MIDDLE);
-        assert_eq!(text.bottom, "重庆市税务局");
-        assert_eq!(text.row(), "全国统一发票监制章／国家税务总局／重庆市税务局");
+        let fixed = SEAL_TOP.chars().count() + SEAL_MIDDLE.chars().count();
+        let bureau: String = SUBJECT.chars().skip(fixed).collect();
+        assert_eq!(text.bottom, bureau);
+        assert!(
+            !bureau.is_empty(),
+            "the province is what the subject ends with"
+        );
+        assert_eq!(
+            text.row(),
+            format!("{SEAL_TOP}{SEAL_LINE_BREAK}{SEAL_MIDDLE}{SEAL_LINE_BREAK}{bureau}")
+        );
     }
 
     /// A plain signature and a company seal carry their own subject. Printing
@@ -862,12 +873,21 @@ mod tests {
     }
 
     /// A province spelled with a region and a city keeps both, because that is
-    /// what the certificate says and what the seal on paper reads.
+    /// what the certificate says and what the seal on paper reads. A region
+    /// that spans several words is the case a split at a fixed offset would cut.
     #[test]
     fn a_bureau_keeps_every_character_the_certificate_states() {
-        let text = SealText::from_subject_cn("全国统一发票监制章国家税务总局广西壮族自治区税务局")
-            .expect("a region is still a province");
-        assert_eq!(text.bottom, "广西壮族自治区税务局");
+        const SUBJECT: &str = "全国统一发票监制章国家税务总局广西壮族自治区税务局";
+        let text = SealText::from_subject_cn(SUBJECT).expect("a region is still a province");
+        let bureau = SUBJECT
+            .chars()
+            .skip(SEAL_TOP.chars().count() + SEAL_MIDDLE.chars().count())
+            .collect::<String>();
+        assert_eq!(text.bottom, bureau);
+        assert!(
+            !bureau.is_empty(),
+            "a province name follows the two fixed parts"
+        );
     }
 
     /// `sofd-crypto` renders a subject through `x509-parser`, and the attribute
