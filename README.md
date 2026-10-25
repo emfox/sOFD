@@ -15,7 +15,7 @@ GB/T 33190-2016.
 use sofd::{Document, RenderOptions};
 use sofd_io::FileSource;
 
-let source = FileSource::open("合同.ofd")?;
+let source = FileSource::open("contract.ofd")?;
 let doc = Document::open(&source)?;
 let png = doc.to_png(0, &RenderOptions::default())?;
 ```
@@ -91,12 +91,19 @@ The crates themselves are not on a registry yet: which of them will publish, and
 what is left before they can, is
 [issue #4](https://github.com/emfox/sOFD/issues/4).
 
-Nineteen crates reach a registry, but only some of them are interfaces. Add
+Twenty-one crates reach a registry, but only some of them are interfaces. Add
 `sofd` and you are done; the crates it depends on come along because
 cargo requires them, not because you were meant to name them. Which is which is
 in [Architecture.md § 3](docs/Architecture.md#3-crate-inventory), and
 `python3 scripts/publish_order.py` prints the dependency closure — from
-`sofd` that is all nineteen, while `sofd-crypto` alone needs three.
+`sofd` that is all twenty-one, while `sofd-crypto` alone needs three.
+
+The command is one of them, published as `sofd-cli` because `sofd` is the
+library:
+
+```
+cargo install sofd-cli        # installs the `sofd` command
+```
 
 ## What it reads
 
@@ -285,8 +292,8 @@ python3 scripts/check_readme.py          # the counts both READMEs state
 
 The i18n check compares the catalogues: same file set, same key set, consistent
 placeholders, and the `all_keys()` list in Rust matching the keys in the FTL
-files. The publish check holds the two sets — nineteen crates that publish and
-eight that do not — to the whole workspace, so a new crate cannot slip in
+files. The publish check holds the two sets — twenty-one crates that publish and
+six that do not — to the whole workspace, so a new crate cannot slip in
 without saying where it goes, and `scripts/publish_order.py` holds the published
 set to being closed under its own dependencies. The README check reads every
 count out of the English README and the same sentence out of the Chinese one, so

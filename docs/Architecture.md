@@ -195,8 +195,7 @@ exemption, because a C ABI requires it. Two designs were reworked to reach this:
 
 The **Registry** column is what `publish` in each manifest states, and
 `scripts/check_publish.py` holds it to the whole workspace. The rest ship as an
-application, and `sofd-i18n` and `sofd-testkit` stay in the workspace
-alone.
+application, and `sofd-testkit` stays in the workspace alone.
 
 Publishing is not one promise but three, and the column says which:
 
@@ -217,7 +216,7 @@ which is also the order `cargo publish` has to run in.
 | L1 | `sofd-model` | OFD data model (`CT_*` and `ST_*` type system) | transitive |
 | L1 | `sofd-xml` | XML codec wrapping quick-xml | transitive |
 | L1 | `sofd-package` | ZIP container I/O, safety validation, atomic replacement | transitive |
-| L1.5 | `sofd-i18n` | Fluent localization layer | withheld |
+| L1.5 | `sofd-i18n` | Fluent localization layer | surface |
 | L2 | `sofd-geometry` | Backend-independent `Path` and `Affine` | extension |
 | L2 | `sofd-font` | Font registry, metrics, system fallback | extension |
 | L2 | `sofd-display` | **Display list IR**, the architectural keystone | extension |
@@ -231,7 +230,7 @@ which is also the order `cargo publish` has to run in.
 | L3 | `sofd-archive` | Archival compliance validation (OFD-A) | surface |
 | L3 | `sofd-print` | Printing, reusing the display list for fidelity | surface |
 | L4 | `sofd` | Facade, trimming capabilities through features | surface |
-| L5 | `sofd-cli` | Command line tool `sofd` | withheld |
+| L5 | `sofd-cli` | Command line tool `sofd` | surface |
 | L5 | `sofd-wasm` | Browser WebAssembly bindings | withheld |
 | L5 | `sofd-ffi` | C ABI shared library for OA and ERP integration | withheld |
 | L5 | `sofd-reader` | Desktop reader (egui/eframe) | withheld |
@@ -255,8 +254,15 @@ pdf      = ["convert", "sofd-convert/pdf"]
 edit     = ["dep:sofd-edit"]
 search   = ["dep:sofd-search"]
 archive  = ["dep:sofd-archive"]
+annot    = []
 async    = ["dep:rayon"]
 ```
+
+`annot` is the one feature that trims nothing: annotations are read through the
+parser, which is never optional. It stays because it names a capability a
+delivery form may not want, and a caller that reaches for `annotations()`
+without it gets a compile error rather than a method that silently is not
+there. The reader turns it on; a slim build need not.
 
 `office` and `ocr` are not features, and were removed rather than finished:
 both compiled and changed nothing, so enabling one asked for a capability and
@@ -272,6 +278,7 @@ Typical combinations:
 | Browser preview SDK | `sign` (a canvas backend is planned) |
 | Web reader, full featured | `render, sign, convert, print, edit, search` |
 | Embedded slim build | `render`, English only |
+| The `sofd` command | every capability, plus `async` |
 
 ---
 

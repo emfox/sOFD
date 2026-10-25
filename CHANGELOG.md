@@ -8,6 +8,16 @@ release is written up is in
 
 ## [Unreleased]
 
+### Added
+
+- **`cargo install sofd-cli` puts a `sofd` command on the PATH.** The command
+  had been built from the workspace and never published, so the one crate a
+  user wanted to install was the one crate a registry did not have. The package
+  keeps the `-cli` suffix because `sofd` is the library, as `typst-cli` does
+  for `typst`; the binary it installs is still named `sofd`. `sofd-i18n` joins
+  the published set for the same reason — the command depends on it, and a
+  published crate cannot depend on a withheld one.
+
 ## [0.5.0] - 2026-10-25
 
 ### Changed
@@ -149,7 +159,8 @@ budget for memory beside the one for time.
 
 - **Gates for advisories, fuzzing and edit round-trips**, which a 690-package tree had none of.
 - **A semver job whose bump is decided when a break merges**, not when it ships.
-- **Nineteen crates publish and eight do not**, each stating a `description`, enforced by `check_publish.py`.
+- **Crates state whether they publish and what a registry asks for**, enforced by
+  `check_publish.py`.
 - **The Windows reader is cross-compiled from Ubuntu** with `mingw-w64`.
 - **The performance gate runs the benchmarks** rather than reading whatever the last run left in `target/criterion`.
 - **An export test proves a glyph is a path, not an embedded face**, replacing the render crate's stale TODO.

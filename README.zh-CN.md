@@ -86,11 +86,17 @@ sha256sum -c SHA256SUMS          # 或者完全不依赖本项目
 crate 目前尚未发布到注册表：哪些会发布、发布前还差什么，见
 [issue #4](https://github.com/emfox/sOFD/issues/4)。
 
-19 个 crate 会进入注册表，但其中只有一部分是接口。加上 `sofd` 就够用；
+21 个 crate 会进入注册表，但其中只有一部分是接口。加上 `sofd` 就够用；
 它依赖的那些 crate 是被 cargo 一起带过来的，并不是让你逐个点名。哪些是哪一类，
 见 [Architecture.md 第 3 节](docs/Architecture.md#3-crate-inventory)；
 `python3 scripts/publish_order.py` 会打印依赖闭包——从 `sofd` 出发
-是全部 19 个，而单独发布 `sofd-crypto` 只需要 3 个。
+是全部 21 个，而单独发布 `sofd-crypto` 只需要 3 个。
+
+命令行工具也在其中，发布名是 `sofd-cli`，因为 `sofd` 这个名字留给了库：
+
+```
+cargo install sofd-cli        # 装出 sofd 命令
+```
 
 ## 遵循的规范
 
@@ -262,7 +268,7 @@ python3 scripts/check_readme.py          # 两版 README 各自声明的数字
 ```
 
 i18n 检查比对各语言目录：文件集合、键集合、占位符一致，且 Rust 中的
-`all_keys()` 列表与 FTL 文件中的键一致。发布检查把 19 个发布、8 个不发布的
+`all_keys()` 列表与 FTL 文件中的键一致。发布检查把 21 个发布、6 个不发布的
 两档清单与整个 workspace 对齐，新增 crate 若未声明去向就会失败。
 README 检查逐条比对两版：英文版里的每一处计数，与中文版中同一句话写下的
 数字必须相等。两版因此不可能各说各的数字——以 `README.md` 为准，

@@ -291,7 +291,7 @@ release actually has one.
 ## 6. Public API changes
 
 `cargo-semver-checks` compares the public API of every crate that states
-`publish` (nineteen of them; the shells and the testkit opt out) and fails
+`publish` (twenty-one of them; the shells and the testkit opt out) and fails
 when a change needs a larger version bump than the manifests declare. The
 workspace root carries the lint configuration.
 
