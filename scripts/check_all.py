@@ -96,6 +96,12 @@ CHECKS: tuple[Check, ...] = (
     # tree. This fails when the published set is not closed under its own
     # dependencies, which is the mistake that only shows up at release time.
     Check("publish-order", "policy", (py("scripts/publish_order.py"),)),
+    # A crate reaches a registry as the tarball cargo makes, which holds the
+    # crate's own directory and not the repository above it. An `include_str!`
+    # that climbs out of it therefore compiles here and fails at release time,
+    # after the tag is pushed. This builds the tarball list and reads it back.
+    Check("packaging", "policy", (py("scripts/check_packaging.py"),),
+          needs=("cargo",)),
     # The two READMEs drifted twice, and every count in them is a copy of
     # something the workspace knows. The English one is the source of truth;
     # this fails when the Chinese one states a different figure.

@@ -12,21 +12,21 @@ use crate::messages::MessageId;
 
 // Catalogues are embedded at compile time: no runtime file scanning on desktop,
 // no fetch on WASM, and a missing file fails the build rather than a user.
-const ZH_CN_CORE: &str = include_str!("../../../locales/zh-CN/core.ftl");
-const ZH_CN_CONVERT: &str = include_str!("../../../locales/zh-CN/convert.ftl");
-const ZH_CN_SIGN: &str = include_str!("../../../locales/zh-CN/sign.ftl");
-const ZH_CN_ERROR: &str = include_str!("../../../locales/zh-CN/error.ftl");
-const ZH_CN_EDIT: &str = include_str!("../../../locales/zh-CN/edit.ftl");
-const ZH_CN_SEARCH: &str = include_str!("../../../locales/zh-CN/search.ftl");
-const ZH_CN_CLI: &str = include_str!("../../../locales/zh-CN/cli.ftl");
+const ZH_CN_CORE: &str = include_str!("../locales/zh-CN/core.ftl");
+const ZH_CN_CONVERT: &str = include_str!("../locales/zh-CN/convert.ftl");
+const ZH_CN_SIGN: &str = include_str!("../locales/zh-CN/sign.ftl");
+const ZH_CN_ERROR: &str = include_str!("../locales/zh-CN/error.ftl");
+const ZH_CN_EDIT: &str = include_str!("../locales/zh-CN/edit.ftl");
+const ZH_CN_SEARCH: &str = include_str!("../locales/zh-CN/search.ftl");
+const ZH_CN_CLI: &str = include_str!("../locales/zh-CN/cli.ftl");
 
-const EN_US_CORE: &str = include_str!("../../../locales/en-US/core.ftl");
-const EN_US_CONVERT: &str = include_str!("../../../locales/en-US/convert.ftl");
-const EN_US_SIGN: &str = include_str!("../../../locales/en-US/sign.ftl");
-const EN_US_ERROR: &str = include_str!("../../../locales/en-US/error.ftl");
-const EN_US_EDIT: &str = include_str!("../../../locales/en-US/edit.ftl");
-const EN_US_SEARCH: &str = include_str!("../../../locales/en-US/search.ftl");
-const EN_US_CLI: &str = include_str!("../../../locales/en-US/cli.ftl");
+const EN_US_CORE: &str = include_str!("../locales/en-US/core.ftl");
+const EN_US_CONVERT: &str = include_str!("../locales/en-US/convert.ftl");
+const EN_US_SIGN: &str = include_str!("../locales/en-US/sign.ftl");
+const EN_US_ERROR: &str = include_str!("../locales/en-US/error.ftl");
+const EN_US_EDIT: &str = include_str!("../locales/en-US/edit.ftl");
+const EN_US_SEARCH: &str = include_str!("../locales/en-US/search.ftl");
+const EN_US_CLI: &str = include_str!("../locales/en-US/cli.ftl");
 
 /// All resources for one locale.
 struct LocaleResources {

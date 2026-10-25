@@ -26,7 +26,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-LOCALES_DIR = ROOT / "locales"
+# The catalogues live inside the crate that embeds them, because a published
+# crate is built from the tarball cargo makes and that tarball holds the crate's
+# own directory. `check_packaging.py` holds every published crate to this.
+LOCALES_DIR = ROOT / "crates" / "sofd-i18n" / "locales"
 I18N_SRC = ROOT / "crates" / "sofd-i18n" / "src"
 
 # The reader owns its own catalogue, kept beside the crate that shows the

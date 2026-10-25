@@ -1,6 +1,6 @@
 //! Plain data the bindings hand to C.
 //! No C types live here, so every shape is unit-testable on the host: the
-//! boundary in [`crate::lib`] only moves these values across.
+//! boundary in the crate root only moves these values across.
 
 use sofd::{Document, SearchOptions, VerifyStatus};
 use sofd_error::OfdError;

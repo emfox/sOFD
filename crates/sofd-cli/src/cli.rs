@@ -123,7 +123,7 @@ pub struct RenderArgs {
     #[arg(long, default_value_t = 150.0)]
     pub dpi: f64,
 
-    /// Output PNG path; defaults to page-<index>.png.
+    /// Output PNG path; defaults to `page-<index>.png`.
     #[arg(short, long)]
     pub output: Option<PathBuf>,
 }

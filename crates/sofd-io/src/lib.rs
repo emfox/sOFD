@@ -1,7 +1,7 @@
 //! Input and output abstraction.
 //! OFD data may come from a file, memory, a stream or a map; [`ByteSource`] and
 //! [`ByteSink`] abstract that away so WASM and server builds share parsing code.
-//! [`decode`] reads an image resource, so the parser, the rasteriser and the
+//! [`decode::decode`] reads an image resource, so the parser, the rasteriser and the
 //! exporters all accept the same set of formats instead of each their own.
 
 #![forbid(unsafe_code)]
