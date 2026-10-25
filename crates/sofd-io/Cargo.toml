@@ -15,12 +15,7 @@ sofd-error.workspace = true
 sofd-display.workspace = true
 tracing.workspace = true
 image.workspace = true
-memmap2 = { version = "0.9", optional = true }
 hayro-jbig2.workspace = true
-
-[features]
-default = []
-mmap = ["dep:memmap2"]
 
 [package.metadata.cargo-semver-checks.lints]
 workspace = true
