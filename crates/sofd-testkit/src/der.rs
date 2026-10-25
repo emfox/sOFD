@@ -2,28 +2,10 @@
 //! The engine reads a certificate out of a signature, so the tests need real
 //! DER rather than a stub, and hand-rolling it avoids an encoder dependency.
 
-/// Base64, the encoding `CheckValue` and `Cert` use on the wire.
+/// Base64, the encoding `CheckValue` and `Cert` use on the wire. The engine's
+/// own encoder is used so a fixture cannot agree with a reader that is wrong.
 pub fn base64_of(bytes: &[u8]) -> String {
-    const TABLE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = String::new();
-    for chunk in bytes.chunks(3) {
-        let mut group = [0u8; 3];
-        group[..chunk.len()].copy_from_slice(chunk);
-        let bits = u32::from_be_bytes([group[0], group[1], group[2], 0]);
-        out.push(TABLE[(bits >> 26) as usize & 0x3f] as char);
-        out.push(TABLE[(bits >> 20) as usize & 0x3f] as char);
-        out.push(if chunk.len() > 1 {
-            TABLE[(bits >> 14) as usize & 0x3f] as char
-        } else {
-            '='
-        });
-        out.push(if chunk.len() > 2 {
-            TABLE[(bits >> 8) as usize & 0x3f] as char
-        } else {
-            '='
-        });
-    }
-    out
+    sofd_common::base64::encode(bytes)
 }
 
 /// One DER tag-length-value triple.

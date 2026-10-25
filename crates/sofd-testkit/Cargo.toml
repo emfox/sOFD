@@ -10,6 +10,7 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+sofd-common.workspace = true
 sofd-crypto.workspace = true
 sofd-error.workspace = true
 sofd-package.workspace = true
