@@ -37,6 +37,9 @@ rayon = { version = "1.11", optional = true }
 sofd-testkit.workspace = true
 
 [features]
+# `sofd-convert` reaches PDF only through `sofd-convert/pdf`, because the
+# workspace names it `default-features = false`. So `pdf` belongs here: an
+# absent default would leave `cargo add sofd` without PDF writing and no error.
 default = ["render", "sign", "convert", "pdf"]
 
 # Capability features, to trim binary size per delivery form.
