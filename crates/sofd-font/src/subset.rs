@@ -396,8 +396,13 @@ fn be32(data: &[u8], at: usize) -> Option<u32> {
 
 /// Subset an embedded face to the glyphs `glyphs` names, falling back to the
 /// original bytes when the face is not one this can rewrite without losing it.
+/// Asking for nothing is one of those cases: the result would carry `.notdef`
+/// alone, and a face nobody referenced is a face some code point still needs.
 pub fn subset(data: &[u8], glyphs: impl IntoIterator<Item = u16>) -> Vec<u8> {
     let mut keep: BTreeSet<u16> = glyphs.into_iter().collect();
+    if keep.is_empty() {
+        return data.to_vec();
+    }
     keep.insert(0);
     subset_face(data, &keep).unwrap_or_else(|| data.to_vec())
 }
@@ -504,6 +509,15 @@ mod tests {
             glyph_of(&sub, 'A').and_then(|g| outline_ops(&out, g)),
             outline_ops(LATIN, glyphs(LATIN, "A")[0])
         );
+    }
+
+    #[test]
+    fn asking_for_no_glyph_at_all_carries_the_face_whole() {
+        // A document can name a face on a page that draws none of it. Trimming
+        // to `.notdef` would answer that with a face that cannot draw anything
+        // the page asks for later, so an empty request changes nothing.
+        let out = subset(LATIN, std::iter::empty());
+        assert_eq!(out, LATIN, "an empty request must not trim the face");
     }
 
     #[test]
