@@ -20,7 +20,7 @@ serde.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-sofd-testkit.workspace = true
+sofd-testkit = { path = "../sofd-testkit" }
 
 [package.metadata.cargo-semver-checks.lints]
 workspace = true

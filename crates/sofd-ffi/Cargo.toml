@@ -22,4 +22,4 @@ sofd-font.workspace = true
 cbindgen = "0.29"
 
 [dev-dependencies]
-sofd-testkit.workspace = true
+sofd-testkit = { path = "../sofd-testkit" }

@@ -17,11 +17,11 @@ sofd-geometry.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-sofd-font.workspace = true
+sofd-font = { path = "../sofd-font" }
 criterion.workspace = true
-sofd-package.workspace = true
-sofd-parser.workspace = true
-sofd-testkit.workspace = true
+sofd-package = { path = "../sofd-package" }
+sofd-parser = { path = "../sofd-parser" }
+sofd-testkit = { path = "../sofd-testkit" }
 
 [[bench]]
 name = "search"

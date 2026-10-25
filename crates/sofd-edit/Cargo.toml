@@ -22,10 +22,10 @@ tracing.workspace = true
 [dev-dependencies]
 # The round-trip test asserts on what a reader reports, not on the model the
 # command touched, so it opens the archive back through the facade.
-sofd = { workspace = true, features = ["render"] }
-sofd-display.workspace = true
+sofd = { path = "../sofd", features = ["render"] }
+sofd-display = { path = "../sofd-display" }
 # Fixture documents whose page files a test can replace.
-sofd-testkit.workspace = true
+sofd-testkit = { path = "../sofd-testkit" }
 
 [package.metadata.cargo-semver-checks.lints]
 workspace = true

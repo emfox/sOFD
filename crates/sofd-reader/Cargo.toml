@@ -118,4 +118,4 @@ egui.workspace = true
 egui_kittest = { version = "0.35", features = ["eframe"] }
 # Layout has nothing to arrange in a one-page document, so the arrangement
 # tests need a fixture with several pages.
-sofd-testkit.workspace = true
+sofd-testkit = { path = "../sofd-testkit" }

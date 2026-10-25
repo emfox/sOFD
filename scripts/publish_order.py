@@ -62,14 +62,25 @@ def publishes(text: str) -> bool:
 
 
 def internal_deps(text: str, known: dict[str, Path]) -> set[str]:
-    """The workspace crates this manifest depends on, ignoring dev-dependencies."""
+    """The workspace crates this manifest depends on.
+
+    Dev-dependencies are left out: each one is declared path-only, so cargo
+    drops it from the manifest it packs, and a registry never needs it.
+    """
     body = re.split(r"^\[dev-dependencies\]", text, flags=re.M)[0]
     body = re.split(r"^\[package\.metadata", body, flags=re.M)[0]
     # Only the real dependency sections count; a `[[bench]]` table naming a
     # crate is not a dependency.
     body = re.split(r"^\[\[", body, flags=re.M)[0]
-    named = set(re.findall(r'^(sofd-[a-z]+)\s*[.=\s]', body, re.M))
-    named |= set(re.findall(r'^sofd-[a-z]+\s*=\s*\{[^}]*package\s*=\s*"([^"]+)"', body, re.M))
+    # Matched against `known` rather than a `sofd-*` pattern: the facade is
+    # called `sofd`, and a pattern that insists on a suffix loses the one edge
+    # every surface crate has.
+    named = {
+        name
+        for name in known
+        if re.search(rf"^{re.escape(name)}\s*[.=\s]", body, re.M)
+    }
+    named |= set(re.findall(r'^\S+\s*=\s*\{[^}]*package\s*=\s*"([^"]+)"', body, re.M))
     return {n for n in named if n in known}
 
 

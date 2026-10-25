@@ -31,4 +31,4 @@ uuid.workspace = true
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
-sofd-testkit.workspace = true
+sofd-testkit = { path = "../sofd-testkit" }

@@ -34,7 +34,7 @@ rayon = { version = "1.11", optional = true }
 
 [dev-dependencies]
 # Fixture archives, so a test opens a real document rather than hand-built XML.
-sofd-testkit.workspace = true
+sofd-testkit = { path = "../sofd-testkit" }
 
 [features]
 # `sofd-convert` reaches PDF only through `sofd-convert/pdf`, because the
