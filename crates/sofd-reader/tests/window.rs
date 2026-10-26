@@ -974,3 +974,131 @@ fn an_invoice_seal_answers_a_click_with_what_the_signature_says() {
     harness.get_by_label_contains("The signature covers 20 files");
     harness.get_by_label_contains("Certificate: 2020-07-23 to 2030-07-23");
 }
+
+/// A reader window of a given width, drawn a few times so panels settle.
+fn window_at(width: f32) -> Harness<'static, App> {
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(width, 700.0))
+        .build_ui_state(
+            |ui, app: &mut App| {
+                window::draw(ui, app);
+            },
+            App::new(),
+        );
+    for _ in 0..3 {
+        harness.run();
+    }
+    harness
+}
+
+/// Every control either bar can draw, whether or not this width shows it.
+fn bar_controls() -> Vec<String> {
+    [
+        ReaderMessage::Open,
+        ReaderMessage::CloseHint,
+        ReaderMessage::SearchToggle,
+        ReaderMessage::SignaturesToggle,
+        ReaderMessage::AnnotationsToggle,
+        ReaderMessage::MainMenu,
+        ReaderMessage::LayoutSingle,
+        ReaderMessage::LayoutDouble,
+        ReaderMessage::LayoutContinuous,
+        ReaderMessage::PrevPage,
+        ReaderMessage::NextPage,
+        ReaderMessage::FitWidth,
+        ReaderMessage::FitPage,
+        ReaderMessage::ExportPdf,
+        ReaderMessage::ExportPng,
+    ]
+    .iter()
+    .map(|message| reader_label(*message))
+    .collect()
+}
+
+#[test]
+fn the_two_bars_fit_a_phone_without_clipping() {
+    // A phone's width plus the widths either side of each point where a bar
+    // has to start folding; the arithmetic that spends the width can be off by
+    // one step, and a control drawn past the edge is one nobody can reach.
+    for width in [320.0f32, 360.0, 400.0, 480.0, 720.0, 1000.0] {
+        let harness = window_at(width);
+        for name in bar_controls() {
+            for node in harness.query_all_by_label(&name) {
+                let rect = node.rect();
+                assert!(
+                    rect.left() >= -0.5 && rect.right() <= width + 0.5,
+                    "{name:?} is drawn at {:.0}..{:.0} in a window {width:.0} wide",
+                    rect.left(),
+                    rect.right()
+                );
+            }
+        }
+        // The menu is the one control a bar cannot drop, so it is also the one
+        // that has to be there at every width.
+        let menu_label = reader_label(ReaderMessage::MainMenu);
+        let menu = harness.get_by_label(&menu_label);
+        let rect = menu.rect();
+        assert!(
+            rect.right() <= width + 0.5 && rect.right() >= width - 24.0,
+            "the menu ends at {:.0} in a window {width:.0} wide",
+            rect.right()
+        );
+    }
+}
+
+#[test]
+fn the_zoom_stays_draggable_or_is_not_drawn() {
+    // The slider is the only control in either bar that cannot become an icon,
+    // so it is measured here rather than guessed at: the point of the folding
+    // is that what a reader is shown still works, not that fewer things are.
+    let wide = window_at(480.0);
+    let showing = wide.state().zoom_label();
+    let slider = wide
+        .query_all_by_label(&showing)
+        .next()
+        .expect("a bar with room draws the zoom");
+    assert!(
+        slider.rect().right() <= 480.5,
+        "the zoom is inside a window 480 wide"
+    );
+
+    // At a phone's width the slider is still drawn, and dragging it still
+    // moves the zoom: a control shown but inert would be worse than absent.
+    let mut narrow = window_at(400.0);
+    let before = narrow.state().zoom();
+    let showing = narrow.state().zoom_label();
+    let node = narrow
+        .query_all_by_label(&showing)
+        .next()
+        .expect("a phone still shows the zoom");
+    let rect = node.rect();
+    let start = rect.center();
+    let end = egui::pos2(rect.right() - 2.0, start.y);
+    let pointer = egui::PointerButton::Primary;
+    for to in [
+        egui::Event::PointerButton {
+            pos: start,
+            button: pointer,
+            pressed: true,
+            modifiers: Default::default(),
+        },
+        egui::Event::PointerMoved(end),
+        egui::Event::PointerButton {
+            pos: end,
+            button: pointer,
+            pressed: false,
+            modifiers: Default::default(),
+        },
+    ] {
+        narrow.input_mut().events.push(to);
+        narrow.run();
+    }
+    assert!(
+        narrow.state().zoom() > before,
+        "a drag to the right of the zoom's handle raises the zoom"
+    );
+}
+
+// The fold into the main menu is not tested from end to end: below about 280
+// points the menu opens past the window and the harness stops reading there, so
+// such a test would measure the harness rather than the bar.
