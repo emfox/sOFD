@@ -61,9 +61,15 @@ fn load_cjk_font() -> Option<(Vec<u8>, u32)> {
     None
 }
 
-/// The browser and Android resolve their own fonts, so there is nothing to
-/// read here; both would need a face shipped with the app instead.
-#[cfg(any(target_arch = "wasm32", target_os = "android"))]
+/// Android reads the device's own faces through the font crate, so the label
+/// face is one a document font resolves against too.
+#[cfg(target_os = "android")]
+fn load_cjk_font() -> Option<(Vec<u8>, u32)> {
+    sofd::cjk_face()
+}
+
+/// The browser resolves its own fonts, so there is nothing to read here.
+#[cfg(target_arch = "wasm32")]
 fn load_cjk_font() -> Option<(Vec<u8>, u32)> {
     None
 }

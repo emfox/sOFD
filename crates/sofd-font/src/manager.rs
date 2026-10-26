@@ -361,10 +361,7 @@ impl FontManager {
     }
 
     /// [`Self::require_cjk_font`] where no host search is compiled in.
-    #[cfg(not(all(
-        feature = "system-fonts",
-        not(any(target_arch = "wasm32", target_os = "android"))
-    )))]
+    #[cfg(not(all(feature = "system-fonts", not(target_arch = "wasm32"))))]
     fn require_cjk_font(
         &self,
         entry: &crate::registry::FontEntry,
@@ -669,12 +666,105 @@ impl FontManager {
         }
     }
 
-    /// No host search is compiled in — the feature is off, or the target has
-    /// no system fonts to resolve — so nothing named can be found.
-    #[cfg(not(all(
-        feature = "system-fonts",
-        not(any(target_arch = "wasm32", target_os = "android"))
-    )))]
+    /// Find a device face for a reference the package only named.
+    ///
+    /// The steps are the desktop search\'s — the names the declaration offers,
+    /// then a generic of the declared shape, then the pinned CJK family — but
+    /// they are matched against the files this device keeps, read by `host`.
+    #[cfg(all(feature = "system-fonts", target_os = "android"))]
+    fn find_system_font(
+        &self,
+        entry: &crate::registry::FontEntry,
+        wanted: &[u32],
+    ) -> Result<Option<Arc<Vec<u8>>>> {
+        let traits = entry.traits.clone().unwrap_or_default();
+        // Every name the declaration offers, in the order the desktop tries
+        // them: the search family, the localised one, then the face name.
+        let mut candidates: Vec<String> = vec![entry.search_family().to_string()];
+        if let Some(name) = &traits.family {
+            candidates.push(name.clone());
+        }
+        if !entry.family.is_empty() {
+            candidates.push(entry.family.clone());
+        }
+        let mut seen: Vec<String> = Vec::new();
+        candidates.retain(|name| {
+            let key = name.to_lowercase();
+            let fresh = !seen.contains(&key);
+            seen.push(key);
+            fresh
+        });
+        for family in &candidates {
+            if let Some(data) = device_face(family, &traits, wanted) {
+                return Ok(Some(data));
+            }
+        }
+        // A generic is a shape, so each is taken only if it carries the text.
+        for family in generic_families(&traits) {
+            if let Some(data) = device_face(family, &traits, wanted) {
+                return Ok(Some(data));
+            }
+        }
+        Ok(device_face(&self.pinned_family(), &traits, wanted))
+    }
+
+    /// The wider walk, for a run the named face could not draw: the configured
+    /// CJK families first, since a document names a face this device does not
+    /// keep under that name, and the name alone cannot bridge that.
+    #[cfg(all(feature = "system-fonts", target_os = "android"))]
+    fn find_cjk_font(
+        &self,
+        entry: &crate::registry::FontEntry,
+        wanted: &[u32],
+    ) -> Result<Option<Arc<Vec<u8>>>> {
+        let guess = self.find_system_font(entry, wanted)?;
+        // A search with nothing to cover, or one that found a covering face,
+        // has already answered; only an uncovered guess needs the wider walk.
+        if wanted.is_empty() || guess.as_ref().is_some_and(|d| Self::covers(d, wanted)) {
+            return Ok(guess);
+        }
+        let traits = entry.traits.clone().unwrap_or_default();
+        for family in self.cjk_preferred() {
+            if let Some(data) = device_face(&family, &traits, wanted) {
+                self.note_cjk_answered(family);
+                return Ok(Some(data));
+            }
+        }
+        Ok(None)
+    }
+
+    /// [`Self::find_cjk_font`] or the recorded miss a caller has to report.
+    #[cfg(all(feature = "system-fonts", target_os = "android"))]
+    fn require_cjk_font(
+        &self,
+        entry: &crate::registry::FontEntry,
+        id: FontId,
+        wanted: &[u32],
+    ) -> Result<Arc<Vec<u8>>> {
+        match self.find_cjk_font(entry, wanted)? {
+            Some(data) => Ok(data),
+            None => {
+                self.note_unresolved(id);
+                Err(FontError::Missing {
+                    family: entry.described_name().to_string(),
+                }
+                .into())
+            }
+        }
+    }
+
+    /// Families to try before the rest of the device, most specific first: the
+    /// configured order, then the family that answered an earlier run.
+    #[cfg(all(feature = "system-fonts", target_os = "android"))]
+    fn cjk_preferred(&self) -> Vec<String> {
+        let mut names: Vec<String> = self.config().search_order().to_vec();
+        names.extend(self.cjk_answered());
+        names
+    }
+
+    /// No host search is compiled in — the feature is off, or the target is the
+    /// browser — so nothing named can be found.
+    #[cfg(not(all(feature = "system-fonts", not(target_arch = "wasm32"))))]
     fn find_system_font(
         &self,
         _entry: &crate::registry::FontEntry,
@@ -687,6 +777,49 @@ impl FontManager {
 impl Default for FontManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// One family on this device, as a file of its own.
+///
+/// A collection keeps several faces under one path and the engine names a face
+/// by its bytes, so the face is copied out; the copy is shared by every caller
+/// that lands on it.
+#[cfg(all(feature = "system-fonts", target_os = "android"))]
+fn device_face(
+    family: &str,
+    traits: &crate::registry::FontTraits,
+    wanted: &[u32],
+) -> Option<Arc<Vec<u8>>> {
+    let mut best: Option<&crate::host::Face> = None;
+    for face in crate::host::faces()
+        .iter()
+        .filter(|face| face.family.eq_ignore_ascii_case(family))
+    {
+        if !wanted.is_empty() && !crate::host::covers(face, wanted) {
+            continue;
+        }
+        if best.is_none() {
+            best = Some(face);
+        }
+        if traits.bold == Some(face.bold) && traits.italic == Some(face.italic) {
+            best = Some(face);
+            break;
+        }
+    }
+    crate::host::as_file(best?)
+}
+
+/// The generic families a declared shape asks for, in the order the desktop
+/// tries them. Android keeps its Chinese in Noto, and its Latin in Roboto.
+#[cfg(all(feature = "system-fonts", target_os = "android"))]
+fn generic_families(traits: &crate::registry::FontTraits) -> [&'static str; 3] {
+    if traits.wants_fixed_width() {
+        ["Droid Sans Mono", "Noto Sans CJK SC", "Roboto"]
+    } else if traits.serif == Some(true) {
+        ["Noto Serif CJK SC", "Noto Sans CJK SC", "Roboto"]
+    } else {
+        ["Noto Sans CJK SC", "Roboto", "Noto Serif CJK SC"]
     }
 }
 

@@ -18,6 +18,10 @@ pub use document::Document;
 // them, which is the point of a facade: one crate to depend on.
 #[cfg(feature = "sign")]
 pub use document::Seal;
+// The face a device supplies for Chinese labels, so a caller can name it
+// without taking a direct dependency on the crate that reads the fonts.
+#[cfg(target_os = "android")]
+pub use sofd_font::cjk_face;
 #[cfg(feature = "render")]
 pub use sofd_render::RenderOptions;
 #[cfg(feature = "search")]
