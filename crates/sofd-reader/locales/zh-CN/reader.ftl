@@ -3,7 +3,7 @@
 reader-open = 打开文件
 reader-close = 关闭文档
 reader-drop-hint = 将 .ofd 文件拖到此处，或使用「打开文件」
-reader-no-dialog-hint = 请从文件管理器或分享菜单中打开 .ofd 文件
+reader-open-hint = 使用「打开文件」按钮打开 .ofd 文件
 reader-info = 文档：{ $name }
 reader-page-of = 第 { $current } 页 / 共 { $total } 页
 reader-zoom = 缩放 { $percent }%

@@ -73,9 +73,14 @@ pub struct WindowRequests {
     pub quit: bool,
 }
 
-/// Android has no file dialog to reach from here: a document arrives through
-/// the activity's intent or a drop, so the actions that would open one are
-/// left out rather than drawn as buttons that do nothing.
+/// Whether the reader can be asked for a document at all. Both platforms can:
+/// a desktop through `rfd`, a device through the system's own picker, which
+/// answers on the activity that asked for it.
+const CAN_ASK_FOR_A_DOCUMENT: bool = true;
+
+/// Whether the reader has a dialog of its own to reach. Android has none, and
+/// the second revision a comparison reads would have to come from one, so that
+/// action is left out rather than drawn as a button that does nothing.
 #[cfg(not(target_os = "android"))]
 const HAS_FILE_DIALOG: bool = true;
 
@@ -564,7 +569,7 @@ fn draw_document_actions(ui: &mut Ui, app: &mut App, requests: &mut WindowReques
     let open = app.text(ReaderMessage::Open);
     if icon_button(
         ui,
-        HAS_FILE_DIALOG,
+        CAN_ASK_FOR_A_DOCUMENT,
         sharp,
         Glyph {
             icon: Icon::Open,

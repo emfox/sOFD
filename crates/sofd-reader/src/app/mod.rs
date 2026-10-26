@@ -796,13 +796,13 @@ impl App {
 
     /// The hint shown on the empty window, where a file can be dropped.
     ///
-    /// Android has nothing to drop onto and no dialog to reach, so the hint
-    /// there names the only way in — opening the file from another app — rather
-    /// than telling the reader to drag or to press a button that is not drawn.
+    /// Android has nothing to drop onto, so the hint there names the one action
+    /// that is drawn — the open button — rather than telling the reader to
+    /// bring a file in from another app.
     pub fn drop_hint(&self) -> String {
         #[cfg(target_os = "android")]
         {
-            self.text(ReaderMessage::NoDialogHint)
+            self.text(ReaderMessage::OpenHint)
         }
         #[cfg(not(target_os = "android"))]
         {

@@ -3,9 +3,9 @@
 reader-open = Open File
 reader-close = Close Document
 reader-drop-hint = Drop an .ofd file here, or use "Open File"
-# Shown on Android, which has neither a drop target nor a file dialog: the
-# only way in is opening a file from another app.
-reader-no-dialog-hint = Open an .ofd file from a file manager or a share sheet
+# Shown on Android, which has no drop target: the way in is the open button,
+# which asks the system's own picker for the document.
+reader-open-hint = Open an .ofd file with the "Open File" button
 reader-info = Document: { $name }
 reader-page-of = Page { $current } of { $total }
 reader-zoom = Zoom { $percent }%

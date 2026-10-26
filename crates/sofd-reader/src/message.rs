@@ -40,8 +40,8 @@ pub enum ReaderMessage {
     Close,
     /// Shown where a file can be dropped
     DropHint,
-    /// Shown where there is neither a drop target nor a file dialog
-    NoDialogHint,
+    /// Shown where a drop target is not the way in
+    OpenHint,
     /// The document description line
     Info,
     /// Page N of M
@@ -173,7 +173,7 @@ impl ReaderMessage {
             Self::Open => "reader-open",
             Self::Close => "reader-close",
             Self::DropHint => "reader-drop-hint",
-            Self::NoDialogHint => "reader-no-dialog-hint",
+            Self::OpenHint => "reader-open-hint",
             Self::Info => "reader-info",
             Self::PageOf => "reader-page-of",
             Self::Zoom => "reader-zoom",
@@ -243,7 +243,7 @@ impl ReaderMessage {
         Self::Open,
         Self::Close,
         Self::DropHint,
-        Self::NoDialogHint,
+        Self::OpenHint,
         Self::Info,
         Self::PageOf,
         Self::Zoom,
