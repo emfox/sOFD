@@ -375,6 +375,31 @@ def blocked(check: Check) -> str:
     return ""
 
 
+def stale_reading() -> str:
+    """Why the readings on disk cannot answer for this tree, or "" when they can.
+
+    Asked here rather than only in the gate, because `--fast` leaves out the run
+    that would refresh them and the gate would then fail on a reading no flag
+    offered to update. The gate still asks, for the run that names it alone.
+    """
+    ok, _ = precondition("bench")
+    if not ok:
+        return ""
+    newest = 0.0
+    for root in ["crates", "Cargo.toml", "Cargo.lock"]:
+        path = ROOT / root
+        if path.is_file():
+            newest = max(newest, path.stat().st_mtime)
+            continue
+        for found in path.rglob("*"):
+            if found.suffix in {".rs", ".toml", ".lock"} and found.is_file():
+                newest = max(newest, found.stat().st_mtime)
+    log = ROOT / "target" / "criterion" / "benchmarks.log"
+    if newest > log.stat().st_mtime:
+        return "the last benchmark run predates the current source"
+    return ""
+
+
 def environment(check: Check) -> dict[str, str]:
     """The process environment, with this check's overrides applied."""
     env = dict(os.environ)
@@ -471,6 +496,13 @@ def main() -> int:
         return 2
 
     plan: list[tuple[Check, str]] = [(c, blocked(c)) for c in chosen]
+    # `--fast` leaves out the run that would refresh the readings, so a check
+    # that reads them is skipped rather than failed when it did not run.
+    if args.fast and "bench" not in {c.name for c in chosen}:
+        plan = [
+            (c, why or (stale_reading() if c.name == "performance" else ""))
+            for c, why in plan
+        ]
 
     if args.list:
         for group in GROUPS:

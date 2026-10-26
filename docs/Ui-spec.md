@@ -109,6 +109,15 @@ The window is a stack of fixed zones around one growing canvas. Zones are
 declared in this order every frame; `egui` reserves space top-down, so the order
 is the layout.
 
+Every zone is laid out inside the **safe area**, not inside the window. A
+device draws its status bar and gesture bar *over* the window when it is
+edge-to-edge, and a header stacked from the window's top corner then sits
+underneath the clock, where a tap reaches the system rather than the button. The
+platform reports a content rectangle; the window is inset by the difference
+before the first zone is declared, and the inset is re-read every frame because
+a rotation or a bar appearing changes it. Zero on a desktop, where the window's
+surface has no bars inside it.
+
 ```
 ┌────────────────────────────────────────────────────────────┐
 │ Z1  header          fixed    open · close · views · menu   │  Panel::top("menu")

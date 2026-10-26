@@ -135,12 +135,19 @@ Every check lives in `scripts/`, and `scripts/check_all.py` runs them all:
 ```bash
 python3 scripts/check_all.py            # everything this machine can run
 python3 scripts/check_all.py --quick    # no cargo, no fetched samples
+python3 scripts/check_all.py --fast     # everything, without the slowest
 python3 scripts/check_all.py --list     # what would run, and why
 ```
 
 It runs what the machine can run and names the reason it skipped the rest, so a
 missing toolchain is visible rather than silently green. `--require-all` turns a
 skip into a failure; a CI runner has every tool, so nothing is skipped there.
+
+`--fast` leaves out the two slowest checks, and one consequence is worth
+knowing: it also leaves out the benchmark run, so `performance` is skipped
+rather than failed when the readings on disk predate the current source. A run
+that names `--only performance` still fails in that state, which is the run a
+change to a hot path should use.
 
 CI runs the same checks as separate steps, so a failure lands on the run page
 next to the check that produced it. Grouped by what they need:
@@ -332,13 +339,14 @@ manifest and each published crate repeats one line to accept it. A crate that
 omits the line is checked against the tool's defaults instead, silently, which
 is why a new published crate has to add it.
 
-The default answer to "may we break this between minor releases" is no. Three
+The default answer to "may we break this between minor releases" is no. Four
 decisions depart from the crate's defaults:
 
 | Decision | Effect | Why |
 | --- | --- | --- |
 | `enum_variant_added` requires `minor` | Adding a variant to an exhaustive enum is allowed in a minor release | Every such enum names an outcome a caller must tell apart. `VerifyStatus` gained `Unchecked` because reporting an unchecked signature as tampered is worse than reporting nothing, and the alternative — a new enum returned from a new function — leaves the old function answering the question wrongly. A break still needs a version, which the check below enforces |
 | `constructible_struct_adds_field` requires `minor` | Adding a public field to a struct a caller can build with a literal is allowed in a minor release | The model is data. `TextObject` gained `ReadDirection` and `CharDirection` because the format has them and ignoring them drew turned text upright, so the field is the feature rather than an accident of it. A caller writing that literal has to add the field, which the compiler reports at the line to change |
+| `enum_no_repr_variant_discriminant_changed` requires `minor` | A variant that moves because another was inserted above it is allowed in a minor release | The lint answers for a caller who cast a variant to an integer, which needs a `#[repr]` on the enum to be well defined and needs the number to mean something. No enum here states a repr, and the workspace's FFI boundary is where an integer is the interface, so the number is not part of a contract. Left at the default, inserting a message id in the middle of the catalogue would spend a major version, which is the opposite of what `enum_variant_added` decided about the same edit |
 | The check runs twice, and only where a published version exists | Against the tag of the version that crate declares, and against `HEAD^1` | Against the release both trees carry that release's version, so a break answers "a patch would do"; against the parent it reads the bump the commit intends and answers "not a patch". Both compare a version that is on the registry with the one the crate declares. The second comparison runs over the whole workspace once any crate is published, and covers the unpublished ones too — they have a parent commit even when they have no release |
 
 The baseline is the crates.io API, not the tag list. A tag is a tree this

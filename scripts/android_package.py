@@ -168,10 +168,23 @@ MANIFEST = """<?xml version="1.0" encoding="utf-8"?>
                 <data android:scheme="file" />
                 <data android:mimeType="*/*" />
             </intent-filter>
+            <!-- A share arrives as one item with a type and no suffix: the
+                 sender names what it thinks the document is, and a share sheet
+                 asks the receiver whether it takes that type. So the types are
+                 listed, and nothing about a file name is required. -->
             <intent-filter android:label="Open an OFD">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
 {send_mimes}            </intent-filter>
+            <!-- A share that states no type at all matches no named type. It is
+                 the same trade as the catch-all open: an entry in somebody
+                 else's share sheet is worth a refusal once the bytes arrive,
+                 and without this the reader is simply absent from the sheet. -->
+            <intent-filter android:label="Open an OFD">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>
@@ -435,6 +448,22 @@ def selftest() -> int:
     # reaches it. It is a filter that takes more than the reader can open, which
     # is why the reader refuses the document after reading it.
     assert 'android:mimeType="*/*"' in rendered, "no filter answers an untyped sender"
+    # A share has to answer an untyped sender too. A phone reported the reader
+    # present in the open sheet and absent from the share sheet, and a share
+    # states one item rather than a URI: a sender that could not name the type
+    # sent nothing the typed filter took, and there was no second filter.
+    shares = rendered.split("android.intent.action.SEND")[1:]
+    assert any('android:mimeType="*/*"' in share.split("</intent-filter>", 1)[0] for share in shares), (
+        "no share filter answers an untyped sender"
+    )
+    # Every filter carries the same label on purpose: it is the name the two
+    # sheets show, and a reader who sees one label in both sheets has found the
+    # same reader twice rather than two different apps.
+    # The launcher's own filter is the exception: a launcher shows the app's
+    # label, not the filter's, so it needs none.
+    assert rendered.count('android:label="Open an OFD"') == rendered.count("<intent-filter") - 1, (
+        "every open and share filter is offered under one name"
+    )
 
     # The extension table is what lets a file manager name an `.ofd` at all.
     # Its absence is not visible in the manifest, which is why it went unnoticed.

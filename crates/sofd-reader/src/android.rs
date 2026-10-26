@@ -192,7 +192,14 @@ fn open(options: NativeOptions, handed_over: Option<DroppedFile>) -> eframe::Res
 struct Window(App);
 
 impl eframe::App for Window {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        // Asked before anything is drawn, because the window's whole layout is
+        // stacked from its top-left corner: a header measured before the bars
+        // are known would be drawn under the clock for one frame each rotation.
+        if let Some(window) = frame.winit_window() {
+            let scale = ui.ctx().pixels_per_point();
+            window::remember_safe_area(ui.ctx(), window, scale);
+        }
         let requests = window::draw(ui, &mut self.0);
         let title = self.0.title();
         ui.ctx()

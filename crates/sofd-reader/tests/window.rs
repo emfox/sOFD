@@ -977,10 +977,19 @@ fn an_invoice_seal_answers_a_click_with_what_the_signature_says() {
 
 /// A reader window of a given width, drawn a few times so panels settle.
 fn window_at(width: f32) -> Harness<'static, App> {
+    window_at_with(width, egui::epaint::MarginF32::ZERO)
+}
+
+/// The same, with a device's system bars taking `safe` off the window.
+///
+/// The state is written before the first frame because that is the order a
+/// phone runs in: the activity knows its content rectangle before it draws.
+fn window_at_with(width: f32, safe: egui::epaint::MarginF32) -> Harness<'static, App> {
     let mut harness = Harness::builder()
         .with_size(egui::vec2(width, 700.0))
         .build_ui_state(
-            |ui, app: &mut App| {
+            move |ui, app: &mut App| {
+                window::set_safe_area(ui.ctx(), safe);
                 window::draw(ui, app);
             },
             App::new(),
@@ -1044,6 +1053,98 @@ fn the_two_bars_fit_a_phone_without_clipping() {
             rect.right()
         );
     }
+}
+
+#[test]
+fn no_two_controls_on_one_bar_overlap() {
+    // Fitting inside the window is not the same as being reachable: two
+    // controls drawn on top of each other both pass that test and one of them
+    // cannot be clicked. Each bar is measured as a set of boxes, and the boxes
+    // that share a row must not share any width.
+    for width in [320.0f32, 360.0, 400.0, 480.0, 720.0, 1000.0] {
+        let harness = window_at(width);
+        let mut boxes: Vec<(String, egui::Rect)> = Vec::new();
+        let labels = bar_controls();
+        for name in &labels {
+            for node in harness.query_all_by_label(name) {
+                let rect = node.rect();
+                boxes.push((name.clone(), rect));
+            }
+        }
+        for (i, (first, one)) in boxes.iter().enumerate() {
+            for (second, other) in boxes.iter().skip(i + 1) {
+                // Same row: the vertical spans meet.
+                let share_row =
+                    one.top() < other.bottom() - 0.5 && other.top() < one.bottom() - 0.5;
+                if !share_row {
+                    continue;
+                }
+                let share_width =
+                    one.left() < other.right() - 0.5 && other.left() < one.right() - 0.5;
+                assert!(
+                    !share_width,
+                    "{first:?} and {second:?} overlap at {:.0}..{:.0} and {:.0}..{:.0} in a window {width:.0} wide",
+                    one.left(),
+                    one.right(),
+                    other.left(),
+                    other.right()
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_safe_area_moves_the_zones_clear_of_the_system_bars() {
+    // A device draws its status bar over the window, so the header starts at
+    // y = 0 and the clock covers it. The platform answers with a content
+    // rectangle, and what this asserts is that the window acts on the answer:
+    // every zone moves down by the bar, and the window loses no width.
+    let bar = egui::epaint::MarginF32 {
+        left: 0.0,
+        top: 24.0,
+        right: 48.0,
+        bottom: 0.0,
+    };
+    let plain = window_at(400.0);
+    let guarded = window_at_with(400.0, bar);
+    let header = reader_label(ReaderMessage::Open);
+    let before = plain.get_by_label(&header).rect();
+    let after = guarded.get_by_label(&header).rect();
+    assert!(
+        (after.top() - (before.top() + bar.top)).abs() < 0.5,
+        "the header starts at {:.0} with no bar and {:.0} with a {:.0} one",
+        before.top(),
+        after.top(),
+        bar.top
+    );
+    // The menu is the control nearest the right edge, so it is the one a bar
+    // on that side would cover, and the one whose margin has to include it.
+    let menu = reader_label(ReaderMessage::MainMenu);
+    let end = guarded.get_by_label(&menu).rect();
+    assert!(
+        end.right() <= 400.0 - bar.right + 0.5,
+        "the menu ends at {:.0}, inside the {:.0} the bar leaves",
+        end.right(),
+        400.0 - bar.right
+    );
+}
+
+#[test]
+fn a_bar_wider_than_the_window_leaves_it_whole() {
+    // A device that reports bars bigger than its own window has reported
+    // nonsense, and a negative rectangle is an assertion inside `egui`. The
+    // window is what is left rather than a panic, and it is still usable.
+    let window = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(320.0, 600.0));
+    let safe = egui::epaint::MarginF32 {
+        left: 200.0,
+        top: 500.0,
+        right: 200.0,
+        bottom: 500.0,
+    };
+    let inner = window::inset(window, safe);
+    assert!(inner.width() >= 0.0 && inner.height() >= 0.0);
+    assert!(inner.left() <= inner.right() && inner.top() <= inner.bottom());
 }
 
 #[test]

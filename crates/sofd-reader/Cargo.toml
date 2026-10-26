@@ -114,6 +114,15 @@ version = "0.30"
 default-features = false
 features = ["wayland-csd-adwaita-crossfont"]
 
+# Android names winit too, for one thing the desktop does not need of it: the
+# content rectangle, which is how a device says how much of its own screen its
+# status bar and gesture bar are covering. `eframe` hands back the window but
+# not the platform's answer about it, so the extension trait is reached here.
+[target.'cfg(target_os = "android")'.dependencies.winit]
+version = "0.30"
+default-features = false
+features = ["android-native-activity"]
+
 [dev-dependencies]
 egui.workspace = true
 # Drives the real widget tree without a display, which is how the window's
