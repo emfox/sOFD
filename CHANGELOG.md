@@ -16,6 +16,11 @@ release is written up is in
   seal's three lines now come from the certificate, and clicking it opens the
   signature that carries it.
 
+- **The worked examples are now run, not only compiled.** Each one is run
+  against a generated document and its output checked, so an example that
+  compiles and does nothing fails the build rather than the reader who copied
+  it.
+
 ## [0.5.1] - 2026-10-25
 
 ### Added

@@ -203,6 +203,15 @@ CHECKS: tuple[Check, ...] = (
         needs=("cargo",),
         unset=("DISPLAY", "WAYLAND_DISPLAY"),
     ),
+    # A build proves the examples typecheck; this proves they work, which is the
+    # fault a newcomer would otherwise be the one to find.
+    Check(
+        "examples",
+        "rust",
+        (py("scripts/run_examples.py"),),
+        needs=("cargo",),
+        unset=("DISPLAY", "WAYLAND_DISPLAY"),
+    ),
     Check(
         "compliance",
         "rust",

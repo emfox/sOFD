@@ -127,6 +127,14 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo build -p sofd-wasm --example browser --target wasm32-unknown-unknown
 
+      # Compiling proves an example typechecks and nothing else. The four that
+      # need no browser are run against a document this step writes, and what
+      # landed on disk is checked: a PNG per page, a PDF that ends, a frame that
+      # reports the page count, a service that converts. The browser example
+      # stays build-only above, because running it needs a browser and a page.
+      - name: Run the worked examples
+        run: python3 scripts/run_examples.py
+
       # The Android build is checked here rather than only on a release tag: a
       # feature its device lacks compiles to a library that loads and exits, so
       # the gate runs on every push. Device tests cannot, without an emulator.
