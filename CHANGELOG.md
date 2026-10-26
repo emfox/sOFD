@@ -21,6 +21,12 @@ release is written up is in
   compiles and does nothing fails the build rather than the reader who copied
   it.
 
+### Reader
+
+- **An OFD opens from a phone's file manager.** The app declares the OFD type
+  and a catch-all filter, so a file manager lists it as a place to open from
+  instead of hiding behind it; previously a document had to arrive as a share.
+
 ## [0.5.1] - 2026-10-25
 
 ### Added

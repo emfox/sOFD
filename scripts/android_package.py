@@ -71,6 +71,24 @@ CONFIG_CHANGES = "|".join(
 # offers it. A share of the wrong type opens and is refused by the reader,
 # which says so, and that is better than a share menu with no reader in it.
 SEND_MIMES = ["application/ofd", "application/zip", "application/octet-stream"]
+# The types an open can carry. The same list as a share, for the same reason,
+# and the omission of `octet-stream` here is what made a share appear in the
+# sheet while an open did not: the file manager had already failed to name the
+# file and sent what it sends for anything it does not know.
+VIEW_MIMES = ["application/ofd", "application/octet-stream"]
+# What the system is told an `.ofd` is. Android resolves an extension through
+# this table when the sender did not state a type, and nothing had added `.ofd`
+# to it: a file manager looked the suffix up, found nothing, and fell back to
+# `octet-stream` -- which the `VIEW` filter did not accept. The file names the
+# type, the manifest accepts it, and the two have to agree.
+MIME_TYPES = {"application/ofd": ["ofd"]}
+# The filter that catches a sender which matched neither a type nor a suffix.
+# A file manager is free to send an intent that states nothing, and a filter
+# cannot name "nothing" -- the only way to answer it is to match everything and
+# refuse the document once the bytes are read, which the reader already does.
+# Reported from a phone as "the open sheet does not list sOFD at all", which is
+# this filter's absence rather than any one attribute being wrong.
+CATCH_ALL = True
 # The reader crate's manifest. The `versionCode` is the reader's version, not a
 # workspace-wide one: there is no workspace-wide one any more, and the archive
 # holds the reader and nothing else.
@@ -124,21 +142,31 @@ MANIFEST = """<?xml version="1.0" encoding="utf-8"?>
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- The reader has no file dialog on Android: `rfd` has no backend
-                 there, so a document arrives through one of these two. A tap in
-                 a file manager sends VIEW, a share from any app sends SEND, and
-                 both hand over a content URI the reader copies the bytes of.
+                 there, so a document arrives through one of these filters. A tap
+                 in a file manager sends VIEW, a share from any app sends SEND,
+                 and both hand over a content URI the reader copies the bytes of.
                  The suffix rather than a pattern: `.*\.ofd` stops at the first
-                 dot, so `a.b.ofd` would never match, and a provider whose MIME
-                 type it cannot name is the common case for a sideloaded one. -->
+                 dot, so `a.b.ofd` would never match. The type is listed beside
+                 it because a provider that resolves the suffix sends the type
+                 instead, and `octet-stream` because one that resolves neither
+                 sends that. -->
             <intent-filter android:label="Open an OFD">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="content" android:host="*" android:mimeType="application/ofd" />
                 <data android:scheme="content" android:host="*" android:pathSuffix=".ofd" />
                 <data android:scheme="file" android:pathSuffix=".ofd" />
-                <data android:scheme="file" android:mimeType="application/ofd" />
-                <data android:mimeType="application/ofd" />
+{view_mimes}            </intent-filter>
+            <!-- A sender that states neither a type nor a readable suffix cannot
+                 be named by a filter, so this one matches everything and the
+                 reader refuses what it cannot open once the bytes arrive. An
+                 entry in somebody else's open sheet is worth a refusal. -->
+            <intent-filter android:label="Open an OFD">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="*/*" />
             </intent-filter>
             <intent-filter android:label="Open an OFD">
                 <action android:name="android.intent.action.SEND" />
@@ -155,7 +183,16 @@ def manifest_text(version: str) -> str:
     send_mimes = "".join(
         f'                <data android:mimeType="{mime}" />\n' for mime in SEND_MIMES
     )
-    return MANIFEST.format(
+    # Both schemes on every type: a provider hands out `content://` and a file
+    # manager over shared storage hands out `file://`, and a type listed for
+    # only one of them is a filter half-present.
+    view_mimes = "".join(
+        f'                <data android:scheme="{scheme}" android:host="*" '
+        f'android:mimeType="{mime}" />\n'
+        for mime in VIEW_MIMES
+        for scheme in ("content", "file")
+    )
+    rendered = MANIFEST.format(
         package=PACKAGE,
         version_code=version_code(version),
         version_name=version,
@@ -165,7 +202,28 @@ def manifest_text(version: str) -> str:
         library=LIBRARY,
         config_changes=CONFIG_CHANGES,
         send_mimes=send_mimes,
+        view_mimes=view_mimes,
     )
+    # A catch-all is a filter that matches more than this app can open, so it is
+    # written only when that trade is wanted; the flag is here so the decision
+    # is in one place rather than in the template.
+    if not CATCH_ALL:
+        rendered = re.sub(r"\s*<!-- A sender that states.*?</intent-filter>", "", rendered, flags=re.S)
+    return rendered
+
+
+def mime_types_text() -> str:
+    """The extension table stored in the archive's assets.
+
+    Android reads it to answer "what is a `.ofd`" for an app that only has a
+    file name. Without the entry a file manager cannot name the type, and what
+    it sends instead is not what the manifest lists.
+    """
+    lines = []
+    for mime, suffixes in MIME_TYPES.items():
+        for suffix in suffixes:
+            lines.append(f"{mime}\t{suffix}")
+    return "\n".join(lines) + "\n"
 
 
 # The directory the loader reads the library out of. Its name is the ABI, and a
@@ -283,6 +341,12 @@ def package(sdk: Path, library: Path, out: Path) -> Path:
         base = build_tool(sdk, "aapt")
         assets = work / "assets"
         assets.mkdir()
+        # The packager copies this directory into the archive, and it is where
+        # Android looks for an extension table of the app's own. It was empty
+        # until a phone said the reader never appeared in an open sheet: the
+        # system could not name an `.ofd`, so the sender passed a type the
+        # manifest did not list.
+        (assets / "mime.types").write_text(mime_types_text(), encoding="utf-8")
         compiled = work / "compiled.apk"
         platform = sorted((sdk / "platforms").glob("android-*"))[-1]
         run([
@@ -358,6 +422,24 @@ def selftest() -> int:
     send = rendered.split("android.intent.action.SEND", 1)[1].split("</intent-filter>", 1)[0]
     for mime in SEND_MIMES:
         assert f'android:mimeType="{mime}"' in send, mime
+    # An open has to arrive the same way, and this is what a phone reported
+    # missing: the two lists were different, so a file manager that had already
+    # failed to name the file found a filter that would not take what it sent.
+    # Asserted on the list rather than on the rendering, because a catch-all
+    # filter further down would satisfy a string search and hide the omission.
+    assert "application/octet-stream" in VIEW_MIMES, "an open must take what a nameless sender sends"
+    view = rendered.split("android.intent.action.VIEW", 1)[1].split("</intent-filter>", 1)[0]
+    for mime in VIEW_MIMES:
+        assert f'android:mimeType="{mime}"' in view, mime
+    # A sender that states nothing matches no named filter, so only a catch-all
+    # reaches it. It is a filter that takes more than the reader can open, which
+    # is why the reader refuses the document after reading it.
+    assert 'android:mimeType="*/*"' in rendered, "no filter answers an untyped sender"
+
+    # The extension table is what lets a file manager name an `.ofd` at all.
+    # Its absence is not visible in the manifest, which is why it went unnoticed.
+    table = mime_types_text()
+    assert "application/ofd\tofd" in table, table
 
     # A configuration change the activity does not claim recreates it, and the
     # recreation destroys the surface the frame is drawn on: the reader then
