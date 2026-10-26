@@ -22,8 +22,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState::guarded(Store::new(MAX_OPEN), KeyRing::new());
     let app = api::router(state, MAX_BODY);
 
-    // Loopback only: a trial run should not be a service anybody can reach.
-    let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 8080)).await?;
+    // Loopback only: a trial run should not be a service anybody can reach. The
+    // port is read from the environment so two runs, or a run and a test, do
+    // not fight over one number; 8080 is what a reader expects to curl.
+    let port: u16 = std::env::var("PORT")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(8080);
+    let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await?;
     println!("serving on http://{}", listener.local_addr()?);
     axum::serve(listener, app)
         .with_graceful_shutdown(async {
