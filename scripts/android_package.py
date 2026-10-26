@@ -3,10 +3,11 @@
 sOFD Android package builder.
 
 The reader is one activity that draws with `eframe`, so the package needs very
-little: a manifest naming that activity, the native library it loads, and the
-signature an installable archive must carry. This tool assembles exactly that
-and calls the SDK's own tools for the steps that belong to them, rather than
-carrying a Gradle project for three files.
+little: a manifest naming that activity, the native library it loads, the dex of
+the one fragment that receives the system picker's answer, and the signature an
+installable archive must carry. This tool assembles exactly that and calls the
+SDK's own tools for the steps that belong to them, rather than carrying a
+Gradle project for four files.
 
 The archive is signed with a debug key generated per run. It installs on a
 device that allows sideloading, which is what a release page offers; it is not
@@ -93,6 +94,11 @@ CATCH_ALL = True
 # workspace-wide one: there is no workspace-wide one any more, and the archive
 # holds the reader and nothing else.
 READER_TOML = Path(__file__).resolve().parent.parent / "crates" / "sofd-reader" / "Cargo.toml"
+# The one Java class in the project. A `NativeActivity` has no
+# `onActivityResult` to override, so the answer the system picker sends back is
+# received by a fragment attached to the activity that already exists. It is
+# compiled here rather than kept as a dex, so the source is reviewable.
+PICKER_SOURCE = READER_TOML.parent / "android" / "PickFragment.java"
 
 
 def version_code(version: str) -> int:
@@ -130,7 +136,7 @@ MANIFEST = """<?xml version="1.0" encoding="utf-8"?>
     android:versionCode="{version_code}"
     android:versionName="{version_name}">
     <uses-sdk android:minSdkVersion="{min_sdk}" android:targetSdkVersion="{target_sdk}" />
-    <application android:label="sOFD Reader" android:hasCode="false">
+    <application android:label="sOFD Reader" android:hasCode="true">
         <activity
             android:name="{activity}"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
@@ -306,8 +312,32 @@ def write_manifest(work: Path, version: str) -> Path:
     return manifest
 
 
-def write_archive(work: Path, library: Path, compiled: Path, abi_dir: str) -> Path:
-    """Add the library to the archive the packager built, and return it.
+def compile_dex(sdk: Path, work: Path, platform: Path) -> Path:
+    """Compile the picker fragment into the dex the archive carries.
+
+    The source is compiled at level 8 so the class file is the same whichever
+    JDK runs the build, and `d8` turns it into the form a device loads.
+    """
+    jar_path = platform / "android.jar"
+    classes = work / "classes"
+    classes.mkdir()
+    run([
+        java_tool("javac"), "-nowarn", "-source", "8", "-target", "8",
+        "-bootclasspath", str(jar_path), "-d", str(classes), str(PICKER_SOURCE),
+    ])
+    jar = work / "picker.jar"
+    run([java_tool("jar"), "cf", str(jar), "-C", str(classes), "."])
+    dex = work / "dex"
+    dex.mkdir()
+    run([
+        build_tool(sdk, "d8"), "--min-api", str(MIN_SDK),
+        "--lib", str(jar_path), "--output", str(dex), str(jar),
+    ])
+    return dex / "classes.dex"
+
+
+def write_archive(work: Path, library: Path, dex: Path, compiled: Path, abi_dir: str) -> Path:
+    """Add the library and the dex to the archive the packager built.
 
     The manifest inside must stay the binary form the packager wrote: the
     signer reads the minimum SDK out of it, and source text has no chunks.
@@ -315,6 +345,10 @@ def write_archive(work: Path, library: Path, compiled: Path, abi_dir: str) -> Pa
     unsigned = work / "unsigned.apk"
     shutil.copyfile(compiled, unsigned)
     with zipfile.ZipFile(unsigned, "a", zipfile.ZIP_DEFLATED) as archive:
+        # Stored rather than deflated: the runtime maps the dex out of the
+        # archive instead of unpacking it, and a deflated entry cannot be
+        # mapped. `zipalign` then puts it on a four-byte boundary.
+        archive.write(dex, "classes.dex", compress_type=zipfile.ZIP_STORED)
         archive.write(library, f"{abi_dir}/{library.name}")
     return unsigned
 
@@ -368,7 +402,9 @@ def package(sdk: Path, library: Path, out: Path) -> Path:
             "-I", str(platform / "android.jar"), "-A", str(assets), "-F", str(compiled),
         ])
 
-        unsigned = write_archive(work, library, compiled, library_abi(library))
+        unsigned = write_archive(
+            work, library, compile_dex(sdk, work, platform), compiled, library_abi(library)
+        )
         # Alignment must happen before signing: a signer rewrites the archive, and
         # an unaligned entry cannot be mapped by the loader afterwards.
         aligned = work / "aligned.apk"
@@ -405,7 +441,7 @@ def selftest() -> int:
     assert f'package="{PACKAGE}"' in rendered
     assert f'android:value="{LIBRARY}"' in rendered
     assert f'android:name="{ACTIVITY}"' in rendered
-    assert 'android:hasCode="false"' in rendered
+    assert 'android:hasCode="true"' in rendered
     # A `NativeActivity` with no theme gets the platform's default one, which is
     # a dark full-screen window: the strip above the frame is that decoration.
     # The theme names one with no decoration and no title bar, and the frame
@@ -498,14 +534,17 @@ def selftest() -> int:
         work = Path(tmp)
         library = work / f"lib{LIBRARY}.so"
         library.write_bytes(el_fake(0xB7).read_bytes())
+        dex = work / "classes.dex"
+        dex.write_bytes(b"dex\n035\0")
         compiled = work / "compiled.apk"
         with zipfile.ZipFile(compiled, "w", zipfile.ZIP_DEFLATED) as archive:
             archive.write(write_manifest(work, version), "AndroidManifest.xml")
-        unsigned = write_archive(work, library, compiled, library_abi(library))
+        unsigned = write_archive(work, library, dex, compiled, library_abi(library))
         with zipfile.ZipFile(unsigned) as archive:
             names = set(archive.namelist())
     expected = {
         "AndroidManifest.xml",
+        "classes.dex",
         f"lib/arm64-v8a/lib{LIBRARY}.so",
     }
     assert names == expected, names

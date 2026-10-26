@@ -7,7 +7,7 @@
 use crate::{App, DroppedFile, window};
 use eframe::NativeOptions;
 use eframe::egui;
-use jni::objects::{JObject, JString};
+use jni::objects::{JClass, JClassLoader, JObject, JString};
 use jni::{Env, JavaVM, jni_sig, jni_str};
 
 /// The last thing a reader reports, and it must land somewhere: Android has no
@@ -184,6 +184,9 @@ fn open(options: NativeOptions, handed_over: Option<DroppedFile>) -> eframe::Res
         Box::new(move |cc| {
             // The system face carries the Chinese labels, as on the desktop.
             crate::fonts::install_cjk_fallback(&cc.egui_ctx);
+            // Kept before the first frame: the picker's answer wakes a frame,
+            // and the callback has no other handle on one.
+            let _ = FRAME.set(cc.egui_ctx.clone());
             let mut app = App::new();
             if let Some(dropped) = handed_over {
                 // Stored rather than opened: the first frame is the first place
@@ -217,6 +220,14 @@ impl eframe::App for Window {
         if requests.open_dialog {
             self.pick_document();
         }
+        // Read on a frame rather than in the callback: only a frame may change
+        // the reader, and the grant outlives the pick that ended.
+        if let Some(uri) = PICKED.lock().ok().and_then(|mut slot| slot.take()) {
+            match read_picked_document(&uri) {
+                Ok(document) => self.0.hand_over(document),
+                Err(err) => log::error!("the picked document was not read: {err}"),
+            }
+        }
         let title = self.0.title();
         ui.ctx()
             .send_viewport_cmd(egui::ViewportCommand::Title(title));
@@ -227,16 +238,15 @@ impl eframe::App for Window {
 }
 
 impl Window {
-    /// Ask the system for a document. Nothing comes back here: `GET_CONTENT`
-    /// answers by opening the chosen URI through the caller, so the document
-    /// arrives as a tap does, through the activity's intent, and is read by
-    /// [`document_from_intent`] on the next start.
+    /// Ask the system for a document. The answer arrives on the fragment's
+    /// `onActivityResult`, which calls the `deliver` export below, and the URI
+    /// it names is read on the frame after that.
     fn pick_document(&mut self) {
         let Some(app) = ACTIVITY.get() else {
             log::error!("the activity is gone, so no document can be picked");
             return;
         };
-        if let Err(err) = pick_document(app) {
+        if let Err(err) = request_document(app) {
             log::error!("the picker did not open: {err}");
         }
     }
@@ -245,9 +255,9 @@ impl Window {
 /// The document the activity was started for, if it was started for one.
 ///
 /// A tap arrives as `ACTION_VIEW` with a content URI and a share as
-/// `ACTION_SEND`; a pick in the system dialog comes back as a tap, because
-/// `GET_CONTENT` answers by opening its URI through the app that asked. The
-/// bytes are read at once, since the URI's sandbox ends with the activity.
+/// `ACTION_SEND`; a pick in the system dialog does not, because its answer is
+/// delivered to the activity rather than by starting it again. The bytes are
+/// read at once, since the URI's sandbox ends with the activity.
 fn document_from_intent(app: &android_activity::AndroidApp) -> Option<DroppedFile> {
     match read_shared_document(app) {
         Ok(Some(document)) => Some(document),
@@ -262,62 +272,140 @@ fn document_from_intent(app: &android_activity::AndroidApp) -> Option<DroppedFil
     }
 }
 
-/// Ask the system for a document, with the type the manifest already claims:
-/// a device has no dialog of the reader's own and `rfd` has no backend there,
-/// so this is the only route to a document the reader did not arrive with.
-///
-/// `startActivity` and not `startActivityForResult`: `android-activity` 0.6
-/// raises no `MainEvent` for a result, and an unread one opens and does nothing.
-fn pick_document(
+/// Ask the system for a document through `PickFragment`, which owns the intent
+/// and the request code: only a fragment attached to this activity is given the
+/// answer, and `android-activity` raises no event for one.
+fn request_document(
     activity: &android_activity::AndroidApp,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // SAFETY: `android-activity` owns both pointers for as long as `activity`
     // is borrowed, which is the whole of this call.
     let vm = unsafe { JavaVM::from_raw(activity.vm_as_ptr().cast()) };
-    vm.attach_current_thread(|env| start_picker(env, activity.activity_as_ptr()))
+    vm.attach_current_thread(|env| call_request(env, activity.activity_as_ptr()))
 }
 
-/// The picker, with an `Env` in hand.
-fn start_picker(
+/// The call itself, with an `Env` in hand.
+fn call_request(
     env: &mut Env<'_>,
     activity_ptr: *mut std::ffi::c_void,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // SAFETY: the pointer is the activity `android-activity` owns, used before
     // the activity is destroyed.
     let activity = unsafe { JObject::from_raw(env, activity_ptr.cast()) };
-    let action = env.new_string("android.intent.action.GET_CONTENT")?;
-    let intent = env.new_object(
-        jni_str!("android.content.Intent"),
-        jni_sig!((action: java.lang.String) -> void),
-        &[(&action).into()],
+    // The activity's own loader, not the one its class reports: `NativeActivity`
+    // is a platform class, so its class belongs to the boot loader, and asking a
+    // native thread directly reaches the boot loader too.
+    let reported = env
+        .call_method(
+            &activity,
+            jni_str!("getClassLoader"),
+            jni_sig!(() -> java.lang.ClassLoader),
+            &[],
+        )?
+        .l()?;
+    // SAFETY: this wraps the loader the activity reported, exactly once.
+    let loader = unsafe { JClassLoader::from_raw(env, reported.into_raw()) };
+    let class = jni::refs::LoaderContext::Loader(&loader).load_class(
+        env,
+        jni_str!("org.sofd.reader.PickFragment"),
+        false,
     )?;
-    // `OPENABLE` is what limits the picker to files it can hand back a stream
-    // for, rather than every entry in a folder including the folders.
-    let openable = env.new_string("android.intent.category.OPENABLE")?;
-    env.call_method(
-        &intent,
-        jni_str!("addCategory"),
-        jni_sig!((category: java.lang.String) -> android.content.Intent),
-        &[(&openable).into()],
-    )?;
-    // One type and not a set: a picker given several opens on "all files",
-    // which is what makes a reader look like it can open anything.
-    let ofd = env.new_string("application/ofd")?;
-    env.call_method(
-        &intent,
-        jni_str!("setType"),
-        jni_sig!((mime: java.lang.String) -> android.content.Intent),
-        &[(&ofd).into()],
-    )?;
-    // The intent comes back to this activity, so the document it names is read
-    // by `document_from_intent` on the next start rather than by a callback.
-    env.call_method(
-        &activity,
-        jni_str!("startActivity"),
-        jni_sig!((intent: android.content.Intent) -> void),
-        &[(&intent).into()],
+    // The library is filed under the boot loader, since `NativeActivity` is a
+    // platform class, so the VM cannot find this class's native method by name.
+    // Binding the two here is what crosses that gap.
+
+    // SAFETY: `deliver` matches the signature the descriptor names, and the
+    // class is the one that declares the method.
+    unsafe {
+        env.register_native_methods(
+            &class,
+            &[jni::NativeMethod::from_raw_parts(
+                jni_str!("deliver"),
+                jni_str!("(Ljava/lang/String;)V"),
+                Java_org_sofd_reader_PickFragment_deliver as *const () as *mut std::ffi::c_void,
+            )],
+        )?;
+    }
+    env.call_static_method(
+        &class,
+        jni_str!("request"),
+        jni_sig!((activity: android.app.Activity) -> void),
+        &[(&activity).into()],
     )?;
     Ok(())
+}
+
+/// The URI the picker answered with, waiting for the next frame: the callback
+/// runs on the activity's thread, and only a frame may change the reader.
+static PICKED: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+/// The context a callback wakes, since it has no frame of its own to ask for
+/// one. Set once the window exists, which is the only moment it is made.
+static FRAME: std::sync::OnceLock<egui::Context> = std::sync::OnceLock::new();
+
+/// Called from `PickFragment.onActivityResult`, with the URI the reader chose
+/// or with null when it closed the picker.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_sofd_reader_PickFragment_deliver<'local>(
+    mut env: jni::EnvUnowned<'local>,
+    _class: JClass<'local>,
+    uri: JString<'local>,
+) {
+    env.with_env(|env| -> jni::errors::Result<()> {
+        let picked = if uri.is_null() {
+            None
+        } else {
+            uri.try_to_string(env).ok()
+        };
+        match picked {
+            Some(uri) => {
+                if let Ok(mut slot) = PICKED.lock() {
+                    *slot = Some(uri);
+                }
+            }
+            None => log::info!("the picker closed without a document"),
+        }
+        if let Some(ctx) = FRAME.get() {
+            ctx.request_repaint();
+        }
+        Ok(())
+    })
+    .resolve::<jni::errors::ThrowRuntimeExAndDefault>();
+}
+
+/// The bytes behind the URI the picker answered with, read through the
+/// activity's own resolver while the grant it was given is still in force.
+fn read_picked_document(uri_text: &str) -> Result<DroppedFile, Box<dyn std::error::Error>> {
+    let Some(app) = ACTIVITY.get() else {
+        return Err("the activity is gone, so the pick cannot be read".into());
+    };
+    // SAFETY: the VM outlives the activity this call is made for.
+    let vm = unsafe { JavaVM::from_raw(app.vm_as_ptr().cast()) };
+    vm.attach_current_thread(|env| read_picked_uri(env, app.activity_as_ptr(), uri_text))
+}
+
+/// The read, with an `Env` in hand.
+fn read_picked_uri(
+    env: &mut Env<'_>,
+    activity_ptr: *mut std::ffi::c_void,
+    uri_text: &str,
+) -> Result<DroppedFile, Box<dyn std::error::Error>> {
+    // SAFETY: the pointer is the activity `android-activity` owns, borrowed for
+    // the whole of this call.
+    let activity = unsafe { JObject::from_raw(env, activity_ptr.cast()) };
+    let text = env.new_string(uri_text)?;
+    let uri = env
+        .call_static_method(
+            jni_str!("android.net.Uri"),
+            jni_str!("parse"),
+            jni_sig!((uriString: java.lang.String) -> android.net.Uri),
+            &[(&text).into()],
+        )?
+        .l()?;
+    let bytes = read_uri(env, &activity, &uri)?;
+    let name = display_name(env, &activity, &uri).unwrap_or_else(|| "document.ofd".to_owned());
+    log::info!("read {name} from the picker, {} bytes", bytes.len());
+    Ok(DroppedFile::Bytes { name, bytes })
 }
 
 /// The read itself, separated so its failures can be reported in one place.

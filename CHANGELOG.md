@@ -32,6 +32,12 @@ release is written up is in
   when the bar has no room for it and, when the header folds a view, naming
   that view at the top of the main menu so it stays reachable.
 
+- **The open button opens a document on a phone**, through the system's own
+  picker, rather than pointing at a dialog a device has none of.
+
+- **A document that ships no font draws on a phone**, with the device's own
+  faces standing in for the ones it names.
+
 ## [0.5.1] - 2026-10-25
 
 ### Added
