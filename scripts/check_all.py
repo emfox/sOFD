@@ -9,6 +9,7 @@ pass.
 Usage:
     python3 scripts/check_all.py                # everything this machine can run
     python3 scripts/check_all.py --quick        # no cargo, no fetched samples
+    python3 scripts/check_all.py --fast         # everything, without the slowest
     python3 scripts/check_all.py --list         # what would run, and why
     python3 scripts/check_all.py --only policy --only i18n
     python3 scripts/check_all.py --skip rust
@@ -45,6 +46,20 @@ SLOW_GROUPS = ("rust", "samples", "perf")
 # Groups whose findings ask for a second look instead of blocking a merge. A
 # check here reports what it noticed and the run still passes with it.
 ADVISORY_GROUPS = ("review",)
+
+# Checks --fast leaves out. Each is the slowest one in its group and each
+# answers a question the rest of the run already answers most of.
+FAST_SKIPS = {
+    # A benchmark is a measurement, so it costs what it costs and cannot be
+    # made cheaper. Nothing calls the code differently than `test` does: only
+    # a change to a hot path can move a number, and that is a change worth
+    # running the gate for by name.
+    "bench": "a measurement, not a test",
+    # The same tests under a second feature set. It is what catches a cfg gap,
+    # which a change touching a feature flag should be run for and a change to
+    # anything else can leave to CI.
+    "test-all-features": "the tests again under another feature set",
+}
 
 FIXTURE_FILES = "compliance/fixtures"
 
@@ -399,11 +414,14 @@ def run(check: Check, verbose: bool) -> tuple[bool, str, float]:
 
 
 def selected(checks: tuple[Check, ...], only: list[str], skip: list[str],
-             quick: bool) -> list[Check]:
+             quick: bool, fast: bool = False) -> list[Check]:
     """The checks the flags leave in, keeping the declared order."""
     chosen: list[Check] = []
     for check in checks:
         if quick and check.group in SLOW_GROUPS:
+            continue
+        # Naming a check beats leaving it out, so --fast does not veto names.
+        if fast and check.name in FAST_SKIPS and check.name not in only:
             continue
         if only and check.name not in only and check.group not in only:
             continue
@@ -429,6 +447,8 @@ def main() -> int:
     )
     parser.add_argument("--quick", action="store_true",
                         help="skip the groups that need cargo, a fetch or a bench")
+    parser.add_argument("--fast", action="store_true",
+                        help="skip the slowest checks; --only still names one")
     parser.add_argument("--list", action="store_true",
                         help="print the plan instead of running it")
     parser.add_argument("--only", action="append", default=[], metavar="NAME",
@@ -445,7 +465,7 @@ def main() -> int:
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(errors="replace")
 
-    chosen = selected(CHECKS, args.only, args.skip, args.quick)
+    chosen = selected(CHECKS, args.only, args.skip, args.quick, args.fast)
     if not chosen:
         print("nothing selected; --list shows what is available")
         return 2
