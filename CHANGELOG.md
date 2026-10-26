@@ -27,6 +27,11 @@ release is written up is in
   and a catch-all filter, so a file manager lists it as a place to open from
   instead of hiding behind it; previously a document had to arrive as a share.
 
+- **Both bars fit a phone.** At 360dp the header and the toolbar keep their
+  groups apart rather than drawing them over each other, folding a control out
+  when the bar has no room for it and, when the header folds a view, naming
+  that view at the top of the main menu so it stays reachable.
+
 ## [0.5.1] - 2026-10-25
 
 ### Added

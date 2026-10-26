@@ -17,6 +17,19 @@ use crate::viewer::{DroppedFile, Layout, MAX_ZOOM, MIN_ZOOM, POINTS_PER_MM};
 const MIN_PERCENT: f32 = MIN_ZOOM * 100.0;
 const MAX_PERCENT: f32 = MAX_ZOOM * 100.0;
 
+/// The width the zoom slider needs, in points: its handle's travel plus the
+/// percent it shows beside it, measured by the drag test in `tests/window.rs`.
+/// A slider is the one control in either bar that cannot shrink to an icon, so
+/// on a strip narrower than this the toolbar drops its buttons to leave the
+/// slider its room, and below it the slider goes rather than being drawn off
+/// the edge, with the status bar still naming the page it belongs to.
+const SLIDER_ROOM: f32 = 156.0;
+
+/// How many controls the export group has: print, PDF, PNG. They travel
+/// together — two formats without the print button read as a group that never
+/// had it — so the count is one decision rather than three.
+const EXPORTS: usize = 3;
+
 /// What the window wants the host to do after a frame, if anything.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct WindowRequests {
@@ -232,18 +245,86 @@ fn draw_menu(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests) {
     egui::Panel::top("menu").show(ui, |ui| {
         let gap = theme::Space::Small.points();
         let groups = theme::Space::Medium.points();
+        let width = ui.available_width();
+        // The menu button is the one control that cannot be folded away, so its
+        // side is measured first and taken out of the room the rest may use.
+        let corner = icon_side(ui) + gap;
+        // Three switcher buttons is the range the pattern allows and what fits
+        // at 360dp; the plate they sit on is a frame, so it is already counted.
+        let switched = folded(
+            ui,
+            width - corner - gap - groups - icon_side(ui) + groups,
+            2,
+            3,
+        );
         ui.horizontal(|ui| {
+            ui.set_min_width(ui.available_width());
             ui.add_space(gap);
             pair(ui, |ui| draw_document_actions(ui, app, requests));
             ui.add_space(groups);
-            draw_view_switcher(ui, app);
-            ui.add_space(groups);
+            draw_view_switcher(ui, app, switched);
+            // The menu ends the run, so a right-to-left segment takes all that
+            // is left and lays the menu into its right end; the fold above is
+            // what keeps the group before it from pushing that end off.
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_space(gap);
-                draw_main_menu(ui, app);
+                draw_main_menu(ui, app, switched);
             });
         });
     });
+}
+
+/// How many of `count` controls a strip of `room` still leaves unclipped, given
+/// that `fixed` controls of the run are not on offer. A control is a button and
+/// the gap after it, so a strip that cannot hold even one shows none and the
+/// caller folds the whole run away.
+fn folded(ui: &Ui, room: f32, fixed: usize, count: usize) -> usize {
+    // A control is its own width and the gap after it, which inside a group is
+    // the small step and after it the group step.
+    let step = item_step(ui);
+    let left = room - fixed as f32 * step;
+    if left < 0.0 {
+        0
+    } else {
+        ((left / step).floor() as usize).min(count)
+    }
+}
+
+/// What `count` controls cost a bar: their sides, the gaps between them, and
+/// the group step after the last. A group that is not drawn costs nothing.
+fn group(ui: &Ui, count: usize) -> f32 {
+    if count == 0 {
+        0.0
+    } else {
+        count as f32 * icon_side(ui)
+            + count as f32 * theme::ITEM_GAP
+            + theme::Space::Medium.points()
+    }
+}
+
+/// What `count` controls cost before the group step after them: the run as it
+/// is drawn inside one group.
+fn run(ui: &Ui, count: usize) -> f32 {
+    if count == 0 {
+        0.0
+    } else {
+        count as f32 * icon_side(ui) + (count - 1) as f32 * theme::ITEM_GAP
+    }
+}
+
+/// The side of an icon button. It follows the reader's text size, so a bar
+/// measured at one size is not reused at another.
+fn icon_side(ui: &Ui) -> f32 {
+    icons::box_size(1.0).x * ui.ctx().zoom_factor()
+}
+
+/// What one more control costs a strip: its side and the group step that
+/// follows it. The step is the group one rather than the item one, because a
+/// control is counted as possibly the last of its group, and a bar that leaves
+/// a group step out gives it up from the slider's share, which is how a fit
+/// button came to be drawn past a 400dp edge.
+fn item_step(ui: &Ui) -> f32 {
+    icon_side(ui) + theme::Space::Medium.points()
 }
 
 /// Draw a run of controls whose glyphs belong together: a linked group, drawn
@@ -362,7 +443,7 @@ fn draw_document_actions(ui: &mut Ui, app: &mut App, requests: &mut WindowReques
 /// The view switcher at the centre of the header bar: search results, the
 /// signature report, the annotation list. Three is the range the pattern gives,
 /// and they are exclusive — plain toggles would let a reader end up with two.
-fn draw_view_switcher(ui: &mut Ui, app: &mut App) {
+fn draw_view_switcher(ui: &mut Ui, app: &mut App, shown: usize) {
     let sharp = app.high_contrast();
     let open = app.is_open();
     let views = [
@@ -384,13 +465,29 @@ fn draw_view_switcher(ui: &mut Ui, app: &mut App) {
     ];
     // The three are one control, so they sit on one plate: a switcher reads as
     // a set of choices rather than as three buttons that happen to be adjacent.
+    let (shown_views, folded_views) = views.split_at(shown.min(views.len()));
     pair(ui, |ui| {
-        for (key, icon, hint) in views {
-            let chosen = view_showing(app, key);
-            if icon_toggle(ui, open, sharp, chosen, Glyph { icon, hint: &hint }).clicked() {
-                show_view(app, key);
+        for (key, icon, hint) in shown_views {
+            let chosen = view_showing(app, *key);
+            if icon_toggle(ui, open, sharp, chosen, Glyph { icon: *icon, hint }).clicked() {
+                show_view(app, *key);
             }
         }
+        // The panel on screen is one whose switch did not fit, so the switcher
+        // would show three unpressed buttons while a panel is open. Marking the
+        // one showing says where the panel came from and which it is.
+        let Some((_, icon, hint)) = folded_views
+            .iter()
+            .find(|(key, ..)| open && view_showing(app, *key))
+        else {
+            return;
+        };
+        let plate = ui.visuals().selection.bg_fill;
+        ui.scope(|ui| {
+            ui.visuals_mut().widgets.active.bg_fill = plate;
+            ui.visuals_mut().widgets.active.weak_bg_fill = plate;
+            icon_toggle(ui, true, sharp, true, Glyph { icon: *icon, hint });
+        });
     });
 }
 
@@ -420,7 +517,9 @@ fn show_view(app: &mut App, key: ReaderMessage) {
 /// The main menu: settings, then the language, then shortcuts and the build's
 /// name — the shape the guideline gives a primary menu — and no close item,
 /// since the header bar's close button is the one that closes a document.
-fn draw_main_menu(ui: &mut Ui, app: &mut App) {
+/// `switched` is how many of the view switches the header had room for; the
+/// rest are reachable from here, so a narrow window loses a button and not a view.
+fn draw_main_menu(ui: &mut Ui, app: &mut App, switched: usize) {
     let label = app.text(ReaderMessage::MainMenu);
     let hint = app.text(ReaderMessage::MainMenuHint);
     let sharp = app.high_contrast();
@@ -433,14 +532,37 @@ fn draw_main_menu(ui: &mut Ui, app: &mut App) {
         .fit_to_exact_size(side);
     let button = egui::Button::image(image).frame(false).min_size(side);
     let response = egui::containers::menu::MenuButton::from_button(button).ui(ui, |ui| {
-        draw_menu_entries(ui, app);
+        draw_menu_entries(ui, app, switched);
     });
     let response = response.0.on_hover_text(&hint);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
 }
 
+/// The views the header bar could not show, as named entries. A switch with no
+/// room is a view a reader cannot reach unless it is here, and the header bar
+/// carries no claim about which views a document has.
+fn draw_folded_views(ui: &mut Ui, app: &mut App, shown: usize) {
+    let views = [
+        (ReaderMessage::SearchToggle, app.search_heading()),
+        (ReaderMessage::SignaturesToggle, app.signatures_heading()),
+        (ReaderMessage::AnnotationsToggle, app.annotations_heading()),
+    ];
+    let mut any = false;
+    for (key, heading) in views.into_iter().skip(shown) {
+        any = true;
+        let showing = view_showing(app, key);
+        if ui.selectable_label(showing, heading).clicked() {
+            show_view(app, key);
+        }
+    }
+    if any {
+        ui.add_space(theme::Space::Medium.points());
+    }
+}
+
 /// What the main menu holds, in the guideline's order.
-fn draw_menu_entries(ui: &mut Ui, app: &mut App) {
+fn draw_menu_entries(ui: &mut Ui, app: &mut App, switched: usize) {
+    draw_folded_views(ui, app, switched);
     draw_settings_entries(ui, app);
     ui.add_space(theme::Space::Medium.points());
     draw_language_entries(ui, app);
@@ -526,7 +648,7 @@ fn draw_language_entries(ui: &mut Ui, app: &mut App) {
 /// How the window arranges the pages on screen: one, two facing, or the whole
 /// document scrolling. All three are one decision about the page, so they are
 /// one group of three glyphs rather than three labelled buttons.
-fn draw_layout_switcher(ui: &mut Ui, app: &mut App) {
+fn draw_layout_switcher(ui: &mut Ui, app: &mut App, shown: usize) {
     let sharp = app.high_contrast();
     for (key, icon, layout) in [
         (
@@ -544,10 +666,13 @@ fn draw_layout_switcher(ui: &mut Ui, app: &mut App) {
             Icon::Continuous,
             Layout::Continuous,
         ),
-    ] {
+    ]
+    .into_iter()
+    .take(shown)
+    {
         let hint = app.text(key);
-        let chosen = app.layout() == layout;
-        if icon_toggle(ui, true, sharp, chosen, Glyph { icon, hint: &hint }).clicked() {
+        let on = app.layout() == layout;
+        if icon_toggle(ui, true, sharp, on, Glyph { icon, hint: &hint }).clicked() {
             app.set_layout(layout);
         }
     }
@@ -556,19 +681,24 @@ fn draw_layout_switcher(ui: &mut Ui, app: &mut App) {
 /// The document actions that write something: to a file or to paper. They
 /// belong to Z2 because they act on the pages on screen, which is what the
 /// toolbar is for, and they disable while a job runs so two cannot interleave.
-fn draw_exports(ui: &mut Ui, app: &mut App) {
+fn draw_exports(ui: &mut Ui, app: &mut App, shown: usize) {
     let busy = app.is_exporting();
     let printing = app.is_printing();
     let open = app.is_open();
     let sharp = app.high_contrast();
-    let print = app.print_label_text();
+    let printing_hint = app.print_label_text();
+    // Two formats without the print button read as a group that never had it,
+    // and the menu carries no copy, so a bar without room drops all three.
+    if shown < EXPORTS {
+        return;
+    }
     if icon_button(
         ui,
         open && !printing,
         sharp,
         Glyph {
             icon: Icon::Print,
-            hint: &print,
+            hint: &printing_hint,
         },
     )
     .clicked()
@@ -610,86 +740,101 @@ fn draw_exports(ui: &mut Ui, app: &mut App) {
 /// guideline asks, and the alignment points are the header bar's.
 fn draw_toolbar(ui: &mut Ui, app: &mut App) {
     egui::Panel::top("toolbar").show(ui, |ui| {
+        let width = ui.available_width();
+        let gap = theme::Space::Small.points();
+        let groups = theme::Space::Medium.points();
+        // Spent from both ends inwards, in the order the groups are drawn: the
+        // zoom and exports are fixed at the far end, and what folds divides the
+        // rest.
+        let mut tail = width - gap;
+        let exported = if tail >= run(ui, EXPORTS) { EXPORTS } else { 0 };
+        tail -= run(ui, exported);
+        let zoomed = tail - groups >= SLIDER_ROOM;
+        tail -= if zoomed { groups + SLIDER_ROOM } else { 0.0 };
+        let switched = folded(ui, tail, 0, 3);
+        tail -= group(ui, switched);
+        let paged = folded(ui, tail, 0, 2);
+        tail -= group(ui, paged);
+        let fitted = folded(ui, tail, 0, 2);
         ui.horizontal(|ui| {
-            ui.add_space(theme::Space::Small.points());
-            draw_layout_switcher(ui, app);
-            ui.add_space(theme::Space::Medium.points());
-            draw_paging(ui, app);
-            ui.add_space(theme::Space::Medium.points());
+            // Told its own width, the segment at the end takes the whole bar
+            // and lays the zoom and exports into its right end; without it they
+            // start where the groups before them stopped and draw on top.
+            ui.set_min_width(width);
+            ui.add_space(gap);
+            draw_layout_switcher(ui, app, switched);
+            ui.add_space(groups);
+            draw_paging(ui, app, paged);
+            ui.add_space(groups);
             let sharp = app.high_contrast();
             // A fit needs a page to fit; the button disables rather than
             // vanishes, as the guideline asks of every control in this bar.
             let open = app.is_open();
-            let fit_width = app.text(ReaderMessage::FitWidth);
-            let width_on = app.fit() == Some(Fit::Width);
-            if icon_toggle(
-                ui,
-                open,
-                sharp,
-                width_on,
-                Glyph {
-                    icon: Icon::FitWidth,
-                    hint: &fit_width,
-                },
-            )
-            .clicked()
-            {
-                app.set_fit(Fit::Width);
-            }
-            let fit_page = app.text(ReaderMessage::FitPage);
-            let page_on = app.fit() == Some(Fit::Page);
-            if icon_toggle(
-                ui,
-                open,
-                sharp,
-                page_on,
-                Glyph {
-                    icon: Icon::FitPage,
-                    hint: &fit_page,
-                },
-            )
-            .clicked()
-            {
-                app.set_fit(Fit::Page);
+            let fits = [
+                (ReaderMessage::FitWidth, Icon::FitWidth, Fit::Width),
+                (ReaderMessage::FitPage, Icon::FitPage, Fit::Page),
+            ];
+            for (key, icon, choice) in fits.into_iter().take(fitted) {
+                let hint = app.text(key);
+                let on = app.fit() == Some(choice);
+                if icon_toggle(ui, open, sharp, on, Glyph { icon, hint: &hint }).clicked() {
+                    app.set_fit(choice);
+                }
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.add_space(theme::Space::Medium.points());
-                // Whole percent, the same number the label shows: a slider
-                // claiming 133.3 beside a label reading 133 is two answers.
-                let mut percent = (app.zoom() * 100.0).round();
-                // The catalogue entry carries a percent placeholder, so the
-                // slider is labelled with the value already substituted.
-                let text = app.zoom_label();
-                // The handle is filled from the widget background, which the
-                // window sets to the panel, so it drew as an outline around
-                // nothing: a dim fill, for this widget only, gives it a body.
-                let grip = theme::colour(ui.ctx(), sharp, Token::Dim);
-                let changed = ui
-                    .scope(|ui| {
-                        ui.visuals_mut().widgets.inactive.bg_fill = grip;
-                        ui.add(
-                            egui::Slider::new(&mut percent, MIN_PERCENT..=MAX_PERCENT)
-                                .text(text)
-                                .handle_shape(egui::style::HandleShape::Circle),
-                        )
-                        .changed()
-                    })
-                    .inner;
-                if changed {
-                    app.set_zoom(percent.round() / 100.0);
-                }
-                ui.add_space(theme::Space::Medium.points());
-                draw_exports(ui, app);
+                ui.add_space(gap);
+                draw_exports(ui, app, exported);
+                ui.add_space(groups);
+                draw_zoom(ui, app, zoomed);
             });
         });
     });
 }
 
+/// The zoom slider. It is the one control in either bar that cannot become an
+/// icon, so a bar too narrow for it does not draw it: the toolbar keeps the
+/// exports instead, since a reader can pinch to zoom and cannot pinch to export.
+fn draw_zoom(ui: &mut Ui, app: &mut App, shown: bool) {
+    if !shown {
+        return;
+    }
+    let sharp = app.high_contrast();
+    // Whole percent, the same number the label shows: a slider claiming 133.3
+    // beside a label reading 133 is two answers.
+    let mut percent = (app.zoom() * 100.0).round();
+    // The catalogue entry carries a percent placeholder, so the slider is
+    // labelled with the value already substituted.
+    let text = app.zoom_label();
+    // The handle is filled from the widget background, which the window sets to
+    // the panel, so it drew as an outline around nothing: a dim fill, for this
+    // widget only, gives it a body.
+    let grip = theme::colour(ui.ctx(), sharp, Token::Dim);
+    let changed = ui
+        .scope(|ui| {
+            ui.visuals_mut().widgets.inactive.bg_fill = grip;
+            ui.add(
+                egui::Slider::new(&mut percent, MIN_PERCENT..=MAX_PERCENT)
+                    .text(text)
+                    .handle_shape(egui::style::HandleShape::Circle),
+            )
+            .changed()
+        })
+        .inner;
+    if changed {
+        app.set_zoom(percent.round() / 100.0);
+    }
+}
+
 /// The two paging arrows, as glyphs rather than as the inline triangles they
 /// used to be. A reader meeting an arrow needs no label; the tooltip says which
 /// way in words, for the reader who wants it.
-fn draw_paging(ui: &mut Ui, app: &mut App) {
+fn draw_paging(ui: &mut Ui, app: &mut App, shown: usize) {
     let sharp = app.high_contrast();
+    // The two arrows are one group, so a strip with room for one is a strip
+    // with room for both: half of a paging pair pages nowhere.
+    if shown < 2 {
+        return;
+    }
     let previous = app.text(ReaderMessage::PrevPage);
     if icon_button(
         ui,
