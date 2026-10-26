@@ -15,4 +15,3 @@
 # so the whole history is clean and nothing needs exempting. CI passes this
 # file either way, which is deliberate -- a stale entry must not be able to
 # hide a new violation.
-7dbd66e  # pushed with a three-line body before the amend landed; CI saw this sha
