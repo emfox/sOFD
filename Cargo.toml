@@ -143,9 +143,19 @@ pretty_assertions = "1"
 # tool has no file of its own and no default opt-in. A field added to a public
 # struct breaks a literal a caller wrote, so it costs a minor release like a
 # new enum variant; everything else still needs a major one.
+#
+# A variant that moves because another was inserted above it costs a minor too.
+# The lint exists for a caller who cast a variant to an integer, which needs a
+# `#[repr]` on the enum to be well defined and needs the number to mean
+# something; no enum here states a repr, and the workspace's FFI boundary is
+# where an integer is the interface, so the number is not part of a contract.
+# Left at the tool's default, inserting a message id in the middle of the
+# catalogue would spend a major version, which is the opposite of what
+# `enum_variant_added` above decided about the same edit.
 [workspace.metadata.cargo-semver-checks.lints]
 enum_variant_added = { required-update = "minor" }
 constructible_struct_adds_field = { required-update = "minor" }
+enum_no_repr_variant_discriminant_changed = { required-update = "minor" }
 
 # The `z` in a release tag: `v0.5.1` carries its own version, `v0.6.1` is
 # `z.0.6.1`. The workspace ships 21 crates whose versions no longer have to

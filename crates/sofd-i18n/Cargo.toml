@@ -29,3 +29,11 @@ locales-zh-cn = []
 locales-en-us = []
 # Convenience feature: English only, for embedded or slim distributions.
 english-only = ["locales-en-us"]
+
+# The one published crate that lacked this line, so it was checked against the
+# tool's defaults instead of the policy in the root manifest: a new message id
+# read as a major break, when every other crate allows a variant in a minor.
+# Conventions section 6 warns that omitting the line is silent, which is what
+# made the omission survive until a variant was added.
+[package.metadata.cargo-semver-checks.lints]
+workspace = true
