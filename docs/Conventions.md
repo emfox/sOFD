@@ -17,6 +17,15 @@ and reviewable by contributors worldwide, all engineering artifacts use English.
 | Other project documents (`docs/`) | English preferred | Chinese allowed only when a document is explicitly user-facing, and must be named `*.zh-CN.md` |
 | UI strings shown to end users | Any locale | Must live in the `locales/<tag>/*.ftl` of the crate that embeds them, never hardcoded |
 
+### Issue titles say the thing, not a catalogue number
+
+An issue title states what is wrong or what is wanted, in sentence case:
+`The system picker lists files but opening one does nothing`, not
+`[R3] The system picker …`. A number in front of every title is a second index
+of the same set GitHub already numbers and links, and it means nothing to
+someone who has not read `docs/Roadmap.md`. Roadmap directions are named in
+prose for the same reason; a list of them is a list of names, not of codes.
+
 ### 1.1 Document names
 
 A document is named in sentence case: `Conventions.md`, `Ui-spec.md`, not
