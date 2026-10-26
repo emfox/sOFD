@@ -88,11 +88,9 @@ const HAS_FILE_DIALOG: bool = false;
 /// The specification's steps in order; nothing here reaches a platform.
 pub fn draw(ui: &mut Ui, app: &mut App) -> WindowRequests {
     let mut requests = WindowRequests::default();
-    // A device draws under its own system bars, so the whole window is inset
-    // before a single zone is declared. The inset is applied here rather than
-    // asked of the platform because the zones are stacked from the window's
-    // corner: a bar laid out from an origin the reader cannot see is a bar with
-    // controls underneath the clock.
+    // Inset before a single zone is declared: the zones stack from the window's
+    // corner, and a bar laid out from an origin the reader cannot see is a bar
+    // with its controls under the clock.
     let safe = safe_area(ui);
     let mut frame = ui.new_child(egui::UiBuilder::new().max_rect(inset(ui.max_rect(), safe)));
     let ui = &mut frame;
@@ -107,11 +105,9 @@ pub fn draw(ui: &mut Ui, app: &mut App) -> WindowRequests {
     // read the document they would otherwise describe as absent.
     app.take_handed_over();
     take_drops(ui, app);
-    // Every panel is handed the appearance applied above. A panel reads a style
-    // snapshot taken before `draw` ran, so without this the first frame draws
-    // and measures itself with `egui`'s own spacing -- four points of padding
-    // where the design asks twelve -- and the bars lay out as if they had room
-    // they do not have.
+    // A panel reads the style snapshot taken before `draw` ran, so a frame that
+    // does not hand this over draws with `egui`'s own spacing and measures the
+    // bars as if they had room they do not have.
     let style = ui.ctx().style_of(ui.ctx().theme());
     draw_menu(ui, app, &mut requests, &style);
     draw_toolbar(ui, app, &style);
@@ -137,16 +133,10 @@ pub fn draw(ui: &mut Ui, app: &mut App) -> WindowRequests {
 
 /// The room the platform's own bars take, which the window must not draw under.
 ///
-/// A device that hides its status bar gives the window the whole screen and
-/// draws the bar translucent on top of it: a header laid out from the window's
-/// top corner then sits underneath the clock, where a tap reaches the system
-/// rather than the button. The platform answers with a content rectangle, and
-/// the difference between it and the window is what to keep clear.
-///
-/// Zero until something states it: a desktop window has no bars inside its
-/// surface, and a phone's first frame arrives before its activity has measured
-/// one. Public because the safe area is otherwise only reachable through a
-/// device, and where it moves the zones is worth testing without one.
+/// A device that hides its status bar draws it translucent over the whole
+/// screen, so a header laid out from the window's corner sits under the clock.
+/// The gap between content rectangle and window is what to keep clear; zero
+/// until something states it, as on a desktop or a phone's first frame.
 pub fn safe_area(ui: &Ui) -> egui::epaint::MarginF32 {
     ui.ctx()
         .data(|data| data.get_temp::<egui::epaint::MarginF32>(safe_area_id()))
@@ -167,11 +157,10 @@ fn safe_area_id() -> egui::Id {
 
 /// The room the bars take, from a window measured in physical pixels.
 ///
-/// The window is drawn in points, so the content rectangle is divided by the
-/// scale it is drawn at: a phone at 3x would otherwise keep three times the
-/// height of its status bar clear. Each edge is measured against the window it
-/// is cut from, because the rectangle excludes the bars and what is wanted is
-/// how much each one covers.
+/// Divided by the scale the window is drawn at, so a phone at 3x does not keep
+/// three status bars clear. Each edge is measured against the window it is cut
+/// from, since the rectangle excludes the bars and what is wanted is how much
+/// each one covers.
 #[cfg(target_os = "android")]
 pub fn measured_insets(
     width: i32,
@@ -371,18 +360,13 @@ fn draw_menu(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests, style: &
         ui.set_style(style.clone());
         let gap = theme::Space::Small.points();
         let groups = theme::Space::Medium.points();
-        // The menu button is drawn by the bar's right margin, so it is priced
-        // first and the switcher gets what is left. Everything the row draws
-        // before the menu is charged too -- the step it opens with, both
-        // plates and the steps between them. A bar that priced only its
-        // controls believed a 320dp phone could hold the whole switcher, and
-        // drew the menu past its own right edge.
+        // Priced first, since the menu sits on the bar's right margin and the
+        // switcher gets what is left. Pricing only the controls drew the menu
+        // past the right edge on a 320dp phone.
         let reserved = menu_side();
         ui.horizontal(|ui| {
-            // A panel's row starts at the panel's inner width, two margins
-            // narrower than the bar, but its clip has already been opened out
-            // to the window. The account is kept in the row's own coordinates,
-            // so it is handed the row it is actually drawing in.
+            // The row starts two margins narrower than the bar, so the account
+            // is kept in the row's own coordinates.
             let mut left = ui.available_width()
                 - theme::Space::Small.points()
                 - plate_margin()
@@ -403,13 +387,9 @@ fn draw_menu(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests, style: &
             pair(ui, |ui| draw_document_actions(ui, app, requests));
             ui.add_space(groups);
             group(ui, switched, |ui| draw_view_switcher(ui, app, switched));
-            // The menu is drawn by its own margin from the bar's right edge
-            // rather than from the blank the row has left. A row's cursor is
-            // held inside the row's clip, which is the panel's -- two margins
-            // narrower than the bar -- so a button placed by it for the right
-            // edge stopped two margins short, and one placed by the blank the
-            // account left over was pushed past the edge on a 320dp phone. The
-            // right margin is the bar's, which is what a reader sees.
+            // By the bar's right margin, not the blank left over: the row's
+            // cursor stopped two margins short, and the leftover blank pushed
+            // the menu past the edge on a 320dp phone.
             let mut end = ui.new_child(
                 egui::UiBuilder::new()
                     .max_rect(ui.max_rect())
@@ -424,11 +404,9 @@ fn draw_menu(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests, style: &
 /// How many of a group's controls fit in `left`, given what the group costs as
 /// it is drawn -- its run, its plate's margins -- and the step after it.
 ///
-/// A group is all or nothing. Half a paging group is two arrows and no page,
-/// and half a switcher is a set of choices with some of them missing, so a
-/// group that does not fit whole is not drawn at all -- which is also what
-/// makes the arithmetic honest, since a blank cannot come out of a group that
-/// was charged for controls it never drew.
+/// A group is all or nothing: half a paging group is two arrows and no page.
+/// Not drawing it whole is also what keeps the arithmetic honest, since a blank
+/// cannot come out of a group charged for controls it never drew.
 fn fits_into(left: &mut f32, cost: f32, count: usize) -> usize {
     let price = cost + theme::Space::Medium.points();
     if *left < price {
@@ -451,13 +429,10 @@ fn run(ui: &Ui, count: usize) -> f32 {
 
 /// The points a panel's frame spends on either side of its row.
 ///
-/// `Panel::top` draws its row inside `Frame::side_top_panel`, which keeps an
-/// inner margin of its own -- eight points a side at the default style. The
-/// row's own `available_width` already has them taken out, so a run measured
-/// against it is in a narrower frame than the window, which is why the last
-/// control on a bar can be drawn against its clip rect and still ask for a
-/// window point it does not have. Read from the style rather than written
-/// down, so a theme that changes it moves the account with it.
+/// `Panel::top` keeps an inner margin of its own, already taken out of the
+/// row's `available_width`, so a run measured against the row sits in a frame
+/// narrower than the window. Read from the style rather than written down, so a
+/// theme that changes it moves the account with it.
 fn panel_inset(ui: &Ui) -> f32 {
     let frame = egui::Frame::side_top_panel(ui.style());
     2.0 * frame.inner_margin.sum().x.max(0.0)
@@ -465,11 +440,10 @@ fn panel_inset(ui: &Ui) -> f32 {
 
 /// The width one icon button takes on the bar.
 ///
-/// It is what `tests/window.rs` measures a drawn button at, not a prediction:
-/// the glyph plus the button's padding, twice, plus the hairline `egui` adds
-/// around an atom's picture. Counting the glyph alone under-reported every
-/// group by more than half, which is how the toolbar came to draw its zoom on
-/// top of its paging -- the bar believed it had room it did not.
+/// What `tests/window.rs` measures a drawn button at, not a prediction: the
+/// glyph, the button's padding twice, and the hairline `egui` adds round a
+/// picture. Counting the glyph alone under-reported every group by more than
+/// half, which is how the zoom came to be drawn on top of the paging.
 fn icon_side(ui: &Ui) -> f32 {
     let glyph = icons::box_size(1.0).x;
     glyph + 2.0 * ui.spacing().button_padding.x + ICON_HAIRLINE
@@ -477,11 +451,10 @@ fn icon_side(ui: &Ui) -> f32 {
 
 /// The width the main menu's button takes on the bar.
 ///
-/// The same drawing as an icon button, less the two things it does without: it
-/// is drawn with no frame and its box is its own, so neither the padding nor
-/// the minimum height of a text button applies. Pricing it as one left the bar
-/// believing it had twelve points less than it did -- and on a 320dp phone the
-/// header then folded away a switcher it had room to keep.
+/// The same drawing as an icon button less what it does not do: no frame, its
+/// own box, so no padding and no text button's minimum height. Pricing it as one
+/// left the bar twelve points short, and a 320dp header folded a switcher it had
+/// room to keep.
 fn menu_side() -> f32 {
     icons::box_size(1.0).x + ICON_HAIRLINE
 }
@@ -492,13 +465,10 @@ fn plate_margin() -> f32 {
     2.0 * theme::Space::Small.points()
 }
 
-/// Draw a run of controls whose glyphs belong together: a linked group, drawn
-/// as one rounded plate behind them rather than as a border round each, and a
-/// step of space inside so the glyphs are not touching the plate's edge.
-///
-/// A group of nothing has no plate. A folded group that still drew one showed an
-/// empty lozenge at the start of a phone's toolbar, and spent the room its
-/// siblings could have used.
+/// Draw a run of controls whose glyphs belong together: a linked group drawn as
+/// one rounded plate behind them, a step of space inside so the glyphs clear
+/// the plate's edge. A group of nothing has no plate: one that still drew it
+/// showed an empty lozenge at the start of a phone's toolbar.
 fn pair(ui: &mut Ui, contents: impl FnOnce(&mut Ui)) {
     if ui.available_width() <= 0.0 {
         return;
@@ -926,17 +896,9 @@ fn draw_toolbar(ui: &mut Ui, app: &mut App, style: &egui::Style) {
         let width = ui.available_width();
         let gap = theme::Space::Small.points();
         let groups = theme::Space::Medium.points();
-        // One account, kept in the order the row is drawn. Every group -- the
-        // end ones too -- is charged its run and the step that follows it,
-        // because a step is a fact of the row rather than of what survived: it
-        // is drawn after every group, and the blank that places the end groups
-        // is drawn as a step as well. Leaving the last group's step out is what
-        // let a 360dp bar believe it had ten points more than it did, and the
-        // slider paid for them by running past the edge.
-        //
-        // The end groups are priced first because they are the ones that stay;
-        // `left` is then what the foldable groups may spend, and whatever they
-        // leave is the blank that pushes the end groups to the right.
+        // One account, in draw order: a group is charged its run and the step
+        // after it, drawn whether or not the group survived. The end groups go
+        // first, so `left` is what the foldable ones may spend.
         let step = groups;
         let mut left = width - gap;
         // The slider has no plate, but the exports that follow it do, so it is
@@ -951,21 +913,15 @@ fn draw_toolbar(ui: &mut Ui, app: &mut App, style: &egui::Style) {
         } else {
             0
         };
-        // The layout switcher is asked for first, because it is what the toolbar
-        // is for: paging is also a swipe, a scroll and a key, while a reader with
-        // no switcher has one view and no way to change it. Paging and the fit
-        // buttons then take what is left, in that order.
+        // The switcher is asked for first, being what the toolbar is for: paging
+        // is also a swipe, a scroll and a key, while a reader with no switcher
+        // has one view and no way to change it. Paging then takes what is left.
         let switched = fits_into(&mut left, run(ui, 3) + plate_margin(), 3);
         let paged = fits_into(&mut left, run(ui, 2) + plate_margin(), 2);
         let fitted = fits_into(&mut left, run(ui, 2), 2);
-        // What the end groups ask of the row, so the blank before them can be
-        // measured against what the row has actually spent rather than guessed
-        // from the account: the account prices controls, and the row also draws
-        // the steps between them, including steps whose group was folded away.
-        //
-        // The slider is not a group and gets no step: it is the last thing on the
-        // row, so a step after it would be drawn past the edge and push the whole
-        // row left by twelve.
+        // Measured against what the row spent, not asked of the account: the
+        // row draws steps whose group was folded away. The slider gets no step,
+        // being last, where one would push the whole row left by twelve.
         let end_width = if zoomed { slider_room } else { 0.0 }
             + if exported > 0 {
                 groups + exports_price
@@ -973,14 +929,9 @@ fn draw_toolbar(ui: &mut Ui, app: &mut App, style: &egui::Style) {
                 0.0
             };
         ui.horizontal(|ui| {
-            // The account above is in the panel's points, and so is the row, so
-            // the two agree -- but the row's clip rect is the panel's, and it is
-            // two margins narrower than the window the bar actually has. A
-            // control that reaches the last point is therefore drawn against the
-            // clip and stops answering the mouse a hair before its own edge. The
-            // clip is opened out to the window instead, which is where the bar
-            // visibly is; the layout is left alone, so nothing moves right to
-            // pay for it.
+            // The clip is the panel's, two margins narrower than the window,
+            // so a control reaching the last point stopped answering the mouse
+            // early. Opened out to the window; the layout is left alone.
             let mut clip = ui.clip_rect();
             clip.max.x += panel_inset(ui) / 2.0;
             ui.set_clip_rect(clip);
@@ -1004,11 +955,9 @@ fn draw_toolbar(ui: &mut Ui, app: &mut App, style: &egui::Style) {
                     app.set_fit(choice);
                 }
             }
-            // The blank is the row's, not the account's: the account prices the
-            // controls, and the row is what knows how much of its own width is
-            // still unspent after the space its groups left behind. It is asked
-            // here rather than trusted to `left`, because a group's step is
-            // drawn by `egui` even when the group it follows was folded away.
+            // The blank is the row's, not the account's: the row knows what it
+            // has unspent, and a group's step is drawn even when the group it
+            // follows was folded away, which `left` does not carry.
             let blank = ui.available_width() - end_width - value_box_overhang(ui);
             ui.add_space(blank.max(gap));
             draw_exports(ui, app, exported);
@@ -1042,10 +991,8 @@ fn draw_zoom(ui: &mut Ui, app: &mut App, shown: bool) {
     // widget only, gives it a body.
     let grip = theme::colour(ui.ctx(), sharp, Token::Dim);
     // The track narrows before the control is dropped: on a phone the slider is
-    // the only way to zoom without pinching, so a bar with scarcely room for it
-    // gets a short track rather than no track. A 100-point track beside a
-    // 41-point value box is 154 points of control, which is more than a 320dp
-    // bar has to give once its groups are drawn.
+    // the only way to zoom without pinching. A 100-point track beside a 41-point
+    // value box is 154 points, more than a 320dp bar has once its groups are in.
     let room = ui.available_width().max(MIN_TRACK);
     let track = (room - SLIDER_CHROME).clamp(MIN_TRACK, MAX_TRACK);
     let changed = ui

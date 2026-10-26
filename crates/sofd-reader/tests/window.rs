@@ -1057,10 +1057,9 @@ fn the_two_bars_fit_a_phone_without_clipping() {
 
 #[test]
 fn no_two_controls_on_one_bar_overlap() {
-    // Fitting inside the window is not the same as being reachable: two
-    // controls drawn on top of each other both pass that test and one of them
-    // cannot be clicked. Each bar is measured as a set of boxes, and the boxes
-    // that share a row must not share any width.
+    // Fitting inside the window is not being reachable: two controls drawn on
+    // top of each other both fit and one cannot be clicked. Each bar is
+    // measured as boxes, and boxes sharing a row may share no width.
     for width in [320.0f32, 360.0, 400.0, 480.0, 720.0, 1000.0] {
         let harness = window_at(width);
         let mut boxes: Vec<(String, egui::Rect)> = Vec::new();
@@ -1096,10 +1095,9 @@ fn no_two_controls_on_one_bar_overlap() {
 
 #[test]
 fn a_safe_area_moves_the_zones_clear_of_the_system_bars() {
-    // A device draws its status bar over the window, so the header starts at
-    // y = 0 and the clock covers it. The platform answers with a content
-    // rectangle, and what this asserts is that the window acts on the answer:
-    // every zone moves down by the bar, and the window loses no width.
+    // A device draws its status bar over the window, so a header at y = 0 sits
+    // under the clock. What this asserts is that the window acts on the content
+    // rectangle: zones move down by the bar and no width is lost.
     let bar = egui::epaint::MarginF32 {
         left: 0.0,
         top: 24.0,

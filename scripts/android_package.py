@@ -133,6 +133,7 @@ MANIFEST = """<?xml version="1.0" encoding="utf-8"?>
     <application android:label="sOFD Reader" android:hasCode="false">
         <activity
             android:name="{activity}"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
             android:exported="true"
             android:configChanges="{config_changes}"
             android:screenOrientation="unspecified">
@@ -405,6 +406,13 @@ def selftest() -> int:
     assert f'android:value="{LIBRARY}"' in rendered
     assert f'android:name="{ACTIVITY}"' in rendered
     assert 'android:hasCode="false"' in rendered
+    # A `NativeActivity` with no theme gets the platform's default one, which is
+    # a dark full-screen window: the strip above the frame is that decoration.
+    # The theme names one with no decoration and no title bar, and the frame
+    # fills the rest.
+    assert 'android:theme="@android:style/Theme.DeviceDefault.NoActionBar"' in rendered, (
+        "the activity must not take the default decorated theme"
+    )
     assert MIN_SDK < TARGET_SDK
 
     # The ABI directory comes from the library, so a package cannot be built
@@ -458,9 +466,8 @@ def selftest() -> int:
     )
     # Every filter carries the same label on purpose: it is the name the two
     # sheets show, and a reader who sees one label in both sheets has found the
-    # same reader twice rather than two different apps.
-    # The launcher's own filter is the exception: a launcher shows the app's
-    # label, not the filter's, so it needs none.
+    # same reader twice rather than two different apps. The launcher's own
+    # filter is the exception: a launcher shows the app's label.
     assert rendered.count('android:label="Open an OFD"') == rendered.count("<intent-filter") - 1, (
         "every open and share filter is offered under one name"
     )

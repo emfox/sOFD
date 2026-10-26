@@ -58,6 +58,13 @@ fn write_to_logcat(level: log::Level, message: &str) {
 /// but leaves nothing usable for a thread that has not attached yet.
 static VM: std::sync::OnceLock<JavaVM> = std::sync::OnceLock::new();
 
+/// The activity the reader draws into, kept for the one call that needs it
+/// after startup: a frame has no handle on it, and starting the file picker
+/// from a frame is what lets a device open a document without one having been
+/// handed to it. The handle is stored rather than a `JObject` made from it, so
+/// what is kept does not carry the lifetime of the thread that read it first.
+static ACTIVITY: std::sync::OnceLock<android_activity::AndroidApp> = std::sync::OnceLock::new();
+
 /// Called by `android-activity` once the activity exists. `no_mangle` is what
 /// makes the symbol reachable from the Java side.
 #[unsafe(no_mangle)]
@@ -70,6 +77,9 @@ fn android_main(app: android_activity::AndroidApp) {
         log::set_max_level(log::LevelFilter::Debug);
     }
     log::info!("android_main started on {:?}", thread_name());
+    // Kept before the window opens: the picker is started from a frame, and a
+    // frame has no other way back to the activity it is drawn in.
+    let _ = ACTIVITY.set(app.clone());
     // Read before the loop starts: the intent names the document the tap was
     // for, and the activity is the only handle on it.
     let handed_over = document_from_intent(&app);
@@ -201,6 +211,12 @@ impl eframe::App for Window {
             window::remember_safe_area(ui.ctx(), window, scale);
         }
         let requests = window::draw(ui, &mut self.0);
+        // The reader now has a dialog of its own: the note in the canvas tells a
+        // device how a document arrives, and it would be wrong twice over if the
+        // open button stayed disabled.
+        if requests.open_dialog {
+            self.pick_document();
+        }
         let title = self.0.title();
         ui.ctx()
             .send_viewport_cmd(egui::ViewportCommand::Title(title));
@@ -210,12 +226,28 @@ impl eframe::App for Window {
     }
 }
 
+impl Window {
+    /// Ask the system for a document. Nothing comes back here: `GET_CONTENT`
+    /// answers by opening the chosen URI through the caller, so the document
+    /// arrives as a tap does, through the activity's intent, and is read by
+    /// [`document_from_intent`] on the next start.
+    fn pick_document(&mut self) {
+        let Some(app) = ACTIVITY.get() else {
+            log::error!("the activity is gone, so no document can be picked");
+            return;
+        };
+        if let Err(err) = pick_document(app) {
+            log::error!("the picker did not open: {err}");
+        }
+    }
+}
+
 /// The document the activity was started for, if it was started for one.
 ///
-/// A tap arrives as `ACTION_VIEW` with a content URI, a share as `ACTION_SEND`
-/// with the same, and the bytes are read now rather than kept as a path: the
-/// sandbox behind the URI is gone once the activity leaves the front. Every
-/// failure is logged and dropped: refusing to start would be worse than empty.
+/// A tap arrives as `ACTION_VIEW` with a content URI and a share as
+/// `ACTION_SEND`; a pick in the system dialog comes back as a tap, because
+/// `GET_CONTENT` answers by opening its URI through the app that asked. The
+/// bytes are read at once, since the URI's sandbox ends with the activity.
 fn document_from_intent(app: &android_activity::AndroidApp) -> Option<DroppedFile> {
     match read_shared_document(app) {
         Ok(Some(document)) => Some(document),
@@ -228,6 +260,64 @@ fn document_from_intent(app: &android_activity::AndroidApp) -> Option<DroppedFil
             None
         }
     }
+}
+
+/// Ask the system for a document, with the type the manifest already claims:
+/// a device has no dialog of the reader's own and `rfd` has no backend there,
+/// so this is the only route to a document the reader did not arrive with.
+///
+/// `startActivity` and not `startActivityForResult`: `android-activity` 0.6
+/// raises no `MainEvent` for a result, and an unread one opens and does nothing.
+fn pick_document(
+    activity: &android_activity::AndroidApp,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // SAFETY: `android-activity` owns both pointers for as long as `activity`
+    // is borrowed, which is the whole of this call.
+    let vm = unsafe { JavaVM::from_raw(activity.vm_as_ptr().cast()) };
+    vm.attach_current_thread(|env| start_picker(env, activity.activity_as_ptr()))
+}
+
+/// The picker, with an `Env` in hand.
+fn start_picker(
+    env: &mut Env<'_>,
+    activity_ptr: *mut std::ffi::c_void,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // SAFETY: the pointer is the activity `android-activity` owns, used before
+    // the activity is destroyed.
+    let activity = unsafe { JObject::from_raw(env, activity_ptr.cast()) };
+    let action = env.new_string("android.intent.action.GET_CONTENT")?;
+    let intent = env.new_object(
+        jni_str!("android.content.Intent"),
+        jni_sig!((action: java.lang.String) -> void),
+        &[(&action).into()],
+    )?;
+    // `OPENABLE` is what limits the picker to files it can hand back a stream
+    // for, rather than every entry in a folder including the folders.
+    let openable = env.new_string("android.intent.category.OPENABLE")?;
+    env.call_method(
+        &intent,
+        jni_str!("addCategory"),
+        jni_sig!((category: java.lang.String) -> android.content.Intent),
+        &[(&openable).into()],
+    )?;
+    // One type and not a set: a picker given several opens on "all files",
+    // which is what makes a reader look like it can open anything.
+    let ofd = env.new_string("application/ofd")?;
+    env.call_method(
+        &intent,
+        jni_str!("setType"),
+        jni_sig!((mime: java.lang.String) -> android.content.Intent),
+        &[(&ofd).into()],
+    )?;
+    // The intent comes back to this activity, so the document it names is read
+    // by `document_from_intent` on the next start rather than by a callback.
+    env.call_method(
+        &activity,
+        jni_str!("startActivity"),
+        jni_sig!((intent: android.content.Intent) -> void),
+        &[(&intent).into()],
+    )?;
+    Ok(())
 }
 
 /// The read itself, separated so its failures can be reported in one place.
