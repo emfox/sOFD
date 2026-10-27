@@ -4654,7 +4654,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-archive"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "serde",
  "sofd-error",
@@ -4685,7 +4685,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-common"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "bitflags 2.13.2",
  "serde",
@@ -4693,7 +4693,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-convert"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "criterion",
  "image",
@@ -4731,7 +4731,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-display"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -4743,7 +4743,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-edit"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "sofd",
  "sofd-common",
@@ -4757,7 +4757,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-error"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "thiserror 2.0.21",
 ]
@@ -4792,7 +4792,7 @@ version = "0.5.1"
 
 [[package]]
 name = "sofd-geometry"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "serde",
  "sofd-common",
@@ -4813,7 +4813,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-io"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "hayro-jbig2",
  "image",
@@ -4824,7 +4824,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-model"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "proptest",
  "serde",
@@ -4835,7 +4835,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-package"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "proptest",
  "sofd-error",
@@ -4846,7 +4846,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-parser"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "criterion",
  "proptest",
@@ -4868,7 +4868,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-print"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "sofd-common",
  "sofd-display",
@@ -4908,7 +4908,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-render"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "image",
  "sofd-common",
@@ -4923,7 +4923,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-search"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "criterion",
  "sofd-common",
@@ -4997,7 +4997,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-xml"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "proptest",
  "quick-xml 0.42.0",
