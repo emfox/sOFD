@@ -108,8 +108,8 @@ jobs:
       - name: Package the reader
         shell: bash
         run: |
-          # The last three numbers of the tag; see the note at the top.
-          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
+          # The tag is the version; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"
           python3 scripts/release_package.py reader \
             --version "$VERSION" --out dist --dist dist \
             --system "${{ matrix.name }}"
@@ -164,8 +164,8 @@ jobs:
       # runs nothing.
       - name: Package the page
         run: |
-          # The last three numbers of the tag; see the note at the top.
-          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
+          # The tag is the version; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"
           python3 scripts/release_package.py web \
             --version "$VERSION" --out dist \
             --page crates/sofd-reader/web --pkg crates/sofd-reader/pkg
@@ -227,8 +227,8 @@ jobs:
 
       - name: Name the package for the release
         run: |
-          # The last three numbers of the tag; see the note at the top.
-          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
+          # The tag is the version; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"
           python3 scripts/release_package.py android \
             --version "$VERSION" --out dist \
             --apk dist/sofd-reader-android.apk
@@ -273,8 +273,8 @@ jobs:
       # two names a linker is given: one archive, not three files.
       - name: Package the library
         run: |
-          # The last three numbers of the tag; see the note at the top.
-          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
+          # The tag is the version; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p dist/lib
           cp target/release/libsofd_ffi.so target/release/libsofd_ffi.a \
             crates/sofd-ffi/include/sofd.h dist/lib/
@@ -330,8 +330,8 @@ jobs:
       # 2.28 system can run; the check fails here rather than at the user.
       - name: Assemble the package
         run: |
-          # The last three numbers of the tag; see the note at the top.
-          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
+          # The tag is the version; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"
           python3 scripts/uos_package.py \
             --binary target/release/sofd-reader \
             --version "$VERSION" \
@@ -342,8 +342,8 @@ jobs:
       # matched by pattern rather than by a name this file would have to keep.
       - name: Name the package for the release
         run: |
-          # The last three numbers of the tag; see the note at the top.
-          VERSION="${GITHUB_REF_NAME#v}"; VERSION="${VERSION#*.}"
+          # The tag is the version; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"
           deb=$(ls dist/sofd-reader-uos-*.deb)
           python3 scripts/release_package.py uos \
             --version "$VERSION" --out dist --deb "$deb"
