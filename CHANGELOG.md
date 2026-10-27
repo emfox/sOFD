@@ -26,6 +26,14 @@ release is written up is in
 - **`sofd-convert` and `sofd-server` share the one base64 encoder**, and
   `sofd-server` drops the copy it carried.
 
+- **A release tag is a plain version again, and names the products.** The
+  crates no longer agree on one version, so the tag names what the release
+  ships rather than any single crate — but it is still `v0.6.0`, not a number
+  with a letter on it, because the release workflow names every download from
+  the tag (`sofd-0.6.0-linux.tar.gz`) and the semver gate compares a crate
+  against `v<its version>`. `release_plan.py --tag 0.6.0` prints the tag to
+  push. `docs/Versioning.md` 5.1 states the rule for choosing the number.
+
 ### Reader
 
 - **An OFD opens from a phone's file manager.** The app declares the OFD type

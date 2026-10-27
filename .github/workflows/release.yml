@@ -3,12 +3,12 @@ name: Release
 # Publishing is triggered by pushing a tag, so the artefacts and the tag can
 # never disagree about what was built.
 #
-# The tag names the release, not a version. The workspace ships 21 crates whose
-# versions no longer have to agree, so a tag carrying one version would name the
-# wrong crate for every other. `v<release>.<major>.<minor>.<patch>`, then: the
-# first number is the release, the other three are the version the products are
-# named for, and `VERSION` below is those three read back off the tag.
-# `v0.5.1` is the last tag spelled as a bare version, and reads the same way.
+# The tag names the release, and a release tag is a plain version: `v0.6.0` is
+# the release that ships whatever the crates inside state. The workspace's 21
+# crates no longer agree on a version, so the tag names the products rather than
+# any one crate — but it still spells that as a version, because `VERSION` below
+# is read off it and every download is named for it. `docs/Versioning.md` 5.1
+# states the rule and why the alternative, a letter in the tag, was withdrawn.
 on:
   push:
     tags: ['v*']

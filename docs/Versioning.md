@@ -146,28 +146,43 @@ any of them. All six are done.
 | 5 | Semver gate asks per crate instead of asking about `sofd-cli` | Cheap, and closed the gap the other four opened |
 | 6 | `docs/Conventions.md` §6 and `README.md` state the new rule | Documentation last, once the rule had stopped moving |
 
-### 5.1 The tag, because a version can no longer name a release
+### 5.1 The tag stays a version
 
-A tag used to be `v<version>`, and that worked because there was one version.
-With a version per crate it does not: `v0.5.2` would name `sofd-next`, which is
-exactly why `release_plan.py` emits `cargo publish -p …` lines instead of a
-single command. So a tag names the **release**:
+A tag used to be `v<version>`, and it still is: `v0.6.0`, then `v0.6.1`. What it
+names is the **release** — the products, not any one of the twenty-one crates,
+which no longer agree on a version — but it spells that as a plain version,
+because three things read it that way and none of them can be changed for free:
 
-```
-v0.6.1     release 0, version 0.6.1
-```
+* The release workflow names every artefact by dropping everything before the
+  first dot of the tag, so `v0.6.0` gives `sofd-0.6.0-linux.tar.gz` and
+  `sofd-reader-0.6.0-android.apk`. That is the number a user compares against
+  `sOFD --version`, and the number the phone's package installer shows.
+* The semver gate compares a crate against `--baseline-rev v<its version>`, so a
+  tag that is not the version leaves the comparison pointing at a revision that
+  does not exist.
+* People read tags. `v0.6.0` is what a user types when they want the release
+  that shipped 0.6.0.
 
-The extra number counts releases of that version line, and the last three are
-what the artefacts are named for — `sofd-0.6.1-linux.tar.gz` whatever versions
-the crates inside state. Two consequences worth stating:
+So there is **one number to choose per release**, not two. It is the version the
+products are known by, and it is stated where a version is always stated — in
+the manifests. The rule for choosing it:
 
-* The root manifest carries the prefix as
-  `[workspace.metadata.cargo-metadata.package] release = "z"`, so the tag shape
-  is in the tree rather than in a workflow pattern. `release_plan.py --since
-  @last` asks the registry which tag is the newest it serves, which is what makes
-  "changes since the last release" answerable without remembering a tag.
-* Every tag before this one stays as it is. `v0.5.1` reads as release `0`,
-  version `0.5.1`, so the rule has one shape from `v0.1.0` onward.
+| The release… | Version | Tag |
+| --- | --- | --- |
+| changes what a user sees or can do — a feature, a break, a new crate | the highest major.minor the crates inside reached | `v0.6.0` |
+| only fixes behaviour, and every crate inside stays on its patch numbers | the next patch of the line the products are on | `v0.5.2` |
+
+`release_plan.py --since v0.5.1 --tag 0.6.0` prints the tag to push, so the
+spelling lives in one function (`release_tag`) rather than in a shell command
+somebody retypes each release. `--since @last` asks the registry which tag is the
+newest it serves, which is what makes "changes since the last release"
+answerable without remembering a tag.
+
+`docs/Versioning.md` used to propose a letter in the tag (`v0.6.0z`) to separate
+the release from any crate's version. It was withdrawn: the letter had to be
+read by the workflow, the gate and every user, and it bought nothing the rule
+above does not — the crates' own versions are in their manifests, and a release
+that ships them does not need a second number to say so.
 
 ## 6. When it was done
 

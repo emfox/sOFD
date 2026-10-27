@@ -23,10 +23,10 @@ What "changed" means is the release's decision, not this script's: it takes a
 change to the crate's page on the registry, so it counts.
 
 The ref to pass is the last release's tag, and this script will tell you what
-that is: `--since @last` asks every tag which of its versions the registry
-actually serves and starts from the newest one that offers one. A tag carrying
-a version is its own (`v0.5.1`); a tag naming a release (`v0.6.1`) is named by
-the release and carries no version of its own.
+that is: `--since @last` asks every tag which versions it names the registry
+actually serves and starts from the newest one that offers one. A tag stays
+`v<version>` — `v0.6.0`, `v0.6.1` — because the products are named from it, and
+because cargo-semver-checks compares a crate against `v<its version>`.
 
 Usage:
     python3 scripts/release_plan.py --since @last
@@ -55,23 +55,29 @@ import publish_order  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def release_prefix() -> str:
-    """The `z` in a release tag, as the root manifest states it."""
-    with (ROOT / "Cargo.toml").open("rb") as handle:
-        manifest = tomllib.load(handle)
-    prefix = (
-        manifest.get("workspace", {})
-        .get("metadata", {})
-        .get("cargo-metadata", {})
-        .get("package", {})
-        .get("release")
-    )
-    if prefix is None:
-        raise SystemExit(
-            "FATAL: the root manifest states no "
-            "[workspace.metadata.cargo-metadata.package] release prefix"
-        )
-    return prefix
+def named_version(tag: str) -> str | None:
+    """The version a tag names, or None if it names none.
+
+    A release tag is `v<version>`, and the version is the products' version:
+    the release workflow names every download by dropping everything before the
+    first dot, and cargo-semver-checks compares a crate against `v<its
+    version>`. So the tag is not a separate number to choose — it is the
+    version, and there is nothing else for it to disagree with.
+
+    A prerelease (`v0.1.0-rc.1`) names no release: nothing is compared against
+    it and no plan starts from it.
+    """
+    match = re.fullmatch(r"v(\d+\.\d+\.\d+)", tag)
+    return None if match is None else match.group(1)
+
+
+def release_tag(version: str) -> str:
+    """The tag for a release of `version`.
+
+    One place states the shape, so a release cannot be cut with a tag the
+    planner then fails to read back as "the last release".
+    """
+    return f"v{version}"
 
 
 def tags_by_age() -> list[str]:
@@ -87,7 +93,7 @@ def tags_by_age() -> list[str]:
     return [line.strip() for line in completed.stdout.splitlines() if line.strip()]
 
 
-def last_release(prefix: str) -> str:
+def last_release() -> str:
     """The newest tag that carries a version the registry serves.
 
     A tag is a claim; the registry is the fact. Asking it which tags name
@@ -95,17 +101,15 @@ def last_release(prefix: str) -> str:
     tag an abandoned run left behind, and it is the same question the semver
     gate asks.
     """
-    matcher = re.compile(r"^v(?:\d+\.)?(\d+\.\d+\.\d+)$")
     published = [
         versions.name_of(manifest)
         for manifest in versions.members()
         if versions.publishes(manifest)
     ]
     for tag in tags_by_age():
-        match = matcher.fullmatch(tag)
-        if match is None:
+        version = named_version(tag)
+        if version is None:
             continue
-        version = match.group(1)
         # One crate served at that version is enough. A release publishes in
         # dependency order, so a run that died halfway leaves the lower crates
         # on the registry; the tag still names where that release began, and a
@@ -166,6 +170,7 @@ def build_plan(
     `root`, `changed` and `served` exist so the self-test can describe a
     workspace and a registry rather than point this at the real ones.
     """
+    root = ROOT if root is None else root
     manifests = versions.members(root)
     names = {versions.name_of(m): m for m in manifests}
     current = {name: versions.version_of(m, root) for name, m in names.items()}
@@ -386,12 +391,20 @@ def main() -> int:
         action="store_true",
         help="do not ask the registry whether a version is free",
     )
+    parser.add_argument(
+        "--tag",
+        metavar="VERSION",
+        help="the version this release ships as, so the tag to push can be "
+        "printed; it names the products, not any crate in the plan",
+    )
     args = parser.parse_args()
 
     if args.selftest:
         return self_test()
     if args.since is None:
         parser.error("--since is required unless --selftest is given")
+    if args.tag is not None and re.fullmatch(r"\d+\.\d+\.\d+", args.tag) is None:
+        parser.error(f"--tag expects a version like 0.6.0, not {args.tag!r}")
 
     overrides: dict[str, str] = {}
     for entry in args.bump:
@@ -406,7 +419,7 @@ def main() -> int:
 
     since = args.since
     if since == "@last" and not args.offline:
-        since = last_release(release_prefix())
+        since = last_release()
     elif since == "@last":
         print(
             "FATAL: --since @last asks the registry, and --offline says not to",
@@ -446,6 +459,13 @@ def main() -> int:
     print("Publish in this order:")
     for name in order:
         print(f"  cargo publish -p {name}")
+
+    # The tag, once the registry has the plan. A release is named for the
+    # products it ships, not for any crate inside it, so the number is the one
+    # a user would say if asked which version of sOFD they have.
+    if args.tag:
+        print()
+        print(f"Tag this commit {release_tag(args.tag)}.")
     return 0
 
 
