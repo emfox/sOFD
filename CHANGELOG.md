@@ -6,50 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). How a
 release is written up is in
 [Conventions.md](docs/Conventions.md#5-closing-an-issue).
 
-## [Unreleased]
+## [0.6.0] - 2026-10-27
 
-### Added
+### Signatures
 
-- **The invoice supervision seal is drawn on the page and read back by
-  `sofd verify`.** An invoice keeps its seal inside the signature rather than
-  beside it, so a reader that looked for a `Seal` element drew nothing; the
-  seal's three lines now come from the certificate, and clicking it opens the
-  signature that carries it.
-
-- **The worked examples are now run, not only compiled.** Each one is run
-  against a generated document and its output checked, so an example that
-  compiles and does nothing fails the build rather than the reader who copied
-  it.
-
-### Changed
-
-- **`sofd-convert` and `sofd-server` share the one base64 encoder**, and
-  `sofd-server` drops the copy it carried.
-
-- **A release tag is a plain version again, and names the products.** The
-  crates no longer agree on one version, so the tag names what the release
-  ships rather than any single crate — but it is still `v0.6.0`, not a number
-  with a letter on it, because the release workflow names every download from
-  the tag (`sofd-0.6.0-linux.tar.gz`) and the semver gate compares a crate
-  against `v<its version>`. `release_plan.py --tag 0.6.0` prints the tag to
-  push. `docs/Versioning.md` 5.1 states the rule for choosing the number.
+- **A sealed invoice draws its seal and `sofd verify` reads it back**, since the seal travels inside the signature and the certificate already states its three lines.
 
 ### Reader
 
-- **An OFD opens from a phone's file manager.** The app declares the OFD type
-  and a catch-all filter, so a file manager lists it as a place to open from
-  instead of hiding behind it; previously a document had to arrive as a share.
+- **An OFD opens from a phone's file manager**, not only as a share.
+- **The open button opens a document on a phone** through the system picker.
+- **A document that ships no font draws on a phone**, with the device's own faces standing in.
 
-- **Both bars fit a phone.** At 360dp the header and the toolbar keep their
-  groups apart rather than drawing them over each other, folding a control out
-  when the bar has no room for it and, when the header folds a view, naming
-  that view at the top of the main menu so it stays reachable.
+### Examples
 
-- **The open button opens a document on a phone**, through the system's own
-  picker, rather than pointing at a dialog a device has none of.
+- **Every worked example is run against a generated document**, so one that compiles and does nothing fails the build.
 
-- **A document that ships no font draws on a phone**, with the device's own
-  faces standing in for the ones it names.
+### Tooling
+
+- **A release tag is the products' version**, `v0.6.0`, and names the release rather than any one crate.
 
 ## [0.5.1] - 2026-10-25
 
@@ -340,7 +315,9 @@ A nine-page golden book is compared against another vendor's reader and a second
 - Office formats and OCR are planned, not built.
 - iOS is not in the release matrix, and the release artefacts are unsigned.
 
-[Unreleased]: https://github.com/emfox/sOFD/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/emfox/sOFD/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/emfox/sOFD/releases/tag/v0.6.0
+[0.5.1]: https://github.com/emfox/sOFD/releases/tag/v0.5.1
 [0.5.0]: https://github.com/emfox/sOFD/releases/tag/v0.5.0
 [0.4.0]: https://github.com/emfox/sOFD/releases/tag/v0.4.0
 [0.3.0]: https://github.com/emfox/sOFD/releases/tag/v0.3.0
