@@ -366,8 +366,9 @@ jobs:
     # A break against a version somebody can already depend on should fail here
     # rather than surprise them. The baseline is a published release, so the job
     # is a no-op against a tree that no registry has served yet. Each crate is
-    # asked about its own version: `docs/Versioning.md` has them move
-    # separately, so a version of `sofd-cli` says nothing about `sofd-error`.
+    # held to the release before the one it is shipping at — its own version,
+    # not any sibling's: `docs/Versioning.md` has them move separately, and a
+    # version of `sofd-cli` says nothing about `sofd-error`.
     steps:
       - uses: actions/checkout@v4
         with:
