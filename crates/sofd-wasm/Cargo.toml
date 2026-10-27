@@ -12,7 +12,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-sofd = { path = "../sofd", version = "0.5", features = ["render", "sign", "convert", "search"] }
+sofd = { path = "../sofd", version = "0.6", features = ["render", "sign", "convert", "search"] }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
 wasm-bindgen.workspace = true

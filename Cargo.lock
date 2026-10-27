@@ -4628,7 +4628,7 @@ dependencies = [
 
 [[package]]
 name = "sofd"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "rayon",
  "sofd-archive",
@@ -4665,7 +4665,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-cli"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -4712,7 +4712,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-crypto"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "cipher",
  "der",
@@ -4775,7 +4775,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-font"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "font-kit",
  "serde",
@@ -4800,7 +4800,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-i18n"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "fluent",
  "fluent-bundle",
@@ -4938,7 +4938,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-server"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "axum",
  "serde",
@@ -4957,7 +4957,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-sign"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "serde",
  "sofd-common",

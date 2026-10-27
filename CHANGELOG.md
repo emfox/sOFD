@@ -21,6 +21,11 @@ release is written up is in
   compiles and does nothing fails the build rather than the reader who copied
   it.
 
+### Changed
+
+- **`sofd-convert` and `sofd-server` share the one base64 encoder**, and
+  `sofd-server` drops the copy it carried.
+
 ### Reader
 
 - **An OFD opens from a phone's file manager.** The app declares the OFD type
