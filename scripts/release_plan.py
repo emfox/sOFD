@@ -25,8 +25,13 @@ change to the crate's page on the registry, so it counts.
 The ref to pass is the last release's tag, and this script will tell you what
 that is: `--since @last` asks every tag which versions it names the registry
 actually serves and starts from the newest one that offers one. A tag stays
-`v<version>` — `v0.6.0`, `v0.6.1` — because the products are named from it, and
-because cargo-semver-checks compares a crate against `v<its version>`.
+`v<version>` — `v0.6.0`, `v0.6.1` — because the products are named from it.
+
+A release usually ships a subset, so a crate can reach the registry at a
+version no tag names: the tag stays where the last full release put it, and
+the crates that changed ship at patch versions above it. That is expected,
+and `semver_baseline.py` is what holds such a crate to the release its
+callers are on.
 
 Usage:
     python3 scripts/release_plan.py --since @last
@@ -60,9 +65,13 @@ def named_version(tag: str) -> str | None:
 
     A release tag is `v<version>`, and the version is the products' version:
     the release workflow names every download by dropping everything before the
-    first dot, and cargo-semver-checks compares a crate against `v<its
-    version>`. So the tag is not a separate number to choose — it is the
+    first dot. So the tag is not a separate number to choose — it is the
     version, and there is nothing else for it to disagree with.
+
+    A release that ships a subset of the workspace leaves the tag where the
+    last full release put it, so a crate can be published at a version no tag
+    names. `semver_baseline.py` is what handles that; the tag's own shape is
+    unaffected, which is why it is still just the version.
 
     A prerelease (`v0.1.0-rc.1`) names no release: nothing is compared against
     it and no plan starts from it.

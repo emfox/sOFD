@@ -173,17 +173,23 @@ any of them. All six are done.
 A tag used to be `v<version>`, and it still is: `v0.6.0`, then `v0.6.1`. What it
 names is the **release** — the products, not any one of the twenty-one crates,
 which no longer agree on a version — but it spells that as a plain version,
-because three things read it that way and none of them can be changed for free:
+because two things read it that way and neither can be changed for free:
 
 * The release workflow names every artefact by dropping everything before the
   first dot of the tag, so `v0.6.0` gives `sofd-0.6.0-linux.tar.gz` and
   `sofd-reader-0.6.0-android.apk`. That is the number a user compares against
   `sOFD --version`, and the number the phone's package installer shows.
-* The semver gate compares a crate against `--baseline-rev v<its version>`, so a
-  tag that is not the version leaves the comparison pointing at a revision that
-  does not exist.
 * People read tags. `v0.6.0` is what a user types when they want the release
   that shipped 0.6.0.
+
+A third reader used to be the semver gate, on the theory that it compares a
+crate against `v<its version>`. It does not, and holding it to that tag would
+have been useless: a crate compared with the tag that carries its own version
+is compared with itself, and `cargo-semver-checks` reports `no change` however
+the API looks. The gate holds a crate to the newest tag *below* it that carried
+it, which `scripts/semver_baseline.py` works out by reading each crate's
+manifest out of the tagged tree. So the tag being a release number rather than
+a crate version costs the gate nothing.
 
 So there is **one number to choose per release**, not two. It is the version the
 products are known by, and it is stated where a version is always stated — in

@@ -447,7 +447,10 @@ jobs:
       # Two comparisons, because either one alone leaves a gap.
       #
       # Against the release: a crate whose declared version is on the registry
-      # is held to that release's API, so `0.6.1` must not break `0.6.0`.
+      # is held to the release its callers are on, so `0.6.1` must not break
+      # `0.6.0`. Which ref that is comes from `semver_baseline.py`, because a
+      # release can ship a subset of the workspace and then no tag names the
+      # version the crate now states.
       #
       # Against the parent commit, which is what sees a break merged into a
       # version nobody has published yet. A version on a registry cannot be
@@ -471,14 +474,27 @@ jobs:
         run: |
           # A crate that is not published yet has no release to break, so it is
           # left out of the baseline comparison rather than failing on a tag
-          # that never carried it. cargo-semver-checks takes one `--baseline-rev`
-          # for the whole workspace, so the comparison runs per crate.
-          while read -r crate version verdict; do
-            [ "$verdict" = "published" ] || continue
-            echo "== $crate $version =="
-            cargo semver-checks check-release -p "$crate" \
-              --baseline-rev "v$version"
-          done < served.txt
+          # that never carried it.
+          #
+          # The ref is not `v<version>` outright: a release can ship a subset of
+          # the workspace at a patch version, and then no tag names that
+          # version. `semver_baseline.py` picks the newest tag below it that
+          # carried the crate, which is the release its callers are on.
+          #
+          # Crates are grouped by the ref they are held to, and each group is
+          # checked in one run. The tool clones and builds the baseline once,
+          # so seventeen crates held to `v0.5.1` cost one build of it rather
+          # than seventeen. `--package` repeats, so the group travels as flags.
+          python3 scripts/semver_baseline.py --groups served.txt > groups.txt
+          while read -r ref crates; do
+            flags=()
+            for spec in $crates; do
+              flags+=(--package "${spec%@*}")
+            done
+            set -- "${flags[@]}"
+            echo "== $(( $# / 2 )) package(s) against $ref =="
+            cargo semver-checks check-release --baseline-rev "$ref" "${flags[@]}"
+          done < groups.txt
 
       # `HEAD^1` is spelled rather than `HEAD^` for clarity, not correctness:
       # both name the first parent, and a repository with one commit has
