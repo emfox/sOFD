@@ -22,6 +22,12 @@ Usage:
     python3 scripts/publish_order.py --closure sofd  # just one entry point
     python3 scripts/publish_order.py --check     # assert the order holds
 
+`--rename` takes a version a dependency interval stands for and prints the one
+its `--commands` will name. An interval answers "what resolves", and at
+packaging time `sofd = "0.5"` becomes `sofd = "0.5.1"` — the newest the
+registry holds. A release that moves `sofd` to `0.6.0` therefore has to say so,
+or the commands below would ask for a `sofd` the registry does not have yet.
+
 Exit code: 0 when the closure is sound, 1 when a cycle or a missing crate
 makes it unbuildable.
 """
@@ -191,6 +197,27 @@ def stated_deps(text: str, known: dict[str, Path]) -> set[str]:
     return found
 
 
+def constraints(name: str, known: dict[str, Path], shipped: dict[str, str]) -> str:
+    """What the line for `name` has to say beyond `cargo publish -p`.
+
+    Cargo has no flag that names a dependency's version, so a release that
+    ships one says it in the manifest and the line adds nothing — but a reader
+    of the printed order needs to know that `sofd-cli` will be built against
+    `sofd 0.6.0` rather than the `0.5.1` the registry already holds. Saying it
+    here is what keeps `--commands` honest about that, since the packaged
+    manifest is where the number actually comes from.
+    """
+    if name not in known:
+        return ""
+    needs = sorted(
+        crate for crate in internal_deps(known[name].read_text(), known) if crate in shipped
+    )
+    if not needs:
+        return ""
+    named = ", ".join(f"{crate} {shipped[crate]}" for crate in needs)
+    return f"  # built against {named}"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--commands", action="store_true", help="print cargo publish lines")
@@ -206,8 +233,23 @@ def main() -> int:
         metavar="CRATE",
         help="the entries to close over; defaults to every published crate",
     )
+    ap.add_argument(
+        "--rename",
+        action="append",
+        default=[],
+        metavar="CRATE=VERSION",
+        help="the version this release ships a dependency at, so --commands names "
+        "that one instead of the newest the registry holds; repeatable",
+    )
     args = ap.parse_args()
 
+    shipped: dict[str, str] = {}
+    for entry in args.rename:
+        if "=" not in entry:
+            print(f"FATAL: --rename expects CRATE=VERSION, not {entry!r}", file=sys.stderr)
+            return 1
+        key, version = entry.split("=", 1)
+        shipped[key.strip()] = version.strip()
     known = manifests()
     published: set[str] = set()
     deps: dict[str, set[str]] = {}
@@ -240,7 +282,11 @@ def main() -> int:
 
     if args.commands:
         for name in order:
-            print(f"cargo publish -p {name}")
+            # A release names the versions it ships, so the line for a crate
+            # that depends on one of them says which. Left alone, cargo would
+            # pick the newest version the registry holds, which is the one the
+            # release is replacing.
+            print(f"cargo publish -p {name}{constraints(name, known, shipped)}")
     else:
         print(f"{len(order)} crate(s), in the order a registry accepts them:")
         for i, name in enumerate(order, 1):

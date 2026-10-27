@@ -126,11 +126,33 @@ that has to move because their requirements did:
 
 ```bash
 python3 scripts/release_plan.py --since v0.5.1
-# sofd-display 0.6.0    API changed
-# sofd-font    0.5.2    requires sofd-display 0.6
-# sofd         0.5.2    requires sofd-display 0.6
+# sofd-display 0.6.0     states 0.6.0 in its manifest
+# sofd-font    0.5.2     states 0.5.2 in its manifest
+# sofd         0.6.0     needs sofd-crypto 0.6.0
 # ...
 ```
+
+The version beside a crate is the one its manifest states, not one the planner
+invents. A crate's number is decided by the commit that changed it, which is the
+commit that knew whether the change was a feature or a fix; a planner working
+from a diff only knows that something moved, and a patch bump guessed from a
+diff is wrong for a break. The planner's job is the part the diff can answer:
+which crates have to ship, and in what order.
+
+Two refusals follow from that, both of them about a release that fails after it
+has already spent versions:
+
+* A crate the registry already serves cannot ship again. The message names the
+  crate and says to give it a free version.
+* A crate whose dependency interval admits no version the registry has, and
+  that the plan does not carry an entry for, stops the plan. Publishing it would
+  have `cargo publish` stop at that crate — with everything below it already
+  published, which a registry has no undo for.
+
+`scripts/check_versions.py` states the same fault from the other side. There it
+is a note rather than a failure, because a crate waiting on a dependency the
+tree is about to publish is not wrong, it is early; `release_plan.py` is where
+"early" becomes "cannot go out yet".
 
 ## 5. The order the work went in
 

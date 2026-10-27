@@ -13,9 +13,12 @@ So each requirement is asked two questions:
 
 * Is the version this tree declares inside the interval? A requirement that
   excludes the sibling's own version describes a tree that does not exist.
-* Does the interval resolve to something on the registry? Asked only when the
-  sibling is published at all, since before a first release there is nothing
-  to resolve against.
+* Does the interval resolve to something the registry serves? Asked only when
+  the sibling is published at all, since before a first release there is
+  nothing to resolve against. A crate the tree is about to publish is not a
+  mistake — it is a release in progress — so that one is named and the run
+  goes on. `release_plan.py` is where it becomes a blocker, because a registry
+  refuses a crate whose dependency it does not have and there is no undo.
 
 The two questions are the reason this exists: neither can be answered from the
 other, and a mistake in either is invisible until a consumer's build fails.
@@ -370,6 +373,10 @@ def main() -> int:
     shared = workspace_versions()
     faults: list[str] = []
     rows: list[tuple[str, str, str, str]] = []
+    # A crate not on the registry yet is mid-release rather than wrong, which
+    # is why it is a warning here and a blocker in `release_plan.py`: this
+    # check answers "is the tree right", the plan answers "may it go out now".
+    unreleased: list[str] = []
 
     for name in sorted(names):
         for key, crate, requirement in requirements(names[name]):
@@ -421,16 +428,27 @@ def main() -> int:
                 continue
 
             served = resolves_on_registry(crate, requirement)
-            if served is False:
-                faults.append(
-                    f"{name}: {key} = \"{requirement}\" resolves against no published "
-                    f"version of {crate}"
-                )
-                rows.append((name, key, requirement, "unresolvable"))
-            elif served is None:
-                rows.append((name, key, requirement, "registry unasked"))
-            else:
+            if served:
                 rows.append((name, key, requirement, f"admits {sibling}"))
+                continue
+            if served is None:
+                rows.append((name, key, requirement, "registry unasked"))
+                continue
+
+            # Nothing served satisfies the interval. That is either a mistake
+            # or a release that has not finished: the sibling's own version may
+            # be the one intended, waiting on the registry.
+            if on_registry(crate, sibling) is False:
+                rows.append((name, key, requirement, f"admits {sibling}, unreleased"))
+                entry = f"{name} needs {crate} {sibling}, which the registry does not serve yet"
+                if entry not in unreleased:
+                    unreleased.append(entry)
+                continue
+            faults.append(
+                f"{name}: {key} = \"{requirement}\" resolves against no published "
+                f"version of {crate}"
+            )
+            rows.append((name, key, requirement, "unresolvable"))
 
     if args.list:
         for name, key, requirement, verdict in rows:
@@ -441,8 +459,11 @@ def main() -> int:
     if faults:
         print(f"FAILED: {len(faults)} requirement(s) do not hold", file=sys.stderr)
         return 1
+    for entry in unreleased:
+        print(f"NOTE: {entry}; publish it first", file=sys.stderr)
     print(
         f"OK: {len(rows)} internal requirement(s) name a version that resolves"
+        + (f" once {len(unreleased)} pending release(s) go out" if unreleased else "")
     )
     return 0
 

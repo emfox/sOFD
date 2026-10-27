@@ -153,6 +153,22 @@ def bump_of(version: str, level: str) -> str:
     return f"{major}.{minor}.{patch + 1}"
 
 
+def already_set(manifest: Path, root: Path) -> bool:
+    """Whether a manifest states its own version rather than inheriting it.
+
+    The difference matters because a crate whose version is still inherited is
+    one the migration has not reached: the number is the workspace's, and the
+    planner cannot ask it what this crate is worth.
+    """
+    block = versions.package_table(manifest.read_text(encoding="utf-8"))
+    return re.search(r"^version\s*=", block, re.M) is not None
+
+
+def named_version_in(manifest: Path, root: Path) -> str | None:
+    """The version this crate's own manifest states, or None if it inherits."""
+    return versions.version_of(manifest, root) if already_set(manifest, root) else None
+
+
 def build_plan(
     since: str,
     overrides: dict[str, str],
@@ -160,6 +176,7 @@ def build_plan(
     root: Path | None = None,
     changed: set[str] | None = None,
     served: "callable | None" = None,
+    resolves: "callable | None" = None,
 ) -> tuple[list[tuple[str, str, str]], list[str]]:
     """The crates to ship as (name, version, reason), plus what is wrong.
 
@@ -167,14 +184,27 @@ def build_plan(
     joins when its requirement no longer admits a dependency's new version,
     which is exactly when a registry would resolve the wrong code.
 
-    `root`, `changed` and `served` exist so the self-test can describe a
-    workspace and a registry rather than point this at the real ones.
+    A crate whose manifest states its own version is taken to have shipped it:
+    that number is the crate's, and a crate holds one version at a time. One
+    whose version is still inherited has not been given a number for this
+    release yet, and gets a patch bump.
+
+    `root`, `changed`, `served` and `resolves` exist so the self-test can
+    describe a workspace and a registry rather than point this at the real ones.
     """
     root = ROOT if root is None else root
     manifests = versions.members(root)
     names = {versions.name_of(m): m for m in manifests}
     current = {name: versions.version_of(m, root) for name, m in names.items()}
     shared = versions.workspace_versions()
+
+    def decided(name: str) -> str | None:
+        """The version this crate is being shipped at, if the tree says so."""
+        stated = named_version_in(names[name], root)
+        if stated is not None:
+            return stated
+        was = current.get(name) or shared.get(name)
+        return None if was is None else bump_of(was, "patch")
 
     touched = changed_since(since) if changed is None else changed
     faults: list[str] = []
@@ -190,13 +220,15 @@ def build_plan(
             continue
         if not versions.publishes(names[name]):
             continue
-        was = current.get(name) or shared.get(name)
-        if was is None:
+        version = overrides.get(name) or decided(name)
+        if version is None:
             faults.append(f"{name} states no version")
             continue
-        planned[name] = overrides.get(name, bump_of(was, "patch"))
+        planned[name] = version
         if name in overrides:
             reasons[name] = "named by --bump"
+        elif already_set(names[name], root):
+            reasons[name] = f"states {version} in its manifest"
         else:
             reasons[name] = f"code changed since {since}"
 
@@ -218,11 +250,11 @@ def build_plan(
                     satisfied = versions.admits(requirement, planned[crate])
                 if satisfied:
                     continue
-                was = current.get(name) or shared.get(name)
-                if was is None:
+                version = overrides.get(name) or decided(name)
+                if version is None:
                     faults.append(f"{name} states no version")
                     continue
-                planned[name] = overrides.get(name, bump_of(was, "patch"))
+                planned[name] = version
                 reasons[name] = f"needs {crate} {planned[crate]}"
                 changed = True
                 break
@@ -239,10 +271,38 @@ def build_plan(
             elif taken is None:
                 faults.append(f"{name} {version}: could not ask the registry")
 
-    # A planned crate must not depend on a sibling that is not in the plan and
-    # whose requirement the sibling's published version still satisfies. If it
-    # does, the plan is missing an entry rather than the tree being wrong, so
-    # this is a fault in the plan and says so.
+        # A registry refuses a crate whose dependency version it does not serve
+        # yet, so a plan has to move a sibling too whenever a shipping crate's
+        # interval admits no version the registry has and the plan does not
+        # carry one either. Publishing a list that fails halfway is what a
+        # registry has no undo for, so this stops the plan rather than the
+        # third `cargo publish`.
+        shipping = set(planned)
+        for name in sorted(shipping):
+            for _, crate, requirement in versions.requirements(names[name]):
+                if crate in shipping or crate not in names:
+                    continue
+                if requirement in (None, ""):
+                    continue
+                if ask(crate, current.get(crate) or "0.0.0") is None:
+                    continue  # could not ask; the fault above already says so
+                resolved = (
+                    versions.resolves_on_registry(crate, requirement)
+                    if resolves is None
+                    else resolves(crate, requirement)
+                )
+                if resolved is not False:
+                    continue
+                wanted = current.get(crate) or shared.get(crate) or "?"
+                faults.append(
+                    f"{name} ships needing {crate} {requirement}, which the registry "
+                    f"cannot resolve and the plan does not carry; add {crate} "
+                    f"{wanted} with --bump {crate}={wanted}"
+                )
+
+    # The plan, as (name, version, reason). A release that names a version no
+    # registry will accept is refused above; what is left is a list `main()`
+    # prints and `publish_order.py` sorts into an order.
     plan = [(name, planned[name], reasons[name]) for name in sorted(planned)]
     return plan, faults
 
