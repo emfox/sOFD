@@ -7,7 +7,15 @@ use sofd::{Document, RenderOptions};
 /// The resolution bounds the reader will rasterize at.
 pub const MIN_DPI: f32 = 24.0;
 /// The upper bound the reader asks for; the page size may cap it lower.
-pub const MAX_DPI: f32 = 300.0;
+///
+/// An OFD is a page description, not a scan: its text is outlines and its
+/// rules are vectors, so there is detail to resolve at any magnification. A
+/// reader checking the strokes of a character in a standard, or the edge of a
+/// seal against a printed one, is asking a question only resolution answers,
+/// and an earlier ceiling of 300 dpi stopped them at 417% for no reason the
+/// document gave. What actually limits a raster is the texture, which is now
+/// the driver's number and is handled by rasterizing the part on screen.
+pub const MAX_DPI: f32 = 1200.0;
 /// The resolution a freshly opened document is shown at, which is the one a
 /// desktop screen is assumed to have and the one Acrobat and browsers use.
 pub const DEFAULT_DPI: f32 = 96.0;
@@ -16,7 +24,7 @@ pub const MM_PER_INCH: f64 = 25.4;
 /// Points in a millimetre: a point is 1/72 inch, so A4 is 595 by 842 points.
 pub const POINTS_PER_MM: f32 = 72.0 / MM_PER_INCH as f32;
 /// The zoom bounds, as the share of a page's 72 dpi size it is drawn at. A
-/// point is 1/72 inch, so this is the page's size in points times up to three.
+/// point is 1/72 inch, so a zoom of one draws the page at its size in points.
 pub const MIN_ZOOM: f32 = MIN_DPI / 72.0;
 /// The upper zoom, matching `MAX_DPI`.
 pub const MAX_ZOOM: f32 = MAX_DPI / 72.0;
@@ -616,7 +624,9 @@ mod tests {
             .map(|page| (page.page_box.w as f32, page.page_box.h as f32))
             .expect("the page has a box");
         let asked = sofd_common::Rect::new(20.0, 10.0, 60.0, 60.0);
-        let rendered = render_page_with_seals(&doc, 0, MAX_DPI, &[], Some(asked), MAX_TEXTURE_SIDE)
+        // Past what the fixture page fits whole (about 248 dpi), but small
+        // enough that the part asked for is not itself narrowed by the limit.
+        let rendered = render_page_with_seals(&doc, 0, 300.0, &[], Some(asked), MAX_TEXTURE_SIDE)
             .expect("the part renders");
         let part = rendered
             .window
@@ -758,6 +768,20 @@ mod tests {
             rendered.short.is_empty(),
             "a page with every font it needs reports {:?}",
             rendered.short
+        );
+    }
+
+    /// The limit the driver reports is what the page is held to, so a desktop
+    /// card is not shown at the resolution chosen for the weakest board this
+    /// ships on. The floor stays the floor.
+    #[test]
+    fn a_bigger_texture_limit_buys_a_sharper_page() {
+        let size = (210.0_f32, 297.0_f32);
+        let floor = dpi_within(size, MAX_TEXTURE_SIDE);
+        let desktop = dpi_within(size, 8192);
+        assert!(
+            desktop > floor * 3.5,
+            "8192 px should buy far more than 2048: {floor} then {desktop} dpi"
         );
     }
 

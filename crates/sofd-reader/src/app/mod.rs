@@ -973,6 +973,25 @@ mod tests {
         );
     }
 
+    /// The whole point of the higher ceiling: a reader can resolve the detail
+    /// a vector page still holds at 800%. The zoom a reader asks for is clamped
+    /// to the range, and 800% has to be inside it.
+    #[test]
+    fn the_reader_can_zoom_past_eight_hundred_percent() {
+        let mut app = open();
+        app.set_zoom(1000.0);
+        assert!(
+            app.zoom() >= 8.0,
+            "the zoom stops at {:.0}%, short of the 800% a page of outlines deserves",
+            app.zoom() * 100.0
+        );
+        assert_eq!(
+            app.dpi(),
+            viewer::MAX_DPI,
+            "the ceiling is what the highest zoom costs to draw"
+        );
+    }
+
     /// Only the page being read has a viewport, because only it can be zoomed
     /// past the limit. Its neighbours in a spread are drawn to fit.
     #[test]
