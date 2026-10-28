@@ -645,15 +645,10 @@ impl App {
         self.cache.get(page, self.dpi)
     }
 
-    /// The part of a page to rasterize, in millimetres. `None` means the whole
-    /// page, either because it fits the texture limit at this resolution or
-    /// because the reader has not drawn it yet and there is no viewport to ask
-    /// about.
-    ///
-    /// Only the current page has a viewport. A zoom that needs a window is one
-    /// where the page is larger than the screen, which is the single-page
-    /// layout; a spread or a column is zoomed out to fit, so its pages are
-    /// asked for whole and the texture limit is never reached.
+    /// The part of a page to rasterize, in millimetres; `None` is the whole
+    /// page, because it fits the limit or because no viewport has been drawn
+    /// yet. Only the current page has one: a spread or a column is zoomed out
+    /// to fit, so its pages are asked for whole.
     fn window_mm(&self, page: usize) -> Option<sofd_common::Rect> {
         if page != self.current {
             return None;
@@ -855,12 +850,8 @@ impl App {
 
     /// What the current page failed to draw, as a sentence, or nothing when it
     /// drew everything. The counts come out of the raster, which is the only
-    /// place that knows: a page missing a font still renders, and the marks
-    /// that font would have made are simply absent.
-    ///
-    /// One cause is reported rather than all of them. A status bar is not a
-    /// report, and the first number is the one that explains the rest: a font
-    /// that would not load takes its glyphs with it.
+    /// place that knows. One cause is reported rather than all: a font that
+    /// would not load takes its glyphs with it.
     pub fn short_notice(&self) -> Option<String> {
         let short = self.cache.get(self.current, self.dpi)?.short;
         let (message, count) = if short.glyphs > 0 {

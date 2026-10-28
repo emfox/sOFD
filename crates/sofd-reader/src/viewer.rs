@@ -6,15 +6,11 @@ use sofd::{Document, RenderOptions};
 
 /// The resolution bounds the reader will rasterize at.
 pub const MIN_DPI: f32 = 24.0;
-/// The upper bound the reader asks for; the page size may cap it lower.
-///
-/// An OFD is a page description, not a scan: its text is outlines and its
-/// rules are vectors, so there is detail to resolve at any magnification. A
-/// reader checking the strokes of a character in a standard, or the edge of a
-/// seal against a printed one, is asking a question only resolution answers,
-/// and an earlier ceiling of 300 dpi stopped them at 417% for no reason the
-/// document gave. What actually limits a raster is the texture, which is now
-/// the driver's number and is handled by rasterizing the part on screen.
+/// The upper bound the reader asks for; the page size may cap it lower. An OFD
+/// is a page description, not a scan: its text is outlines and its rules are
+/// vectors, so there is detail at any magnification, and 300 dpi stopped a
+/// reader at 417% for no reason the document gave. The texture is the real
+/// limit, and it is handled by rasterizing the part on screen.
 pub const MAX_DPI: f32 = 1200.0;
 /// The resolution a freshly opened document is shown at, which is the one a
 /// desktop screen is assumed to have and the one Acrobat and browsers use.
@@ -35,10 +31,8 @@ pub const DEFAULT_ZOOM: f32 = DEFAULT_DPI / 72.0;
 /// What a page was short of when it was rasterized.
 ///
 /// A page draws what it can and keeps going, so a document with a font it
-/// cannot find still shows every mark that font was not needed for. The counts
-/// are what the engine already keeps while drawing; carrying them out to the
-/// window is what turns "this page looks wrong" into "this page is missing
-/// three glyphs", which is a fact a reader can act on.
+/// cannot find still shows the marks that font was not needed for. The counts
+/// turn "this page looks wrong" into "this page is missing three glyphs".
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Short {
     /// Glyphs the page meant to draw and could not, because the face it found
@@ -137,19 +131,41 @@ pub fn visible_pages(layout: Layout, current: usize, count: usize) -> Vec<usize>
 /// Keeps the pages a reader has already rasterized, because rendering is the
 /// expensive part of reading and a reader revisits the same page constantly.
 /// The key carries the dpi: one page at two zooms is two entries.
+///
+/// A count of pages is not a budget, because one raster's size is the zoom's
+/// to decide: the same twelve pages can be 200 MB or three gigabytes.
 pub struct PageCache {
     entries: HashMap<(usize, u32), RenderedPage>,
     order: Vec<(usize, u32)>,
     limit: usize,
+    /// Pixels held across every entry, so eviction answers to area.
+    pixels: usize,
+    pixel_budget: usize,
+}
+
+/// How much raster the cache may hold, in pixels. 64 M is 256 MB of `Color32`:
+/// a dozen pages at the floor texture size, or one at the largest.
+pub const CACHE_PIXEL_BUDGET: usize = 64 * 1024 * 1024;
+
+/// The pixels one raster costs, which is what the cache budgets in.
+fn area(rendered: &RenderedPage) -> usize {
+    rendered.image.width() * rendered.image.height()
 }
 
 impl PageCache {
     /// A cache holding at most `limit` rendered pages.
     pub fn new(limit: usize) -> Self {
+        Self::with_budget(limit, CACHE_PIXEL_BUDGET)
+    }
+
+    /// The same, with the pixel budget stated. A test says what it needs.
+    pub fn with_budget(limit: usize, pixel_budget: usize) -> Self {
         Self {
             entries: HashMap::new(),
             order: Vec::new(),
             limit: limit.max(1),
+            pixels: 0,
+            pixel_budget: pixel_budget.max(1),
         }
     }
 
@@ -158,16 +174,33 @@ impl PageCache {
         self.entries.get(&(page, dpi.to_bits()))
     }
 
-    /// Store a rendered page, evicting the oldest entry when full.
+    /// Store a rendered page, evicting the oldest entry until the count and
+    /// the pixel budget both hold. The newest entry is never the one evicted:
+    /// a page too large for the budget is still the one being looked at.
     pub fn insert(&mut self, page: usize, dpi: f32, rendered: RenderedPage) {
         let key = (page, dpi.to_bits());
-        if self.entries.insert(key, rendered).is_none() {
+        let pixels = area(&rendered);
+        if let Some(previous) = self.entries.insert(key, rendered) {
+            // An entry the cache already held: its pixels were counted, and
+            // only the difference is new.
+            self.pixels = self.pixels.saturating_sub(area(&previous));
+        } else {
             self.order.push(key);
         }
-        while self.order.len() > self.limit {
+        self.pixels += pixels;
+        while self.order.len() > self.limit
+            || (self.pixels > self.pixel_budget && self.order.len() > 1)
+        {
             let oldest = self.order.remove(0);
-            self.entries.remove(&oldest);
+            if let Some(evicted) = self.entries.remove(&oldest) {
+                self.pixels = self.pixels.saturating_sub(area(&evicted));
+            }
         }
+    }
+
+    /// The pixels the cache is holding, which is what the budget counts.
+    pub fn pixels(&self) -> usize {
+        self.pixels
     }
 
     /// Drop every entry; used when a different document is opened.
@@ -229,26 +262,20 @@ pub fn looks_blank(image: &egui::ColorImage) -> bool {
         })
 }
 
-/// The largest texture `egui` will accept, matched to the smallest limit a
-/// desktop driver imposes; a larger page is refused, so the resolution is
-/// reduced in `render_page` until both sides fit.
-///
-/// This is the floor, not the answer. The backend reports what it can really
-/// hold in `egui`'s input each frame, and `App` passes that down; a driver that
-/// offers 8,192 or 16,384 should not be held to a limit chosen for the weakest
-/// board this ships on. Everything here takes the limit as an argument for
-/// that reason, and this constant is only what to start from.
+/// The largest texture this crate assumes, matched to the smallest limit a
+/// desktop driver imposes. This is the floor, not the answer: the backend
+/// reports what it can really hold in `egui`'s input each frame, and `App`
+/// passes that down, so a driver offering 8,192 is not held to a number
+/// chosen for the weakest board. Every function here takes the limit as an
+/// argument for that reason.
 pub const MAX_TEXTURE_SIDE: u32 = 2048;
 
-/// The resolution a page can be rasterized at within a texture limit. A zoom
-/// request is only a request: A4 at 300 dpi is 3,480 px wide, so the ceiling
-/// here is arithmetic rather than preference.
+/// The resolution a page can be rasterized within a texture limit. A zoom is
+/// only a request: A4 at 300 dpi is 3,480 px wide, so this is arithmetic.
 ///
-/// The result is held a hair under the exact value the limit allows. Pixel
-/// sizes round up, so a resolution that lands exactly on the limit comes back
-/// one pixel past it on one side and the toolkit refuses the texture — the
-/// page then fails to draw at precisely the zoom that was meant to be the
-/// sharpest.
+/// The result is held a hair under what the limit allows, because pixel sizes
+/// round up: a resolution landing exactly on the limit comes back one pixel too
+/// wide, and the toolkit refuses the texture.
 pub fn dpi_within(size_mm: (f32, f32), limit: u32) -> f32 {
     let longest = size_mm.0.max(size_mm.1).max(1.0);
     let fit = f64::from(limit.max(1)) * MM_PER_INCH / f64::from(longest);
@@ -336,12 +363,9 @@ pub fn render_page_with_seals(
         .map(|p| (p.page_box.w as f32, p.page_box.h as f32))
         .unwrap_or((210.0, 297.0));
     let wanted = dpi.clamp(MIN_DPI, MAX_DPI);
-    // Past the limit a whole page cannot be held, but the part on screen can,
-    // so the zoom is kept and the window narrowed rather than the zoom cut.
-    //
-    // A caller with no window asked for the whole page, and there is nothing
-    // to narrow: the resolution is what has to give, or the raster would
-    // exceed the texture limit and the toolkit would refuse it at upload.
+    // Past the limit a whole page cannot be held but the part on screen can, so
+    // the zoom is kept and the window narrowed. A caller with no window asked
+    // for the whole page, so there the resolution is what gives way.
     let whole = wanted.min(dpi_within(size_mm, limit));
     let (effective, window) = match window {
         Some(area) if whole < wanted => (wanted, Some(narrow(area, wanted, limit))),
@@ -352,10 +376,9 @@ pub fn render_page_with_seals(
         window,
         ..RenderOptions::default()
     };
-    // Straight from the rasterizer, not through a PNG. The page used to be
-    // encoded to PNG and decoded again here, which cost a full encode and a
-    // full decode per page and threw away the counts of what the page was
-    // short of — they travel in the raster, not in the file.
+    // Straight from the rasterizer, not through a PNG: the encode and decode
+    // cost more than drawing the page, and they threw away the counts of what
+    // it was short of, which travel in the raster rather than in the file.
     let raster = doc.render_page(page, &options)?;
     let short = Short {
         glyphs: raster.missing_glyphs,
@@ -802,6 +825,55 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn page_of(side: usize) -> RenderedPage {
+        RenderedPage {
+            image: egui::ColorImage::new([side, side], vec![egui::Color32::WHITE; side * side]),
+            size_mm: (210.0, 297.0),
+            window: None,
+            short: Short::default(),
+        }
+    }
+
+    /// A count of pages is not a memory budget: the zoom decides each raster's
+    /// size, and twelve pages of the largest raster is three gigabytes.
+    #[test]
+    fn the_cache_evicts_by_area_and_not_only_by_count() {
+        // Room for one two-by-two page, but a count of twelve.
+        let mut cache = PageCache::with_budget(12, 4);
+        cache.insert(0, 96.0, page_of(2));
+        assert_eq!(cache.pixels(), 4, "one page of four pixels");
+        cache.insert(1, 96.0, page_of(2));
+        assert_eq!(cache.len(), 1, "two pages no longer fit the budget");
+        assert!(cache.get(0, 96.0).is_none(), "the older page gave way");
+        assert!(cache.get(1, 96.0).is_some(), "the newest page stays");
+        assert_eq!(
+            cache.pixels(),
+            4,
+            "the count of pixels followed the eviction"
+        );
+    }
+
+    /// Showing nothing is worse than holding one page too large for the
+    /// budget, so the newest entry is never the one evicted.
+    #[test]
+    fn a_page_larger_than_the_budget_is_still_kept() {
+        let mut cache = PageCache::with_budget(12, 1);
+        cache.insert(0, 96.0, page_of(4));
+        assert!(cache.get(0, 96.0).is_some(), "the page being read is kept");
+        assert_eq!(cache.pixels(), 16);
+    }
+
+    /// Replacing an entry the cache already held adds only the difference; a
+    /// re-render at the same key must not look like two pages of memory.
+    #[test]
+    fn replacing_a_page_does_not_double_its_pixels() {
+        let mut cache = PageCache::with_budget(12, 1024);
+        cache.insert(0, 96.0, page_of(2));
+        cache.insert(0, 96.0, page_of(3));
+        assert_eq!(cache.pixels(), 9, "only the page that is there counts");
+        assert_eq!(cache.len(), 1);
     }
 
     #[test]

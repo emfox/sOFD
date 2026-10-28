@@ -1295,10 +1295,9 @@ fn draw_comparison(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests, st
 /// Z3: the only zone that rasterizes, and the only one that may.
 fn draw_canvas(ui: &mut Ui, app: &mut App, style: &egui::Style) {
     ui.set_style(style.clone());
-    // What the backend can really hold, not the floor this crate assumes. A
-    // driver offering 8,192 can show an A4 page at nearly four times the
-    // resolution of one held to 2,048, and the reader is the only place that
-    // can ask, because the answer arrives with the frame.
+    // What the backend can really hold, not the floor this crate assumes: a
+    // card offering 8,192 shows an A4 at nearly four times the resolution, and
+    // the answer can only be asked for here, because it arrives with a frame.
     let side = ui.ctx().input(|input| input.max_texture_side);
     app.set_texture_limit(side as u32);
     // The canvas is the only place that knows how much room there is, so a fit
@@ -1364,11 +1363,9 @@ fn draw_pages(ui: &mut Ui, app: &mut App) {
 
 /// Paint a single cached page, at the size the zoom asks for.
 ///
-/// The page always claims its full size on screen, whatever part of it the
-/// raster happens to cover, so the scroll area keeps the range a page that
-/// size should have and the marks painted over it land in the right place.
-/// A raster of part of the page is drawn in the rectangle that part occupies
-/// rather than stretched over the whole sheet.
+/// The page always claims its full size on screen, whatever part the raster
+/// covers, so the scroll range and the marks painted over it stay right. A
+/// raster of part of the page is drawn where that part belongs, not stretched.
 fn draw_one_page(ui: &mut Ui, app: &mut App, page: usize) {
     let Some(rendered) = app.cached(page) else {
         return;
@@ -1578,10 +1575,9 @@ fn draw_status_facts(ui: &mut Ui, app: &mut App) {
         ui.label(toned(ui, app, info, Token::Dim, Style::Caption));
         ui.add_space(theme::Space::Medium.points());
     }
-    // A page that drew less than it holds says so here, next to the page count
-    // it belongs to. This is the reader being its own first user: the counts
-    // come from the rasterizer, so a document with a font nobody has fails
-    // visibly on the page it failed on rather than being noticed by eye.
+    // A page that drew less than it holds says so here. The reader is its own
+    // first user: a document with a font nobody has fails visibly on the page
+    // it failed on rather than being noticed by eye.
     if let Some(short) = app.short_notice() {
         ui.label(toned(ui, app, short, Token::Unverified, Style::Caption));
         ui.add_space(theme::Space::Medium.points());
