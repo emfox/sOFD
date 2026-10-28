@@ -50,7 +50,7 @@ fn scroll(c: &mut Criterion) {
         let view = view_at(zoom);
         let window = window_for(view, PAGE_MM, dpi, LIMIT);
         // A raster of the window, sized as the limit gives it.
-        let side = (f64::from(window.w) * f64::from(dpi) / 25.4).ceil() as usize;
+        let side = (window.w * f64::from(dpi) / 25.4).ceil() as usize;
 
         // A scroll that stays inside the raster: the answer the cache exists
         // to give. The view moves by a tenth of the margin, which is what a
