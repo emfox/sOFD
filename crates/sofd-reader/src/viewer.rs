@@ -130,17 +130,32 @@ pub fn visible_pages(layout: Layout, current: usize, count: usize) -> Vec<usize>
 
 /// Keeps the pages a reader has already rasterized, because rendering is the
 /// expensive part of reading and a reader revisits the same page constantly.
-/// The key carries the dpi: one page at two zooms is two entries.
-///
-/// A count of pages is not a budget, because one raster's size is the zoom's
-/// to decide: the same twelve pages can be 200 MB or three gigabytes.
+/// The key carries the dpi and the window: one page at two zooms is two
+/// entries. A count of pages is not a budget, because one raster's size is the
+/// zoom's to decide: the same twelve pages can be 200 MB or three gigabytes.
 pub struct PageCache {
-    entries: HashMap<(usize, u32), RenderedPage>,
-    order: Vec<(usize, u32)>,
+    /// The window is part of the key, in millimetres rounded to the micrometre:
+    /// two requests a thousandth of a millimetre apart are the same request,
+    /// and the pixel they would differ by is below what a raster can show.
+    entries: HashMap<Key, RenderedPage>,
+    order: Vec<Key>,
     limit: usize,
     /// Pixels held across every entry, so eviction answers to area.
     pixels: usize,
     pixel_budget: usize,
+}
+
+/// What one cached raster answers to. `None` is a whole page.
+type Key = (usize, u32, Option<(i64, i64, i64, i64)>);
+
+/// The cache key a window gives, in micrometres of page space.
+fn key_of(page: usize, dpi: f32, window: Option<sofd_common::Rect>) -> Key {
+    let mm = |v: f64| (v * 1000.0).round() as i64;
+    (
+        page,
+        dpi.to_bits(),
+        window.map(|w| (mm(w.x), mm(w.y), mm(w.w), mm(w.h))),
+    )
 }
 
 /// How much raster the cache may hold, in pixels. 64 M is 256 MB of `Color32`:
@@ -170,15 +185,52 @@ impl PageCache {
     }
 
     /// The cached page for this index and dpi, if it was rendered already.
+    /// A page asked for whole is looked up as one; a window is a different
+    /// entry, so this returns the whole page rather than any part of it.
     pub fn get(&self, page: usize, dpi: f32) -> Option<&RenderedPage> {
-        self.entries.get(&(page, dpi.to_bits()))
+        self.entries.get(&key_of(page, dpi, None))
+    }
+
+    /// A cached raster of this page at this dpi that covers `wanted`, if the
+    /// cache holds one. Scrolling asks for a new window every step while the
+    /// raster in hand is still the answer, so the question is asked by area:
+    /// the exact window first, then any other held for this page and zoom.
+    pub fn covering(
+        &self,
+        page: usize,
+        dpi: f32,
+        wanted: Option<sofd_common::Rect>,
+    ) -> Option<&RenderedPage> {
+        if let Some(exact) = self.entries.get(&key_of(page, dpi, wanted)) {
+            return Some(exact);
+        }
+        let bits = dpi.to_bits();
+        let mut best: Option<&RenderedPage> = None;
+        for (key, held) in &self.entries {
+            if key.0 != page || key.1 != bits {
+                continue;
+            }
+            let fits = match wanted {
+                None => held.window.is_none(),
+                Some(area) => covers(held.window, area),
+            };
+            if !fits {
+                continue;
+            }
+            // The smallest that fits is kept: it is the least memory to hold
+            // for the same answer, and the next scroll is likelier to miss it.
+            if best.is_none_or(|kept| area(held) < area(kept)) {
+                best = Some(held);
+            }
+        }
+        best
     }
 
     /// Store a rendered page, evicting the oldest entry until the count and
     /// the pixel budget both hold. The newest entry is never the one evicted:
     /// a page too large for the budget is still the one being looked at.
     pub fn insert(&mut self, page: usize, dpi: f32, rendered: RenderedPage) {
-        let key = (page, dpi.to_bits());
+        let key = key_of(page, dpi, rendered.window);
         let pixels = area(&rendered);
         if let Some(previous) = self.entries.insert(key, rendered) {
             // An entry the cache already held: its pixels were counted, and
@@ -436,7 +488,10 @@ pub const WINDOW_MARGIN: f64 = 2.0;
 
 /// The part of a page to rasterize for a reader looking at `visible`, in
 /// millimetres. A page that fits at this resolution is asked for whole, which
-/// is what keeps every ordinary zoom a single raster.
+/// is what keeps every ordinary zoom a single raster. Covering the view comes
+/// before the margin, because the texture limit can leave a raster smaller
+/// than the view it serves; a view off the page covers only what the page
+/// holds.
 pub fn window_for(
     visible: sofd_common::Rect,
     size_mm: (f32, f32),
@@ -445,14 +500,26 @@ pub fn window_for(
 ) -> sofd_common::Rect {
     let page_w = f64::from(size_mm.0);
     let page_h = f64::from(size_mm.1);
-    let w = (visible.w.max(0.0) * WINDOW_MARGIN).clamp(1.0, page_w.max(1.0));
-    let h = (visible.h.max(0.0) * WINDOW_MARGIN).clamp(1.0, page_h.max(1.0));
-    // Narrowed first, then placed: the texture limit can leave a raster
-    // smaller than the margin asked for, and where it lands has to answer to
-    // what the reader is looking at rather than to the page's corner.
-    let mut area = narrow(sofd_common::Rect::new(0.0, 0.0, w, h), dpi, limit);
-    area.x = (visible.x + visible.w / 2.0 - area.w / 2.0).clamp(0.0, (page_w - area.w).max(0.0));
-    area.y = (visible.y + visible.h / 2.0 - area.h / 2.0).clamp(0.0, (page_h - area.h).max(0.0));
+    let on_page = clip_to_page(visible, size_mm);
+    // A view that holds none of the page has no part to ask for. The page is
+    // the answer that draws nothing extra rather than a sliver at its edge.
+    if on_page.w <= 0.0 || on_page.h <= 0.0 {
+        return sofd_common::Rect::new(0.0, 0.0, page_w.max(1.0), page_h.max(1.0));
+    }
+    let most = f64::from(limit.max(1)) * (1.0 - LIMIT_MARGIN) / (f64::from(dpi) / MM_PER_INCH);
+    let w = (on_page.w * WINDOW_MARGIN).clamp(1.0, page_w.max(1.0));
+    let h = (on_page.h * WINDOW_MARGIN).clamp(1.0, page_h.max(1.0));
+    // Never smaller than the part on screen: the margin is what the limit may
+    // eat, not the view itself.
+    let mut area = sofd_common::Rect::new(0.0, 0.0, w.min(most.max(1.0)), h.min(most.max(1.0)));
+    // Centred on the view, pulled inside the page, then pulled back over the
+    // view: a window narrower than the view cannot cover it from anywhere else.
+    area.x = ((on_page.x + on_page.w / 2.0 - area.w / 2.0).clamp(0.0, (page_w - area.w).max(0.0)))
+        .min(on_page.x)
+        .max(on_page.x + on_page.w - area.w);
+    area.y = ((on_page.y + on_page.h / 2.0 - area.h / 2.0).clamp(0.0, (page_h - area.h).max(0.0)))
+        .min(on_page.y)
+        .max(on_page.y + on_page.h - area.h);
     area
 }
 
@@ -750,6 +817,43 @@ mod tests {
         );
     }
 
+    /// The window is what gets sharp ink. If it stops covering the view, the
+    /// rest of the screen is either blank or a raster of another zoom, and no
+    /// scrolling makes it whole again.
+    #[test]
+    fn a_window_always_covers_the_view_it_serves() {
+        let size = (210.0_f32, 297.0_f32);
+        let limit = 2048;
+        // The view shrinks as the resolution rises, because both come from the
+        // same zoom: a reader at 1,536 dpi is looking at a third of a page, not
+        // at a page 10,882 pixels across.
+        for dpi in [96.0_f32, 300.0, 768.0, 1536.0] {
+            let zoom = f64::from(dpi) / 96.0;
+            let screen = (1200.0 / zoom * 25.4 / 72.0, 800.0 / zoom * 25.4 / 72.0);
+            let (vw, vh) = (screen.0.min(210.0), screen.1.min(297.0));
+            for (x, y) in [(0.0, 0.0), (40.0, 30.0), (-30.0, -20.0), (190.0, 280.0)] {
+                let view = sofd_common::Rect::new(x, y, vw, vh);
+                // Only the part of the view the page holds can be covered.
+                let on_page = clip_to_page(view, size);
+                if on_page.w <= 0.0 || on_page.h <= 0.0 {
+                    continue;
+                }
+                let area = window_for(view, size, dpi, limit);
+                assert!(
+                    covers(Some(area), on_page),
+                    "at {dpi} dpi the window {area:?} leaves {on_page:?} of the view unrendered"
+                );
+                assert!(
+                    area.x >= -0.01
+                        && area.y >= -0.01
+                        && area.x + area.w <= 210.01
+                        && area.y + area.h <= 297.01,
+                    "window {area:?} leaves the page"
+                );
+            }
+        }
+    }
+
     #[test]
     fn the_window_stays_on_the_page() {
         let size = (210.0_f32, 297.0_f32);
@@ -832,6 +936,96 @@ mod tests {
             window: None,
             short: Short::default(),
         }
+    }
+
+    /// The same, covering the part of the page `window` names.
+    fn part_of(side: usize, window: sofd_common::Rect) -> RenderedPage {
+        RenderedPage {
+            window: Some(window),
+            ..page_of(side)
+        }
+    }
+
+    /// A scroll asks for a new window each step while the raster in hand still
+    /// holds the view. The cache has to answer that by area, because the key
+    /// moved even though the ink did not.
+    #[test]
+    fn the_cache_answers_a_scroll_that_stays_inside_its_raster() {
+        let mut cache = PageCache::new(12);
+        let held = sofd_common::Rect::new(40.0, 30.0, 120.0, 100.0);
+        cache.insert(0, 300.0, part_of(3, held));
+
+        // A view still inside the raster: the same entry answers.
+        let inside = sofd_common::Rect::new(50.0, 40.0, 60.0, 40.0);
+        assert!(
+            cache.covering(0, 300.0, Some(inside)).is_some(),
+            "a view inside the cached raster is not looked up"
+        );
+        // A view the raster no longer holds: nothing answers, so it renders.
+        let outside = sofd_common::Rect::new(140.0, 100.0, 60.0, 40.0);
+        assert!(
+            cache.covering(0, 300.0, Some(outside)).is_none(),
+            "a view past the cached raster must not borrow it"
+        );
+        // The whole page is not a window, so it is not answered by one.
+        assert!(cache.covering(0, 300.0, None).is_none());
+    }
+
+    /// Two windows of one page at one zoom are two answers, not one that
+    /// overwrites the other: scrolling back has to find what it left.
+    #[test]
+    fn windows_of_one_page_and_zoom_stay_apart() {
+        let mut cache = PageCache::new(12);
+        let near = sofd_common::Rect::new(0.0, 0.0, 80.0, 80.0);
+        let far = sofd_common::Rect::new(120.0, 200.0, 80.0, 80.0);
+        cache.insert(0, 300.0, part_of(2, near));
+        cache.insert(0, 300.0, part_of(2, far));
+
+        assert_eq!(cache.len(), 2, "the second window replaced the first");
+        assert!(
+            cache.get(0, 300.0).is_none(),
+            "get asks for a whole page, which no window is"
+        );
+        assert!(
+            cache
+                .covering(
+                    0,
+                    300.0,
+                    Some(sofd_common::Rect::new(10.0, 10.0, 20.0, 20.0))
+                )
+                .is_some(),
+            "scrolling back to the first window found nothing"
+        );
+        assert!(
+            cache
+                .covering(
+                    0,
+                    300.0,
+                    Some(sofd_common::Rect::new(130.0, 210.0, 20.0, 20.0))
+                )
+                .is_some(),
+            "the second window is not held either"
+        );
+    }
+
+    /// When more than one raster covers the view, the smallest is the one to
+    /// keep: it is the same answer for less memory, and it is the one the next
+    /// scroll is likeliest to have outgrown.
+    #[test]
+    fn the_smallest_raster_that_covers_the_view_is_the_one_found() {
+        let mut cache = PageCache::new(12);
+        let wide = sofd_common::Rect::new(0.0, 0.0, 200.0, 200.0);
+        let tight = sofd_common::Rect::new(20.0, 20.0, 60.0, 60.0);
+        cache.insert(0, 300.0, part_of(9, wide));
+        cache.insert(0, 300.0, part_of(2, tight));
+
+        let view = sofd_common::Rect::new(30.0, 30.0, 40.0, 40.0);
+        let found = cache.covering(0, 300.0, Some(view)).expect("one covers it");
+        assert_eq!(
+            (found.image.width(), found.image.height()),
+            (2, 2),
+            "the larger raster answered a view the smaller one already held"
+        );
     }
 
     /// A count of pages is not a memory budget: the zoom decides each raster's

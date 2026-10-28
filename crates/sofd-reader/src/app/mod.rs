@@ -640,9 +640,16 @@ impl App {
         self.i18n.text(key)
     }
 
-    /// The rendered page if it is cached at the current resolution.
+    /// The rendered page if it is cached at the current resolution, and one
+    /// that covers what the reader can see. Asked by area rather than by key,
+    /// so a scroll the margin already paid for still finds its raster.
     pub fn cached(&self, page: usize) -> Option<&viewer::RenderedPage> {
-        self.cache.get(page, self.dpi)
+        let window = if page == self.current {
+            self.window_for_current()
+        } else {
+            None
+        };
+        self.cache.covering(page, self.dpi, window)
     }
 
     /// The part of a page to rasterize, in millimetres; `None` is the whole
@@ -653,7 +660,14 @@ impl App {
         if page != self.current {
             return None;
         }
-        let size_mm = self.page_size_mm(page)?;
+        self.window_for_current()
+    }
+
+    /// The window this reader is looking at, or `None` when the page fits
+    /// whole. Split from `window_mm` because the draw path asks it on a shared
+    /// borrow, and a page other than the current one is never windowed.
+    fn window_for_current(&self) -> Option<sofd_common::Rect> {
+        let size_mm = self.page_size_mm(self.current)?;
         if self.dpi <= viewer::dpi_within(size_mm, self.max_texture_side) {
             return None;
         }
@@ -703,19 +717,10 @@ impl App {
             return Ok(());
         }
         let window = self.window_mm(page);
-        // A raster asked for whole at a resolution the texture limit cannot
-        // hold comes back at the lower resolution that fits. It covers the
-        // page but it is not what this zoom asked for, so it does not count.
-        let adequate = match self.cache.get(page, self.dpi) {
-            None => false,
-            Some(rendered) => match window {
-                None => rendered.window.is_none(),
-                Some(wanted) => rendered
-                    .window
-                    .is_some_and(|held| viewer::covers(Some(held), wanted)),
-            },
-        };
-        if adequate {
+        // Any raster that covers the view answers, whatever window it was
+        // asked for: that is what keeps a scroll inside the margin free. A
+        // whole page at a resolution too low to hold is not one of them.
+        if self.cache.covering(page, self.dpi, window).is_some() {
             return Ok(());
         }
         if let Some(queue) = self.queue.as_mut() {

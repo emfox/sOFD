@@ -13,5 +13,6 @@ pub use raster::{RasterOutput, RenderOptions, render_page};
 // to the glyphs the display list names, and neither exporter carries a font;
 // they outline every glyph into a path.
 
-// The bitmap cache is deferred rather than settled, waiting on a measurement
-// rather than on a reason; `docs/Roadmap.md` carries it.
+// The cache is the caller's, not this crate's: a raster is returned and the
+// reader decides what to keep. `sofd-reader` keeps one per page, resolution
+// and window, and `docs/Performance.md` carries what a scroll costs.

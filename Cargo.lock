@@ -4884,6 +4884,7 @@ name = "sofd-reader"
 version = "0.6.0"
 dependencies = [
  "android-activity",
+ "criterion",
  "eframe",
  "egui",
  "egui_kittest",

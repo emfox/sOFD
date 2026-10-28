@@ -189,6 +189,33 @@ nobody has. Moving a ceiling is a deliberate edit to this document, which is
 the point: the argument happens in the diff rather than in a comment nobody
 reads.
 
+## What a scroll step costs
+
+A zoom past the texture limit rasterizes the part of the page on screen, and a
+scroll asks for a new part. The reader's page cache answers that by area: a
+raster already covering the view is handed back rather than drawn again, which
+is what `WINDOW_MARGIN` pays for.
+
+| Zoom, 2048 limit | 20 wheel steps | Rasters | DPI |
+| --- | --- | --- | --- |
+| 2x | 1 | 50 ms | 192 |
+| 3x | 1 | 53 ms | 288 |
+| 4x | 3 | 84 ms | 384 |
+| 6x | 14 | 147 ms | 576 |
+| 8x | 16 | 151 ms | 768 |
+
+One raster of an A4 at these resolutions costs 50 to 120 ms, so the table reads
+as the number of times the reader pays that. Up to 4x the margin absorbs almost
+every step. Further in it stops helping, and the reason is arithmetic: the
+window is capped by the texture limit, the view is not, so at 8x a 2,048-pixel
+raster covers 68 mm while the view is already 53 mm of a page that scrolls. The
+margin has nowhere left to grow.
+
+`reader_scroll` measures the lookup on its own: **44 ns**, against the 50 to
+120 ms render it stands in for. The cache is not the cost; deciding to use it
+is free, and what is left is a render that no cache can avoid because the
+pixels asked for genuinely are not in hand.
+
 ## What is not measured yet
 
 The budget covers opening, flattening, the three one-page conversions and the

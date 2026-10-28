@@ -16,6 +16,7 @@ release is written up is in
 - **A page that drew less than it holds says so in the status bar**, with the count the rasterizer already kept.
 - **A page reaches the screen in half the time**, because it is no longer encoded to PNG and decoded again on the way.
 - **The part of a page a zoomed view gets is the part it asked for**, where any window away from the top-left corner came back blank.
+- **Scrolling a zoomed page stops redrawing it at every step**, because the reader keeps each part it has already drawn and hands it back while it still covers the view.
 
 ## [0.6.0] - 2026-10-27
 
