@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). How a
 release is written up is in
 [Conventions.md](docs/Conventions.md#5-closing-an-issue).
 
+## [Unreleased]
+
+### Reader
+
+- **A zoomed page keeps its shape and shows the part on screen**, instead of the whole sheet drawn from its top-left corner.
+- **A page zooms to 1,667%**, where it stopped at 417%: what limits a raster is the card's texture, not a fixed ceiling.
+- **A page is rasterized at what the card can hold**, so a desktop shows an A4 at nearly four times the resolution chosen for the weakest board.
+- **A page that drew less than it holds says so in the status bar**, with the count the rasterizer already kept.
+- **A page reaches the screen in half the time**, because it is no longer encoded to PNG and decoded again on the way.
+
 ## [0.6.0] - 2026-10-27
 
 ### Signatures
