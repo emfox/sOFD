@@ -1357,47 +1357,80 @@ fn draw_pages(ui: &mut Ui, app: &mut App) {
 }
 
 /// Paint a single cached page, at the size the zoom asks for.
+///
+/// The page always claims its full size on screen, whatever part of it the
+/// raster happens to cover, so the scroll area keeps the range a page that
+/// size should have and the marks painted over it land in the right place.
+/// A raster of part of the page is drawn in the rectangle that part occupies
+/// rather than stretched over the whole sheet.
 fn draw_one_page(ui: &mut Ui, app: &mut App, page: usize) {
     let Some(rendered) = app.cached(page) else {
         return;
     };
     let image = rendered.image.clone();
-    let aspect = image.height() as f32 / image.width().max(1) as f32;
+    let window = rendered.window;
+    let (width_mm, height_mm) = rendered.size_mm;
     // The page's millimetres become points first, because a zoom of one draws
     // a page at its size in points; skipping that step drew A4 280 wide, as if
     // the sheet were 99 mm across, which is what made 100% look wrong.
-    let points = rendered.size_mm.0 * POINTS_PER_MM;
-    let width = points * app.zoom();
-    let size = egui::vec2(width, width * aspect);
-    // A page wider than the canvas has to reach the scroll area, which sizes
-    // itself from what its children claim. A label this wide, with the page
-    // drawn over it, claims the width without adding anything to look at.
-    let claimed = egui::vec2(width, 0.0);
-    ui.allocate_ui_with_layout(claimed, egui::Layout::top_down(egui::Align::Center), |ui| {
-        ui.set_min_width(width);
-        // One texture per page and resolution; the name carries both, so
-        // the cache and the texture cannot disagree.
-        let name = format!("page-{page}");
-        let texture = ui.ctx().load_texture(name, image, TextureOptions::LINEAR);
-        let source = egui::load::SizedTexture::new(texture.id(), size);
-        let response = ui.image(source);
-        // Highlights are painted over the page, in the rectangle it
-        // occupies on screen, so a spread marks the right page.
-        draw_highlights(ui, app, page, response.rect, size);
-        draw_annotations_on(ui, app, page, response.rect, size);
-        // A seal answers to a click, which is how notice 2020 no. 1 says an
-        // invoice is checked. The hit test is in page space, so zoom is moot.
-        if response.clicked() || response.secondary_clicked() {
-            let on_seal = ui
-                .ctx()
-                .pointer_interact_pos()
-                .and_then(|at| point_in_page(app, page, response.rect, size, at))
-                .is_some_and(|(hit_page, point)| app.seal_at(hit_page, point).is_some());
-            if on_seal {
-                app.set_signatures_open(true);
-            }
+    let zoom = app.zoom();
+    let size = egui::vec2(
+        width_mm * POINTS_PER_MM * zoom,
+        height_mm * POINTS_PER_MM * zoom,
+    );
+    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+    // What the reader can actually see of this page tells the next frame which
+    // part to rasterize. Only the current page has a viewport, because only it
+    // can be zoomed past the texture limit; see `App::window_mm`.
+    if page == app.current_page() && rect.width() > 0.0 && rect.height() > 0.0 {
+        let visible = rect.intersect(ui.clip_rect());
+        if visible.is_positive() {
+            let kx = f64::from(width_mm) / f64::from(rect.width());
+            let ky = f64::from(height_mm) / f64::from(rect.height());
+            app.set_viewport(sofd_common::Rect::new(
+                f64::from(visible.min.x - rect.min.x) * kx,
+                f64::from(visible.min.y - rect.min.y) * ky,
+                f64::from(visible.width()) * kx,
+                f64::from(visible.height()) * ky,
+            ));
         }
-    });
+    }
+    // One texture per page and resolution; the name carries both, so the
+    // cache and the texture cannot disagree.
+    let name = format!("page-{page}");
+    let texture = ui.ctx().load_texture(name, image, TextureOptions::LINEAR);
+    let target = match window {
+        Some(part) if width_mm > 0.0 && height_mm > 0.0 => {
+            let sx = rect.width() / width_mm;
+            let sy = rect.height() / height_mm;
+            egui::Rect::from_min_size(
+                rect.min + egui::vec2(part.x as f32 * sx, part.y as f32 * sy),
+                egui::vec2(part.w as f32 * sx, part.h as f32 * sy),
+            )
+        }
+        _ => rect,
+    };
+    // An image widget rather than a painted texture, so the page stays one
+    // node in the accessibility tree: a reader using a screen reader is told
+    // there is a page here, not a rectangle of colour.
+    let source = egui::load::SizedTexture::new(texture.id(), target.size());
+    ui.put(target, egui::Image::new(source));
+    // Highlights are painted over the page, in the rectangle it occupies on
+    // screen, so a spread marks the right page.
+    draw_highlights(ui, app, page, rect, size);
+    draw_annotations_on(ui, app, page, rect, size);
+    // A seal answers to a click, which is how notice 2020 no. 1 says an
+    // invoice is checked. The hit test is in page space, so zoom is moot.
+    if response.clicked() || response.secondary_clicked() {
+        let on_seal = ui
+            .ctx()
+            .pointer_interact_pos()
+            .and_then(|at| point_in_page(app, page, rect, size, at))
+            .is_some_and(|(hit_page, point)| app.seal_at(hit_page, point).is_some());
+        if on_seal {
+            app.set_signatures_open(true);
+        }
+    }
 }
 
 /// Outline the annotation boundary on one page, in the space it was drawn.

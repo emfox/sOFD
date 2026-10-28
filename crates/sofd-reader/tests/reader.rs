@@ -176,6 +176,7 @@ fn a_large_cache_evicts_the_oldest_page() {
         let rendered = sofd_reader::RenderedPage {
             image: egui::ColorImage::new([1, 1], vec![egui::Color32::WHITE]),
             size_mm: (210.0, 297.0),
+            window: None,
         };
         cache.insert(page, 96.0, rendered);
     }

@@ -30,6 +30,11 @@ pub struct RenderedPage {
     pub image: egui::ColorImage,
     /// The page's physical size in millimetres.
     pub size_mm: (f32, f32),
+    /// The part of the page this image covers, in millimetres, or `None` for
+    /// the whole page. A zoom past the texture limit rasterizes only what is
+    /// on screen, and the canvas has to know which part it got: drawing it as
+    /// if it were the page stretched the content and moved every mark.
+    pub window: Option<sofd_common::Rect>,
 }
 
 /// How pages are laid out in the window.
@@ -197,11 +202,21 @@ pub const MAX_TEXTURE_SIDE: u32 = 2048;
 /// The resolution a page can be rasterized at within the texture limit. A zoom
 /// request is only a request: A4 at 300 dpi is 3,480 px wide, so the ceiling
 /// here is arithmetic rather than preference.
+///
+/// The result is held a hair under the exact value the limit allows. Pixel
+/// sizes round up, so a resolution that lands exactly on 2,048 px comes back
+/// as 2,049 on one side and the toolkit refuses the texture — the page then
+/// fails to draw at precisely the zoom that was meant to be the sharpest.
 pub fn dpi_that_fits(size_mm: (f32, f32)) -> f32 {
     let longest = size_mm.0.max(size_mm.1).max(1.0);
     let fit = f64::from(MAX_TEXTURE_SIDE) * MM_PER_INCH / f64::from(longest);
-    (fit as f32).clamp(MIN_DPI, MAX_DPI)
+    let safe = fit * (1.0 - LIMIT_MARGIN);
+    (safe as f32).clamp(MIN_DPI, MAX_DPI)
 }
+
+/// How far under the texture limit a raster is held. A part in ten thousand
+/// costs a fifth of a pixel at 2,048 and keeps rounding from crossing the line.
+const LIMIT_MARGIN: f64 = 1e-4;
 
 /// The zoom that fits a page into an area, for a fit mode.
 /// `available` is the area in points and `size_mm` the page's physical size; a
@@ -269,11 +284,14 @@ pub fn render_page_with_seals(
     let wanted = dpi.clamp(MIN_DPI, MAX_DPI);
     // Past the limit a whole page cannot be held, but the part on screen can,
     // so the zoom is kept and the window narrowed rather than the zoom cut.
+    //
+    // A caller with no window asked for the whole page, and there is nothing
+    // to narrow: the resolution is what has to give, or the raster would
+    // exceed the texture limit and the toolkit would refuse it at upload.
     let whole = wanted.min(dpi_that_fits(size_mm));
-    let (effective, window) = if whole < wanted {
-        (wanted, window.map(|w| narrow(w, wanted)))
-    } else {
-        (whole, None)
+    let (effective, window) = match window {
+        Some(area) if whole < wanted => (wanted, Some(narrow(area, wanted))),
+        _ => (whole, None),
     };
     let options = RenderOptions {
         dpi: f64::from(effective),
@@ -296,14 +314,69 @@ pub fn render_page_with_seals(
         [rgba.width() as usize, rgba.height() as usize],
         rgba.as_raw(),
     );
-    Ok(RenderedPage { image, size_mm })
+    Ok(RenderedPage {
+        image,
+        size_mm,
+        window: window.map(|area| clip_to_page(area, size_mm)),
+    })
+}
+
+/// Keep a window inside the page it belongs to. The rasterizer clips as well,
+/// but the canvas needs the size the image actually covers, and reading it
+/// back from the rasterizer would mean a second copy of the same arithmetic.
+fn clip_to_page(area: sofd_common::Rect, size_mm: (f32, f32)) -> sofd_common::Rect {
+    let page = sofd_common::Rect::new(0.0, 0.0, f64::from(size_mm.0), f64::from(size_mm.1));
+    let x0 = area.x.max(page.x);
+    let y0 = area.y.max(page.y);
+    let x1 = (area.x + area.w).min(page.x + page.w);
+    let y1 = (area.y + area.h).min(page.y + page.h);
+    sofd_common::Rect::new(x0, y0, (x1 - x0).max(0.0), (y1 - y0).max(0.0))
 }
 
 /// Shrink a visible area until its raster fits the texture limit, keeping its
 /// top left corner: a reader scrolled to a corner keeps that corner.
 fn narrow(window: sofd_common::Rect, dpi: f32) -> sofd_common::Rect {
-    let most = f64::from(MAX_TEXTURE_SIDE) / (f64::from(dpi) / MM_PER_INCH);
+    let most = f64::from(MAX_TEXTURE_SIDE) * (1.0 - LIMIT_MARGIN) / (f64::from(dpi) / MM_PER_INCH);
     sofd_common::Rect::new(window.x, window.y, window.w.min(most), window.h.min(most))
+}
+
+/// How much more than the visible area a raster covers. Scrolling inside the
+/// margin costs no new raster, so a page stays sharp while the reader moves
+/// around it instead of going blank at every step.
+pub const WINDOW_MARGIN: f64 = 2.0;
+
+/// The part of a page to rasterize for a reader looking at `visible`, in
+/// millimetres. A page that fits at this resolution is asked for whole, which
+/// is what keeps every ordinary zoom a single raster.
+pub fn window_for(
+    visible: sofd_common::Rect,
+    size_mm: (f32, f32),
+    dpi: f32,
+) -> sofd_common::Rect {
+    let page_w = f64::from(size_mm.0);
+    let page_h = f64::from(size_mm.1);
+    let w = (visible.w.max(0.0) * WINDOW_MARGIN).clamp(1.0, page_w.max(1.0));
+    let h = (visible.h.max(0.0) * WINDOW_MARGIN).clamp(1.0, page_h.max(1.0));
+    // Narrowed first, then placed: the texture limit can leave a raster
+    // smaller than the margin asked for, and where it lands has to answer to
+    // what the reader is looking at rather than to the page's corner.
+    let mut area = narrow(sofd_common::Rect::new(0.0, 0.0, w, h), dpi);
+    area.x = (visible.x + visible.w / 2.0 - area.w / 2.0).clamp(0.0, (page_w - area.w).max(0.0));
+    area.y = (visible.y + visible.h / 2.0 - area.h / 2.0).clamp(0.0, (page_h - area.h).max(0.0));
+    area
+}
+
+/// Whether `outer` covers `inner`, in the same millimetres: the question a
+/// reader asks before spending a raster on a scroll it has already prepared
+/// for.
+pub fn covers(outer: Option<sofd_common::Rect>, inner: sofd_common::Rect) -> bool {
+    let Some(outer) = outer else {
+        return true; // The whole page is held, so everything on it is.
+    };
+    outer.x <= inner.x
+        && outer.y <= inner.y
+        && outer.x + outer.w >= inner.x + inner.w
+        && outer.y + outer.h >= inner.y + inner.h
 }
 
 /// Composite one seal onto the page raster, scaled to its boundary. A seal is
@@ -463,5 +536,133 @@ mod tests {
             .parent()?
             .parent()?;
         std::fs::read(root.join(path)).ok()
+    }
+
+    /// A page asks for more than the texture limit can hold, so it is
+    /// rasterized in parts. The part it covers has to come back with the
+    /// raster: the canvas paints the image into the rectangle that part
+    /// occupies, and without it every zoomed page was stretched over the
+    /// whole sheet, which moved the content and changed the page's shape.
+    #[test]
+    fn a_windowed_raster_reports_the_part_it_covers() {
+        let Some(bytes) = fixture("tests/fixtures/ofdrw/999.ofd") else {
+            return;
+        };
+        let doc = sofd::Document::open_bytes(&bytes).expect("the fixture opens");
+        let size = doc
+            .page(0)
+            .map(|page| (page.page_box.w as f32, page.page_box.h as f32))
+            .expect("the page has a box");
+        let asked = sofd_common::Rect::new(20.0, 10.0, 60.0, 60.0);
+        let rendered = render_page_with_seals(&doc, 0, MAX_DPI, &[], Some(asked))
+            .expect("the part renders");
+        let part = rendered
+            .window
+            .expect("a page past the limit is rasterized in parts");
+        assert!(
+            (part.x - asked.x).abs() < 0.01
+                && (part.y - asked.y).abs() < 0.01
+                && (part.w - asked.w).abs() < 0.01
+                && (part.h - asked.h).abs() < 0.01,
+            "the raster covers {part:?}, which is not the window asked for {asked:?}"
+        );
+        // The image is the part, not the page: its shape follows the window,
+        // which is the whole point of carrying it.
+        let from_image = rendered.image.height() as f32 / rendered.image.width() as f32;
+        let from_part = (part.h / part.w) as f32;
+        assert!(
+            (from_image - from_part).abs() < 0.01,
+            "image is {from_image:.3} tall per wide but the window is {from_part:.3}"
+        );
+        let whole = size.1 / size.0;
+        assert!(
+            (from_image - whole).abs() > 0.05,
+            "the fixture page is {whole:.3}, too close to the window to tell them apart"
+        );
+    }
+
+    /// The ordinary case has to stay a single raster: a page that fits costs
+    /// one windowless render, and a reader who never zooms past the limit
+    /// never notices any of this.
+    #[test]
+    fn a_page_that_fits_is_rasterized_whole() {
+        let Some(bytes) = fixture("tests/fixtures/ofdrw/999.ofd") else {
+            return;
+        };
+        let doc = sofd::Document::open_bytes(&bytes).expect("the fixture opens");
+        let size = doc
+            .page(0)
+            .map(|page| (page.page_box.w as f32, page.page_box.h as f32))
+            .expect("the page has a box");
+        let page = sofd_common::Rect::new(0.0, 0.0, f64::from(size.0), f64::from(size.1));
+        let rendered = render_page_with_seals(&doc, 0, 96.0, &[], Some(page))
+            .expect("the page renders");
+        assert!(
+            rendered.window.is_none(),
+            "a page that fits is asked for whole, whatever window was offered"
+        );
+    }
+
+    /// A caller with no window asked for the whole page. Past the texture
+    /// limit there is nothing to narrow, so the resolution gives way instead
+    /// of the raster being handed to the toolkit over its own limit.
+    #[test]
+    fn a_whole_page_asked_for_past_the_limit_comes_back_within_it() {
+        let Some(bytes) = fixture("tests/fixtures/ofdrw/999.ofd") else {
+            return;
+        };
+        let doc = sofd::Document::open_bytes(&bytes).expect("the fixture opens");
+        let rendered = render_page(&doc, 0, MAX_DPI).expect("the page renders whole");
+        assert!(rendered.window.is_none(), "no window was asked for");
+        let side = MAX_TEXTURE_SIDE as usize;
+        assert!(
+            rendered.image.width() <= side && rendered.image.height() <= side,
+            "a {}x{} raster exceeds the {side} px texture limit",
+            rendered.image.width(),
+            rendered.image.height()
+        );
+    }
+
+    /// The window is placed on what the reader is looking at, never at the
+    /// page's corner: scrolling is what makes a windowed raster useful.
+    #[test]
+    fn the_window_follows_the_visible_area() {
+        let size = (210.0_f32, 297.0_f32);
+        let dpi = 300.0_f32;
+        let top = window_for(sofd_common::Rect::new(0.0, 0.0, 80.0, 80.0), size, dpi);
+        assert_eq!((top.x, top.y), (0.0, 0.0), "the corner stays the corner");
+
+        let far = window_for(sofd_common::Rect::new(130.0, 217.0, 80.0, 80.0), size, dpi);
+        assert!(
+            covers(Some(far), sofd_common::Rect::new(130.0, 217.0, 80.0, 80.0)),
+            "the visible area at the far corner is not inside {far:?}"
+        );
+        assert!(
+            far.x > 0.0 && far.y > 0.0,
+            "a reader scrolled to the far corner is still given the corner: {far:?}"
+        );
+    }
+
+    #[test]
+    fn the_window_stays_on_the_page() {
+        let size = (210.0_f32, 297.0_f32);
+        for (x, y) in [(0.0, 0.0), (200.0, 290.0), (-40.0, -40.0), (400.0, 500.0)] {
+            let area = window_for(sofd_common::Rect::new(x, y, 80.0, 80.0), size, 300.0);
+            assert!(
+                area.x >= 0.0
+                    && area.y >= 0.0
+                    && area.x + area.w <= 210.01
+                    && area.y + area.h <= 297.01,
+                "window {area:?} leaves the page"
+            );
+        }
+    }
+
+    #[test]
+    fn a_whole_page_covers_every_viewport() {
+        let visible = sofd_common::Rect::new(10.0, 10.0, 20.0, 20.0);
+        assert!(covers(None, visible));
+        assert!(covers(Some(sofd_common::Rect::new(0.0, 0.0, 100.0, 100.0)), visible));
+        assert!(!covers(Some(sofd_common::Rect::new(0.0, 0.0, 15.0, 15.0)), visible));
     }
 }

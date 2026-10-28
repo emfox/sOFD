@@ -89,6 +89,10 @@ pub struct App {
     error: Option<AppError>,
     info: Option<String>,
     want_open: bool,
+    /// The part of the current page a reader can see, in millimetres, when it
+    /// is drawn larger than the texture limit allows. `None` means nothing has
+    /// been drawn yet, so the page is asked for whole.
+    viewport_mm: Option<sofd_common::Rect>,
     /// A document the platform handed over before the frame could take it. A
     /// host that learns of a file outside a frame — Android reads it out of the
     /// activity before the event loop is running — has nowhere else to put it,
@@ -263,6 +267,7 @@ impl App {
             error: None,
             info: None,
             want_open: false,
+            viewport_mm: None,
             pending_open: None,
             want_quit: false,
         }
@@ -635,35 +640,60 @@ impl App {
         self.cache.get(page, self.dpi)
     }
 
-    /// The part of a page a reader can see, in millimetres, when it is drawn
-    /// larger than the texture limit allows. `None` means the whole page fits.
+    /// The part of a page to rasterize, in millimetres. `None` means the whole
+    /// page, either because it fits the texture limit at this resolution or
+    /// because the reader has not drawn it yet and there is no viewport to ask
+    /// about.
+    ///
+    /// Only the current page has a viewport. A zoom that needs a window is one
+    /// where the page is larger than the screen, which is the single-page
+    /// layout; a spread or a column is zoomed out to fit, so its pages are
+    /// asked for whole and the texture limit is never reached.
     fn window_mm(&self, page: usize) -> Option<sofd_common::Rect> {
-        let size_mm = self.page_size_mm(page)?;
-        let dpi = self.dpi.min(viewer::dpi_that_fits(size_mm));
-        if dpi >= self.dpi {
+        if page != self.current {
             return None;
         }
-        // What the raster may span, from the same limit `dpi_that_fits` obeys.
-        let span = viewer::MAX_TEXTURE_SIDE as f32 / (dpi / viewer::MM_PER_INCH as f32);
-        Some(sofd_common::Rect::new(
-            0.0,
-            0.0,
-            f64::from(size_mm.0).min(f64::from(span)),
-            f64::from(size_mm.1).min(f64::from(span)),
-        ))
+        let size_mm = self.page_size_mm(page)?;
+        if self.dpi <= viewer::dpi_that_fits(size_mm) {
+            return None;
+        }
+        let visible = self.viewport_mm?;
+        Some(viewer::window_for(visible, size_mm, self.dpi))
+    }
+
+    /// Tell the reader which part of the current page is on screen, in
+    /// millimetres of page space. The canvas calls this each frame; the raster
+    /// for it is asked for on the next one, so scrolling costs a frame.
+    pub fn set_viewport(&mut self, visible: sofd_common::Rect) {
+        self.viewport_mm = Some(visible);
     }
 
     /// Rasterize a page, or return the cached one.
     /// Rendering happens off the draw path, so this asks the worker and does
     /// not wait; the page arrives through `poll` on a later frame.
     pub fn page_image(&mut self, page: usize) -> Result<(), AppError> {
-        if self.cache.get(page, self.dpi).is_some() {
-            return Ok(());
-        }
         if self.doc.is_none() {
             return Ok(());
         }
+        if self.page_size_mm(page).is_none() {
+            return Ok(());
+        }
         let window = self.window_mm(page);
+        // A raster asked for whole at a resolution the texture limit cannot
+        // hold comes back at the lower resolution that fits. It covers the
+        // page but it is not what this zoom asked for, so it does not count.
+        let adequate = match self.cache.get(page, self.dpi) {
+            None => false,
+            Some(rendered) => match window {
+                None => rendered.window.is_none(),
+                Some(wanted) => rendered
+                    .window
+                    .is_some_and(|held| viewer::covers(Some(held), wanted)),
+            },
+        };
+        if adequate {
+            return Ok(());
+        }
         if let Some(queue) = self.queue.as_mut() {
             queue.request(page, self.dpi, window);
         }
@@ -826,4 +856,61 @@ pub enum Canvas {
     Blank,
     /// The page is ready to paint.
     Page,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sofd_common::Rect;
+
+    fn open() -> App {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../compliance/fixtures/minimal.ofd");
+        let mut app = App::new();
+        app.open_path(&path).expect("the fixture opens");
+        app
+    }
+
+    /// A page that fits is asked for whole; a page that does not is asked for
+    /// the part on screen. Asking for the whole page anyway is what made the
+    /// reader rasterize the same corner at every scroll position.
+    #[test]
+    fn the_raster_window_follows_the_zoom_and_the_viewport() {
+        let mut app = open();
+        app.set_viewport(Rect::new(0.0, 0.0, 40.0, 40.0));
+        app.set_zoom(1.0);
+        assert!(
+            app.window_mm(0).is_none(),
+            "a page that fits the texture limit is asked for whole"
+        );
+
+        app.set_zoom(viewer::MAX_ZOOM);
+        let visible = Rect::new(90.0, 200.0, 40.0, 40.0);
+        app.set_viewport(visible);
+        let window = app
+            .window_mm(0)
+            .expect("a zoom past the limit is asked for in parts");
+        assert!(
+            viewer::covers(Some(window), visible),
+            "the raster {window:?} does not cover what is on screen {visible:?}"
+        );
+        assert!(
+            window.x > 0.0 || window.y > 0.0,
+            "the window is still the page's corner: {window:?}"
+        );
+    }
+
+    /// Only the page being read has a viewport, because only it can be zoomed
+    /// past the limit. Its neighbours in a spread are drawn to fit.
+    #[test]
+    fn a_neighbouring_page_is_asked_for_whole() {
+        let mut app = open();
+        app.set_viewport(Rect::new(90.0, 200.0, 40.0, 40.0));
+        app.set_zoom(viewer::MAX_ZOOM);
+        assert!(app.window_mm(0).is_some());
+        assert!(
+            app.window_mm(1).is_none(),
+            "a page the reader is not on has no viewport to narrow to"
+        );
+    }
 }
