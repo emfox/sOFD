@@ -9,6 +9,7 @@ pub mod config;
 pub mod drain;
 pub mod dto;
 pub mod error;
+pub mod health;
 pub mod openapi;
 pub mod ratelimit;
 pub mod store;

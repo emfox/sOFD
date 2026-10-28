@@ -8,6 +8,18 @@ use sofd_server::{AppState, Drain, Settings, Store};
 
 #[tokio::main]
 async fn main() -> ExitCode {
+    // A container's health check asks this process whether it can answer: the
+    // route a caller would use, fetched from inside, so a container that
+    // started but cannot serve is not reported healthy.
+    if std::env::args().nth(1).as_deref() == Some("--health-check") {
+        return match health_check().await {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(message) => {
+                eprintln!("sofd-server: {message}");
+                ExitCode::FAILURE
+            }
+        };
+    }
     match run().await {
         Ok(()) => ExitCode::SUCCESS,
         Err(message) => {
@@ -15,6 +27,12 @@ async fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// Ask the instance this process is configured to be whether it answers.
+async fn health_check() -> Result<(), String> {
+    let settings = Settings::from_env().map_err(|err| err.to_string())?;
+    sofd_server::health::probe(settings.bind).await
 }
 
 /// Bind the configured address and serve until the process is asked to stop.
