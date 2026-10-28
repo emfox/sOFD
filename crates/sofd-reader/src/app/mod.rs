@@ -983,6 +983,53 @@ mod tests {
         );
     }
 
+    /// A page that drew less than it holds says so, and says which way: the
+    /// first number is the one that explains the rest, because a font that
+    /// would not load takes its glyphs with it.
+    #[test]
+    fn a_page_that_is_short_says_which_way() {
+        let mut app = open();
+        let dpi = app.dpi;
+        app.cache.insert(
+            0,
+            dpi,
+            crate::viewer::RenderedPage {
+                image: egui::ColorImage::new([1, 1], vec![egui::Color32::WHITE]),
+                size_mm: (210.0, 297.0),
+                window: None,
+                short: crate::viewer::Short {
+                    glyphs: 7,
+                    font_runs: 2,
+                    images: 1,
+                },
+            },
+        );
+        let notice = app.short_notice().expect("a short page reports");
+        assert!(
+            notice.contains('7'),
+            "the glyph count is what explains the rest: {notice}"
+        );
+        assert!(!notice.contains('2'), "one cause is reported: {notice}");
+    }
+
+    #[test]
+    fn a_complete_page_reports_nothing() {
+        let mut app = open();
+        assert!(app.short_notice().is_none(), "nothing has been drawn yet");
+        let dpi = app.dpi;
+        app.cache.insert(
+            0,
+            dpi,
+            crate::viewer::RenderedPage {
+                image: egui::ColorImage::new([1, 1], vec![egui::Color32::WHITE]),
+                size_mm: (210.0, 297.0),
+                window: None,
+                short: crate::viewer::Short::default(),
+            },
+        );
+        assert!(app.short_notice().is_none(), "a complete page says nothing");
+    }
+
     /// Only the page being read has a viewport, because only it can be zoomed
     /// past the limit. Its neighbours in a spread are drawn to fit.
     #[test]
