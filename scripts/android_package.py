@@ -88,7 +88,9 @@ MIME_TYPES = {"application/ofd": ["ofd"]}
 # cannot name "nothing" -- the only way to answer it is to match everything and
 # refuse the document once the bytes are read, which the reader already does.
 # Reported from a phone as "the open sheet does not list sOFD at all", which is
-# this filter's absence rather than any one attribute being wrong.
+# this filter's absence rather than any one attribute being wrong. It states a
+# type and no scheme: elements are alternatives, so a separate scheme element
+# would take every file off a content provider, `notes.txt` included.
 CATCH_ALL = True
 # The reader crate's manifest. The `versionCode` is the reader's version, not a
 # workspace-wide one: there is no workspace-wide one any more, and the archive
@@ -166,13 +168,10 @@ MANIFEST = """<?xml version="1.0" encoding="utf-8"?>
 {view_mimes}            </intent-filter>
             <!-- A sender that states neither a type nor a readable suffix cannot
                  be named by a filter, so this one matches everything and the
-                 reader refuses what it cannot open once the bytes arrive. An
-                 entry in somebody else's open sheet is worth a refusal. -->
+                 reader refuses what it cannot open once the bytes arrive. -->
             <intent-filter android:label="Open an OFD">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" />
-                <data android:scheme="file" />
                 <data android:mimeType="*/*" />
             </intent-filter>
             <!-- A share arrives as one item with a type and no suffix: the
@@ -244,6 +243,97 @@ def mime_types_text() -> str:
         for suffix in suffixes:
             lines.append(f"{mime}\t{suffix}")
     return "\n".join(lines) + "\n"
+
+
+# One `<intent-filter>` as the system reads it: an action, a set of categories
+# and a set of data attributes, each of which is scheme/host/type.
+def parse_filters(manifest: str) -> list[dict]:
+    """Every intent-filter in a rendered manifest, with its parts separated.
+
+    A filter is matched as a whole and a data attribute is matched as a whole:
+    a `<data android:scheme="content" android:mimeType="application/ofd"/>`
+    requires both, while two separate `<data/>` elements require either. Reading
+    the rendering this way is the difference between a string search that finds
+    what the file wrote and a match that finds what a phone would do.
+    """
+    filters = []
+    for block in re.findall(r"<intent-filter\b.*?</intent-filter>", manifest, re.S):
+        actions = re.findall(r'<action android:name="([^"]+)"', block)
+        categories = re.findall(r'<category android:name="([^"]+)"', block)
+        data = []
+        for element in re.findall(r"<data\b[^>]*/?>", block):
+            attribute = {}
+            for name, value in re.findall(r'android:(\w+)="([^"]*)"', element):
+                attribute[name] = value
+            data.append(attribute)
+        filters.append({"actions": actions, "categories": categories, "data": data})
+    return filters
+
+
+def scheme_of(uri: str) -> str:
+    """The scheme of a URI, which is what a filter's `scheme` is compared to."""
+    return uri.split(":", 1)[0] if ":" in uri else ""
+
+
+def suffix_of(uri: str) -> str:
+    """The path suffix of a URI, dot included, or "" when it has none."""
+    path = uri.split("?", 1)[0].split("#", 1)[0]
+    name = path.rsplit("/", 1)[-1]
+    dot = name.rfind(".")
+    return name[dot:] if dot > 0 else ""
+
+
+def data_matches(attribute: dict, uri: str | None, mime: str | None) -> bool:
+    """Whether one `<data>` element accepts this URI and type.
+
+    The rule `IntentFilter` applies, and the one worth restating because it is
+    the opposite of how it reads: attributes inside one element are ANDed, and
+    a type with no scheme is a type on any scheme. A URI of `None` is a share,
+    whose item is in the extra rather than the data field: nothing about a
+    scheme or a name can then be asked, and only an element that states neither
+    is a candidate.
+    """
+    scheme = attribute.get("scheme")
+    if uri is None:
+        if scheme is not None:
+            return False
+    else:
+        if scheme is not None and scheme != scheme_of(uri):
+            return False
+        if "pathSuffix" in attribute and not suffix_of(uri).endswith(attribute["pathSuffix"]):
+            return False
+        if "pathPattern" in attribute and not re.search(attribute["pathPattern"], uri):
+            return False
+    wanted = attribute.get("mimeType")
+    if wanted is None:
+        return True
+    if mime is None:
+        return False
+    if wanted == "*/*":
+        return True
+    if wanted.endswith("/*"):
+        return mime.split("/", 1)[0] == wanted.split("/", 1)[0]
+    return mime == wanted
+
+
+def offers(filters: list[dict], action: str, uri: str | None, mime: str | None) -> bool:
+    """Whether the system would list this app for a given intent.
+
+    The three tests `PackageManager` applies, in its order: the action has to
+    match, every category the intent carries has to be in the filter (the
+    caller's `DEFAULT` included), and one `<data>` element has to accept the
+    URI and type together. A filter whose data all fail is as absent as no
+    filter at all, which is exactly what a phone reported.
+    """
+    for one in filters:
+        if action not in one["actions"]:
+            continue
+        if any(name not in one["categories"] for name in ("android.intent.category.DEFAULT",)):
+            continue
+        if not any(data_matches(element, uri, mime) for element in one["data"]):
+            continue
+        return True
+    return False
 
 
 # The directory the loader reads the library out of. Its name is the ABI, and a
@@ -548,6 +638,63 @@ def selftest() -> int:
         f"lib/arm64-v8a/lib{LIBRARY}.so",
     }
     assert names == expected, names
+
+    # What the system does with those filters, rather than what they say. A
+    # string search finds a `<data>` element whether or not the element it sits
+    # in can ever match, and the phone that reported this issue saw two sheets
+    # disagree while every attribute was present.
+    filters = parse_filters(rendered)
+    view, send = "android.intent.action.VIEW", "android.intent.action.SEND"
+    # The routes a file manager takes to a `.ofd`, by how well it knows the type.
+    # A provider that resolves the suffix sends `application/ofd`; one that
+    # cannot sends `octet-stream`; one that states nothing at all sends neither.
+    routes = [
+        ("content://com.android.providers.downloads.documents/document/42.ofd", "application/ofd"),
+        ("content://com.android.externalstorage.documents/document/primary%3ADoc.ofd", "application/ofd"),
+        ("content://com.android.externalstorage.documents/document/primary%3ADoc.ofd", "application/octet-stream"),
+        ("content://com.android.externalstorage.documents/document/primary%3ADoc.ofd", None),
+        ("file:///sdcard/Download/invoice.ofd", None),
+        ("file:///sdcard/Download/invoice.ofd", "application/octet-stream"),
+        # A name with more than one dot: the suffix rule has to look at the last
+        # one, which a `.*\.ofd` pattern would get right by accident and a
+        # first-dot rule would get wrong.
+        ("content://com.android.externalstorage.documents/document/primary%3A2024.01.ofd", None),
+    ]
+    for uri, mime in routes:
+        assert offers(filters, view, uri, mime), f"a file manager sending {uri} ({mime}) finds no reader"
+    # A share names its item in the extra rather than in the data field, and the
+    # sheet asks about the type alone: no URI is in the query, so the scheme of
+    # a filter is not consulted. The unknown type is the interesting one -- a
+    # provider that cannot name a `.ofd` shares it as `*/*`, and a filter that
+    # lists only named types is not offered for it.
+    for mime in ("application/ofd", "application/octet-stream", "application/zip", "*/*"):
+        assert offers(filters, send, None, mime), f"a share of {mime} finds no reader"
+
+    # A filter that accepts everything makes the assertions above worthless on
+    # their own, so what the reader must *not* take is checked as well -- against
+    # the named filters, because the catch-all is known to take more than the
+    # reader can open and that trade was made deliberately. What matters is that
+    # nothing but the catch-all reaches a document the reader cannot open, and
+    # that a sender with no type at all reaches nothing: `.txt` beside the route
+    # above that must work, on the same provider, is the pair that proves the
+    # suffix rule is reading the name rather than accepting the scheme.
+    named = [one for one in filters if not any(d.get("mimeType") == "*/*" for d in one["data"])]
+    for uri, mime in [
+        ("content://com.android.externalstorage.documents/document/primary%3Anotes.txt", "text/plain"),
+        ("content://com.android.externalstorage.documents/document/primary%3Anotes.txt", None),
+        ("file:///sdcard/Download/photo.jpg", "image/jpeg"),
+        ("file:///sdcard/Download/photo.jpg", None),
+    ]:
+        assert not offers(named, view, uri, mime), f"the reader claims {uri} ({mime})"
+    # The catch-all answers a sender that states a type but no usable name, and
+    # nothing else: an intent with neither is matched by no filter at all, so the
+    # reader is absent from the sheet rather than present and wrong.
+    assert not offers(filters, view, "content://com.android.externalstorage.documents/x", None)
+    # A share has no URI, so the only thing a filter can be judged on is its
+    # type. A `.txt` shared from the same app is the catch-all's known cost.
+    for mime in ("text/plain", "image/jpeg"):
+        assert not offers(named, send, None, mime), f"a share of {mime} reaches a named filter"
+
     print("selftest passed")
     return 0
 
