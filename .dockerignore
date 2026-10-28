@@ -1,0 +1,5 @@
+# The image copies one file in, and nothing else is read. Everything here would
+# be sent to the daemon for nothing: `target/` alone is tens of gigabytes, and a
+# build context that size stalls before the first instruction runs.
+*
+!sofd-server

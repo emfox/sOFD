@@ -225,6 +225,20 @@ def ffi(version: str, out: Path, lib: Path) -> Path:
     return archive
 
 
+def image(version: str, out: Path, image_tar: Path) -> Path:
+    """The server's container image, as the archive `docker load` reads.
+
+    Not zipped again: `docker save` already writes a tar of layers, and a
+    `.tar.gz` of it would have to be unpacked by hand before `docker load`
+    would take it. The name says what it is and how to load it.
+    """
+    require([image_tar], "image")
+    archive = out / f"{product('server-image', version)}.tar"
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(image_tar, archive)
+    return archive
+
+
 def check_layout(tmp: Path) -> list[tuple[str, bool]]:
     """Pack throwaway products and read the layout back out of them."""
     checks: list[tuple[str, bool]] = []
@@ -304,6 +318,16 @@ def check_layout(tmp: Path) -> list[tuple[str, bool]]:
         all(f"sofd-1.2.3-ffi/{name}" in names for name in FFI_LIBRARIES + ("sofd.h",)),
     ))
 
+    image_tar = tmp / "image.tar"
+    image_tar.write_bytes(b"docker save")
+    bundle = image("1.2.3", out, image_tar)
+    # `docker load` reads a tar, not a compressed one, so the suffix is part of
+    # the answer: a `.tar.gz` would have to be unpacked by hand first.
+    checks.append((
+        "the server image is named for the release and loads as written",
+        bundle.name == "sofd-1.2.3-server-image.tar" and bundle.read_bytes() == b"docker save",
+    ))
+
     try:
         reader("1.2.3", out, tmp / "empty", "linux")
     except SystemExit:
@@ -326,7 +350,7 @@ def selftest() -> int:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("what", choices=["reader", "web", "android", "uos", "ffi", "selftest"])
+    parser.add_argument("what", choices=["reader", "web", "android", "uos", "ffi", "image", "selftest"])
     parser.add_argument("--version", help="the release, without the leading v")
     parser.add_argument("--out", type=Path, default=Path("dist"), help="where the archives go")
     parser.add_argument("--dist", type=Path, default=Path("dist"), help="where the desktop builds were collected")
@@ -336,6 +360,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--deb", type=Path, help="the built Debian package")
     parser.add_argument("--lib", type=Path, help="the directory holding the FFI library and header")
     parser.add_argument("--system", help="for reader: linux, macos or windows")
+    parser.add_argument("--image", type=Path, help="the container image, as `docker save` wrote it")
     args = parser.parse_args(argv)
 
     if args.what == "selftest":
@@ -355,6 +380,8 @@ def main(argv: list[str]) -> int:
         archive = android(args.version, args.out, args.apk)
     elif args.what == "uos":
         archive = uos(args.version, args.out, args.deb)
+    elif args.what == "image":
+        archive = image(args.version, args.out, args.image)
     else:
         archive = ffi(args.version, args.out, args.lib)
     print(archive)

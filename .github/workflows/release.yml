@@ -356,6 +356,94 @@ jobs:
           path: dist/sofd-*.deb
           if-no-files-found: error
 
+  # The server is the form a deployment runs, and it needs no display: the
+  # desktop reader is built above and is not here.
+  #
+  # The image is built by `docker build` rather than a publishing action,
+  # because nothing is pushed to a registry: what ships is the tar `docker save`
+  # writes, which `docker load` on the receiving machine takes. That also means
+  # this job can prove the image serves before it is attached, which a push
+  # straight from a build cannot.
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # The binary links fontconfig, so the headers are needed to build and the
+      # fonts are needed by the image that runs it. Pillow reads the page back
+      # so the proof below can count what was drawn.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+          python3 -m pip install --quiet Pillow
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-server
+
+      - name: Build the server
+        run: cargo build --release -p sofd-server
+
+      # The Dockerfile copies the binary in rather than building it, so it is
+      # placed where the file expects it and nothing else is.
+      - name: Build the image
+        run: |
+          cp target/release/sofd-server ./sofd-server
+          docker build -t sofd-server:release .
+          rm ./sofd-server
+
+      # A container that starts is not a container that serves. The binary's own
+      # health check asks the running instance for `/healthz`, and a document is
+      # then opened and drawn, because a missing font is not a missing process.
+      - name: Prove the image serves
+        run: |
+          docker run -d --name proof -p 127.0.0.1:8080:8080 sofd-server:release
+          for _ in $(seq 1 30); do
+            docker exec proof sofd-server --health-check && break
+            sleep 1
+          done
+          docker exec proof sofd-server --health-check
+
+          # `helloworld.ofd` embeds no font, so the page it draws has to come
+          # from the image's own. An image without one answers `/healthz` and
+          # returns a page that is blank: measured, the same document gives
+          # 704 ink pixels with the font and 0 without, so the count is the
+          # only thing that tells the two apart.
+          id=$(curl -sS -X POST --data-binary @tests/fixtures/ofdrw/helloworld.ofd \
+                 -H 'Content-Type: application/ofd' \
+                 http://127.0.0.1:8080/api/v1/documents | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+          curl -sSf -o /tmp/page.png "http://127.0.0.1:8080/api/v1/documents/$id/pages/0/png"
+          python3 -c '
+          import sys
+          from PIL import Image
+          pixels = Image.open("/tmp/page.png").convert("RGBA").tobytes()
+          ink = sum(1 for i in range(0, len(pixels), 4)
+                    if pixels[i + 3] and pixels[i:i + 3] != b"\xff\xff\xff")
+          print(f"the drawn page holds {ink} ink pixels")
+          sys.exit(0 if ink > 200 else "the page was drawn without text")
+          '
+          docker rm -f proof
+
+      - name: Package the image
+        run: |
+          docker save -o image.tar sofd-server:release
+          # The tag is the version; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          python3 scripts/release_package.py image \
+            --version "$VERSION" --out dist --image image.tar
+
+      - name: Hand the image to the packing job
+        uses: actions/upload-artifact@v4
+        with:
+          name: server
+          path: dist/sofd-*-server-image.tar
+          if-no-files-found: error
+
   # Every job above builds, this one publishes. It exists because a release
   # asset is replaced rather than merged by an upload of the same name, so the
   # parts cannot be attached as they are built: the checksum manifest has to be
@@ -368,7 +456,7 @@ jobs:
   # Every one of them is assembled by the job that builds it, so the error that
   # names a missing file lands in the job that was meant to produce it.
   pack:
-    needs: [desktop, web, android, uos, artefacts]
+    needs: [desktop, web, android, uos, artefacts, server]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -384,7 +472,7 @@ jobs:
 
       - name: Collect the products
         run: |
-          cp parts/sofd-*.tar.gz parts/sofd-*.zip parts/sofd-*.apk parts/sofd-*.deb dist/
+          cp parts/sofd-*.tar.gz parts/sofd-*.zip parts/sofd-*.apk parts/sofd-*.deb parts/sofd-*.tar dist/
           ls -la dist
 
       - name: Read the release notes from the changelog

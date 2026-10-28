@@ -8,6 +8,10 @@ release is written up is in
 
 ## [Unreleased]
 
+### Server
+
+- **The server ships as a container image**, `sofd-<version>-server-image.tar`, which `docker load` takes; the release job proves it serves and draws before attaching it.
+
 ### Reader
 
 - **A zoomed page keeps its shape and shows the part on screen**, instead of the whole sheet drawn from its top-left corner.
