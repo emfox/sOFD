@@ -72,11 +72,13 @@ pub(crate) fn to_color(c: &Color) -> tiny_skia::Color {
 }
 
 /// Page-space millimetres to pixmap pixels, the raster's origin included.
-/// `then` applies `self` first, so the CTM acts in millimetres and the
-/// pixel scale maps the result onto the bitmap.
+/// `then` applies `self` first, so the scale goes first and the origin is
+/// subtracted afterwards, in pixels: a raster of a window away from the page's
+/// corner otherwise moves every mark by the origin scaled twice, which puts
+/// all of it outside the bitmap.
 pub(crate) fn total_transform(state: &State, origin: &Rect, dpi: f64) -> Transform {
     let s = dpi / 25.4;
-    let mm_to_px = Affine::translate(-origin.x * s, -origin.y * s).then(Affine::scale(s, s));
+    let mm_to_px = Affine::scale(s, s).then(Affine::translate(-origin.x * s, -origin.y * s));
     to_ts(state.ctm.then(mm_to_px))
 }
 

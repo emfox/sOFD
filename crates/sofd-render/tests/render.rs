@@ -188,6 +188,44 @@ fn a_transform_moves_the_painted_pixels() {
 }
 
 #[test]
+fn a_window_away_from_the_corner_shows_what_belongs_there() {
+    let fonts = FontManager::new();
+    // Blue covers 100..120mm across and 80..100mm down, which is the whole of
+    // the window asked for below and none of the window before it.
+    let page = page_with(vec![filled(
+        rect(100.0, 80.0, 20.0, 20.0),
+        Color::rgba(0, 0, 255, 255),
+    )]);
+    let at = |x: f64, y: f64| {
+        render_page(
+            &page,
+            &fonts,
+            &RenderOptions {
+                window: Some(Rect::new(x, y, 40.0, 40.0)),
+                ..Default::default()
+            },
+        )
+        .expect("render")
+    };
+
+    // 96 DPI puts 100mm at 378px, so the square sits 27..103px into a window
+    // that starts at 90mm. Halfway in is inside it.
+    let windowed = at(90.0, 70.0);
+    let middle = pixel(&windowed, 64, 64);
+    assert!(
+        middle[2] > 200 && middle[0] < 60,
+        "the window starting before the square should hold it, got {middle:?}"
+    );
+
+    // The window before it holds nothing, and is a window's size rather than the
+    // page's: a raster ignoring the origin paints the square here instead. 40mm
+    // at 96 DPI is 151.18px, which rounds up to 152.
+    let before = at(20.0, 20.0);
+    assert_eq!((before.width, before.height), (152, 152));
+    assert_eq!(pixel(&before, 64, 64), [255, 255, 255, 255]);
+}
+
+#[test]
 fn a_clip_confines_the_painted_pixels() {
     let fonts = FontManager::new();
     // A large red rectangle clipped to a small square at the origin.
