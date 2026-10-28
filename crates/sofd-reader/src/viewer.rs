@@ -363,12 +363,15 @@ pub fn render_page_with_seals(
         images: raster.skipped_image_ops,
     };
     let (width, height) = (raster.width, raster.height);
-    let mut rgba = image::RgbaImage::from_raw(width, height, raster.rgba_bytes()).ok_or_else(|| {
-        sofd_error::OfdError::Render(sofd_error::RenderError::ImageEncode {
-            page,
-            reason: format!("the raster is {width} by {height} px, which is not its pixel count"),
-        })
-    })?;
+    let mut rgba =
+        image::RgbaImage::from_raw(width, height, raster.rgba_bytes()).ok_or_else(|| {
+            sofd_error::OfdError::Render(sofd_error::RenderError::ImageEncode {
+                page,
+                reason: format!(
+                    "the raster is {width} by {height} px, which is not its pixel count"
+                ),
+            })
+        })?;
     for seal in seals.iter().filter(|s| s.page == page) {
         stamp_seal(&mut rgba, seal, f64::from(effective), options.window);
     }
@@ -564,9 +567,8 @@ mod tests {
         let mut doc = sofd::Document::open_bytes(&bytes).expect("the fixture opens");
         let seals = doc.seals().expect("the seals read");
         let page = seals[0].page;
-        let drawn =
-            render_page_with_seals(&doc, page, 96.0, &seals, None, MAX_TEXTURE_SIDE)
-                .expect("the page renders");
+        let drawn = render_page_with_seals(&doc, page, 96.0, &seals, None, MAX_TEXTURE_SIDE)
+            .expect("the page renders");
         let mm = 96.0 / MM_PER_INCH;
         let (x0, y0) = (
             (seals[0].boundary.x * mm) as usize,
@@ -806,7 +808,13 @@ mod tests {
     fn a_whole_page_covers_every_viewport() {
         let visible = sofd_common::Rect::new(10.0, 10.0, 20.0, 20.0);
         assert!(covers(None, visible));
-        assert!(covers(Some(sofd_common::Rect::new(0.0, 0.0, 100.0, 100.0)), visible));
-        assert!(!covers(Some(sofd_common::Rect::new(0.0, 0.0, 15.0, 15.0)), visible));
+        assert!(covers(
+            Some(sofd_common::Rect::new(0.0, 0.0, 100.0, 100.0)),
+            visible
+        ));
+        assert!(!covers(
+            Some(sofd_common::Rect::new(0.0, 0.0, 15.0, 15.0)),
+            visible
+        ));
     }
 }

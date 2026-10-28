@@ -231,16 +231,15 @@ fn run_worker(
         }
         let doc = document.as_ref().expect("opened just above");
         let stamps = seals.as_deref().unwrap_or(&[]);
-        let outcome =
-            viewer::render_page_with_seals(
-                doc,
-                request.page,
-                request.dpi,
-                stamps,
-                request.window,
-                request.limit,
-            )
-            .map_err(|e| e.to_string());
+        let outcome = viewer::render_page_with_seals(
+            doc,
+            request.page,
+            request.dpi,
+            stamps,
+            request.window,
+            request.limit,
+        )
+        .map_err(|e| e.to_string());
         let _ = finish.send(RenderResult {
             generation: request.generation,
             page: request.page,
