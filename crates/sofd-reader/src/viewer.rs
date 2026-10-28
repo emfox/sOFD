@@ -24,6 +24,31 @@ pub const MAX_ZOOM: f32 = MAX_DPI / 72.0;
 /// 794 points wide, which is what a 96 dpi screen shows an inch as.
 pub const DEFAULT_ZOOM: f32 = DEFAULT_DPI / 72.0;
 
+/// What a page was short of when it was rasterized.
+///
+/// A page draws what it can and keeps going, so a document with a font it
+/// cannot find still shows every mark that font was not needed for. The counts
+/// are what the engine already keeps while drawing; carrying them out to the
+/// window is what turns "this page looks wrong" into "this page is missing
+/// three glyphs", which is a fact a reader can act on.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Short {
+    /// Glyphs the page meant to draw and could not, because the face it found
+    /// did not carry the character and no substitute did either.
+    pub glyphs: usize,
+    /// Runs whose face could not be loaded at all, so their text is absent.
+    pub font_runs: usize,
+    /// Images whose bytes would not decode, so their place is blank.
+    pub images: usize,
+}
+
+impl Short {
+    /// Whether the page drew everything it meant to.
+    pub fn is_empty(&self) -> bool {
+        self.glyphs == 0 && self.font_runs == 0 && self.images == 0
+    }
+}
+
 /// A rasterized page, decoded and ready to paint.
 pub struct RenderedPage {
     /// The decoded image, in `egui` colour order.
@@ -35,6 +60,8 @@ pub struct RenderedPage {
     /// on screen, and the canvas has to know which part it got: drawing it as
     /// if it were the page stretched the content and moved every mark.
     pub window: Option<sofd_common::Rect>,
+    /// What the page was short of, for the reader to report.
+    pub short: Short,
 }
 
 /// How pages are laid out in the window.
@@ -298,15 +325,23 @@ pub fn render_page_with_seals(
         window,
         ..RenderOptions::default()
     };
-    let png = doc.to_png(page, &options)?;
-    let decoded =
-        image::load_from_memory_with_format(&png, image::ImageFormat::Png).map_err(|reason| {
-            sofd_error::OfdError::Render(sofd_error::RenderError::ImageEncode {
-                page,
-                reason: reason.to_string(),
-            })
-        })?;
-    let mut rgba = decoded.to_rgba8();
+    // Straight from the rasterizer, not through a PNG. The page used to be
+    // encoded to PNG and decoded again here, which cost a full encode and a
+    // full decode per page and threw away the counts of what the page was
+    // short of — they travel in the raster, not in the file.
+    let raster = doc.render_page(page, &options)?;
+    let short = Short {
+        glyphs: raster.missing_glyphs,
+        font_runs: raster.skipped_font_runs,
+        images: raster.skipped_image_ops,
+    };
+    let (width, height) = (raster.width, raster.height);
+    let mut rgba = image::RgbaImage::from_raw(width, height, raster.rgba_bytes()).ok_or_else(|| {
+        sofd_error::OfdError::Render(sofd_error::RenderError::ImageEncode {
+            page,
+            reason: format!("the raster is {width} by {height} px, which is not its pixel count"),
+        })
+    })?;
     for seal in seals.iter().filter(|s| s.page == page) {
         stamp_seal(&mut rgba, seal, f64::from(effective), options.window);
     }
@@ -318,6 +353,7 @@ pub fn render_page_with_seals(
         image,
         size_mm,
         window: window.map(|area| clip_to_page(area, size_mm)),
+        short,
     })
 }
 
@@ -427,8 +463,13 @@ fn draw_seal(seal: &sofd::Seal, dpi: f64) -> Option<image::DynamicImage> {
                 dpi: dpi_at(dpi),
                 ..RenderOptions::default()
             };
-            let png = inner.to_png(0, &options).ok()?;
-            return image::load_from_memory_with_format(&png, image::ImageFormat::Png).ok();
+            // The same shortcut as a page: a seal is drawn, not filed, so the
+            // raster is what is wanted and encoding it to PNG to read it back
+            // would be work with nothing on the other side of it.
+            let raster = inner.render_page(0, &options).ok()?;
+            let (width, height) = (raster.width, raster.height);
+            let drawn = image::RgbaImage::from_raw(width, height, raster.rgba_bytes())?;
+            return Some(image::DynamicImage::ImageRgba8(drawn));
         }
         return image::load_from_memory(&sealed.data).ok();
     }
@@ -656,6 +697,32 @@ mod tests {
                 "window {area:?} leaves the page"
             );
         }
+    }
+
+    /// The raster is handed straight to the window now, so its size is what
+    /// the page asks for at that resolution rather than whatever survived an
+    /// encode and a decode.
+    #[test]
+    fn a_raster_is_the_size_the_page_asks_for() {
+        let Some(bytes) = fixture("tests/fixtures/ofdrw/999.ofd") else {
+            return;
+        };
+        let doc = sofd::Document::open_bytes(&bytes).expect("the fixture opens");
+        let dpi = 96.0_f64;
+        let rendered = render_page(&doc, 0, dpi as f32).expect("the page renders");
+        let size = rendered.size_mm;
+        let expect_w = (f64::from(size.0) * dpi / MM_PER_INCH).ceil() as usize;
+        let expect_h = (f64::from(size.1) * dpi / MM_PER_INCH).ceil() as usize;
+        assert_eq!(
+            (rendered.image.width(), rendered.image.height()),
+            (expect_w, expect_h),
+            "the raster is not {expect_w} by {expect_h} px at {dpi} dpi"
+        );
+        assert!(
+            rendered.short.is_empty(),
+            "a page with every font it needs reports {:?}",
+            rendered.short
+        );
     }
 
     #[test]

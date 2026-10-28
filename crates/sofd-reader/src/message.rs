@@ -60,6 +60,12 @@ pub enum ReaderMessage {
     LayoutContinuous,
     /// Page has no visible content
     BlankPage,
+    /// The page is missing glyphs the face did not carry
+    ShortGlyphs,
+    /// The page left out text runs whose font could not be loaded
+    ShortFonts,
+    /// The page left out images that would not decode
+    ShortImages,
     /// The canvas says a page failed; the status bar says why
     ErrorLabel,
     /// Label on the toolbar toggle that opens the search panel
@@ -183,6 +189,9 @@ impl ReaderMessage {
             Self::LayoutDouble => "reader-layout-double",
             Self::LayoutContinuous => "reader-layout-continuous",
             Self::BlankPage => "reader-blank-page",
+            Self::ShortGlyphs => "reader-short-glyphs",
+            Self::ShortFonts => "reader-short-fonts",
+            Self::ShortImages => "reader-short-images",
             Self::ErrorLabel => "reader-error-label",
             Self::SearchTitle => "reader-search-title",
             Self::SearchPanelTitle => "reader-search-panel-title",
@@ -253,6 +262,9 @@ impl ReaderMessage {
         Self::LayoutDouble,
         Self::LayoutContinuous,
         Self::BlankPage,
+        Self::ShortGlyphs,
+        Self::ShortFonts,
+        Self::ShortImages,
         Self::ErrorLabel,
         Self::SearchTitle,
         Self::SearchPanelTitle,

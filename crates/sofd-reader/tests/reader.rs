@@ -177,6 +177,7 @@ fn a_large_cache_evicts_the_oldest_page() {
             image: egui::ColorImage::new([1, 1], vec![egui::Color32::WHITE]),
             size_mm: (210.0, 297.0),
             window: None,
+            short: sofd_reader::Short::default(),
         };
         cache.insert(page, 96.0, rendered);
     }

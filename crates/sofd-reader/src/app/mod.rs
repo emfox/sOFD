@@ -824,6 +824,28 @@ impl App {
         self.text(ReaderMessage::BlankPage)
     }
 
+    /// What the current page failed to draw, as a sentence, or nothing when it
+    /// drew everything. The counts come out of the raster, which is the only
+    /// place that knows: a page missing a font still renders, and the marks
+    /// that font would have made are simply absent.
+    ///
+    /// One cause is reported rather than all of them. A status bar is not a
+    /// report, and the first number is the one that explains the rest: a font
+    /// that would not load takes its glyphs with it.
+    pub fn short_notice(&self) -> Option<String> {
+        let short = self.cache.get(self.current, self.dpi)?.short;
+        let (message, count) = if short.glyphs > 0 {
+            (ReaderMessage::ShortGlyphs, short.glyphs)
+        } else if short.font_runs > 0 {
+            (ReaderMessage::ShortFonts, short.font_runs)
+        } else if short.images > 0 {
+            (ReaderMessage::ShortImages, short.images)
+        } else {
+            return None;
+        };
+        Some(self.text_with(message, [("count", count.to_string().into())]))
+    }
+
     /// The hint shown on the empty window, where a file can be dropped.
     ///
     /// Android has nothing to drop onto, so the hint there names the one action

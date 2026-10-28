@@ -1572,6 +1572,14 @@ fn draw_status_facts(ui: &mut Ui, app: &mut App) {
         ui.label(toned(ui, app, info, Token::Dim, Style::Caption));
         ui.add_space(theme::Space::Medium.points());
     }
+    // A page that drew less than it holds says so here, next to the page count
+    // it belongs to. This is the reader being its own first user: the counts
+    // come from the rasterizer, so a document with a font nobody has fails
+    // visibly on the page it failed on rather than being noticed by eye.
+    if let Some(short) = app.short_notice() {
+        ui.label(toned(ui, app, short, Token::Unverified, Style::Caption));
+        ui.add_space(theme::Space::Medium.points());
+    }
     let page = app.page_label();
     ui.label(toned(ui, app, page, Token::Text, Style::Body));
 }

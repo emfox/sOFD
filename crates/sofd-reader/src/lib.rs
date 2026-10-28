@@ -30,4 +30,4 @@ pub use message::ReaderMessage;
 pub use print_worker::{PrintQueue, PrintRequest, PrintResult, SheetReport};
 pub use render_worker::{RenderQueue, RenderRequest, RenderResult};
 pub use shortcuts::Action;
-pub use viewer::{DroppedFile, PageCache, RenderedPage, looks_blank};
+pub use viewer::{DroppedFile, PageCache, RenderedPage, Short, looks_blank};
