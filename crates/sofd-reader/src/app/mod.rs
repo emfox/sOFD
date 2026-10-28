@@ -93,6 +93,10 @@ pub struct App {
     /// is drawn larger than the texture limit allows. `None` means nothing has
     /// been drawn yet, so the page is asked for whole.
     viewport_mm: Option<sofd_common::Rect>,
+    /// The largest texture the backend says it can hold, in pixels. It starts
+    /// at the crate's floor and is replaced by what the driver reports, so a
+    /// desktop card is not held to a limit chosen for the weakest board.
+    max_texture_side: u32,
     /// A document the platform handed over before the frame could take it. A
     /// host that learns of a file outside a frame — Android reads it out of the
     /// activity before the event loop is running — has nowhere else to put it,
@@ -268,6 +272,7 @@ impl App {
             info: None,
             want_open: false,
             viewport_mm: None,
+            max_texture_side: viewer::MAX_TEXTURE_SIDE,
             pending_open: None,
             want_quit: false,
         }
@@ -526,7 +531,7 @@ impl App {
         let Some(size_mm) = self.page_size_mm(self.current) else {
             return;
         };
-        let zoom = viewer::fit_zoom(fit, size_mm, available);
+        let zoom = viewer::fit_zoom(fit, size_mm, available, self.max_texture_side);
         if zoom != self.zoom {
             self.zoom = zoom;
             self.resize();
@@ -654,11 +659,16 @@ impl App {
             return None;
         }
         let size_mm = self.page_size_mm(page)?;
-        if self.dpi <= viewer::dpi_that_fits(size_mm) {
+        if self.dpi <= viewer::dpi_within(size_mm, self.max_texture_side) {
             return None;
         }
         let visible = self.viewport_mm?;
-        Some(viewer::window_for(visible, size_mm, self.dpi))
+        Some(viewer::window_for(
+            visible,
+            size_mm,
+            self.dpi,
+            self.max_texture_side,
+        ))
     }
 
     /// Tell the reader which part of the current page is on screen, in
@@ -666,6 +676,25 @@ impl App {
     /// for it is asked for on the next one, so scrolling costs a frame.
     pub fn set_viewport(&mut self, visible: sofd_common::Rect) {
         self.viewport_mm = Some(visible);
+    }
+
+    /// Take the texture limit the backend reports. A raised limit is a sharper
+    /// page at the same zoom, so the raster in hand is no longer what this
+    /// zoom asks for and is rendered again.
+    pub fn set_texture_limit(&mut self, side: u32) {
+        let side = side.max(1);
+        if side == self.max_texture_side {
+            return;
+        }
+        self.max_texture_side = side;
+        // The page still on screen was rasterized under the old limit. If the
+        // limit grew, the part it covers may now fit at a higher resolution.
+        self.resize();
+    }
+
+    /// The texture limit in force, in pixels.
+    pub fn texture_limit(&self) -> u32 {
+        self.max_texture_side
     }
 
     /// Rasterize a page, or return the cached one.
@@ -695,7 +724,7 @@ impl App {
             return Ok(());
         }
         if let Some(queue) = self.queue.as_mut() {
-            queue.request(page, self.dpi, window);
+            queue.request(page, self.dpi, window, self.max_texture_side);
         }
         Ok(())
     }
@@ -919,6 +948,28 @@ mod tests {
         assert!(
             window.x > 0.0 || window.y > 0.0,
             "the window is still the page's corner: {window:?}"
+        );
+    }
+
+    /// A driver that offers more texture than the floor changes what the
+    /// reader asks for: the same zoom becomes one whole-page raster instead of
+    /// a windowed one, which is both sharper and cheaper to scroll.
+    #[test]
+    fn a_bigger_texture_limit_asks_for_a_whole_page_sooner() {
+        let mut app = open();
+        app.set_zoom(3.0);
+        app.set_viewport(Rect::new(40.0, 40.0, 60.0, 60.0));
+        app.set_texture_limit(viewer::MAX_TEXTURE_SIDE);
+        assert!(
+            app.window_mm(0).is_some(),
+            "at {} dpi a page is past the {} px floor and has to be windowed",
+            app.dpi,
+            viewer::MAX_TEXTURE_SIDE
+        );
+        app.set_texture_limit(8192);
+        assert!(
+            app.window_mm(0).is_none(),
+            "the same zoom fits whole once the driver reports 8192 px"
         );
     }
 

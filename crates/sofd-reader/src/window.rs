@@ -1295,6 +1295,12 @@ fn draw_comparison(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests, st
 /// Z3: the only zone that rasterizes, and the only one that may.
 fn draw_canvas(ui: &mut Ui, app: &mut App, style: &egui::Style) {
     ui.set_style(style.clone());
+    // What the backend can really hold, not the floor this crate assumes. A
+    // driver offering 8,192 can show an A4 page at nearly four times the
+    // resolution of one held to 2,048, and the reader is the only place that
+    // can ask, because the answer arrives with the frame.
+    let side = ui.ctx().input(|input| input.max_texture_side);
+    app.set_texture_limit(side as u32);
     // The canvas is the only place that knows how much room there is, so a fit
     // is resolved here and the worker asked for the resolution it produces.
     let available = ui.available_size();

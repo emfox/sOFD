@@ -224,21 +224,33 @@ pub fn looks_blank(image: &egui::ColorImage) -> bool {
 /// The largest texture `egui` will accept, matched to the smallest limit a
 /// desktop driver imposes; a larger page is refused, so the resolution is
 /// reduced in `render_page` until both sides fit.
+///
+/// This is the floor, not the answer. The backend reports what it can really
+/// hold in `egui`'s input each frame, and `App` passes that down; a driver that
+/// offers 8,192 or 16,384 should not be held to a limit chosen for the weakest
+/// board this ships on. Everything here takes the limit as an argument for
+/// that reason, and this constant is only what to start from.
 pub const MAX_TEXTURE_SIDE: u32 = 2048;
 
-/// The resolution a page can be rasterized at within the texture limit. A zoom
+/// The resolution a page can be rasterized at within a texture limit. A zoom
 /// request is only a request: A4 at 300 dpi is 3,480 px wide, so the ceiling
 /// here is arithmetic rather than preference.
 ///
 /// The result is held a hair under the exact value the limit allows. Pixel
-/// sizes round up, so a resolution that lands exactly on 2,048 px comes back
-/// as 2,049 on one side and the toolkit refuses the texture — the page then
-/// fails to draw at precisely the zoom that was meant to be the sharpest.
-pub fn dpi_that_fits(size_mm: (f32, f32)) -> f32 {
+/// sizes round up, so a resolution that lands exactly on the limit comes back
+/// one pixel past it on one side and the toolkit refuses the texture — the
+/// page then fails to draw at precisely the zoom that was meant to be the
+/// sharpest.
+pub fn dpi_within(size_mm: (f32, f32), limit: u32) -> f32 {
     let longest = size_mm.0.max(size_mm.1).max(1.0);
-    let fit = f64::from(MAX_TEXTURE_SIDE) * MM_PER_INCH / f64::from(longest);
+    let fit = f64::from(limit.max(1)) * MM_PER_INCH / f64::from(longest);
     let safe = fit * (1.0 - LIMIT_MARGIN);
     (safe as f32).clamp(MIN_DPI, MAX_DPI)
+}
+
+/// The same at the floor this crate assumes when nobody has said otherwise.
+pub fn dpi_that_fits(size_mm: (f32, f32)) -> f32 {
+    dpi_within(size_mm, MAX_TEXTURE_SIDE)
 }
 
 /// How far under the texture limit a raster is held. A part in ten thousand
@@ -248,7 +260,12 @@ const LIMIT_MARGIN: f64 = 1e-4;
 /// The zoom that fits a page into an area, for a fit mode.
 /// `available` is the area in points and `size_mm` the page's physical size; a
 /// fit is clamped to the reader's range, so it is still only ever a request.
-pub fn fit_zoom(fit: crate::app::Fit, size_mm: (f32, f32), available: (f32, f32)) -> f32 {
+pub fn fit_zoom(
+    fit: crate::app::Fit,
+    size_mm: (f32, f32),
+    available: (f32, f32),
+    limit: u32,
+) -> f32 {
     use crate::app::Fit;
     // The page's size in points is what a zoom of one draws it at, so the
     // area divided by that is the zoom that fills it.
@@ -263,13 +280,13 @@ pub fn fit_zoom(fit: crate::app::Fit, size_mm: (f32, f32), available: (f32, f32)
     };
     by_side
         .clamp(MIN_ZOOM, MAX_ZOOM)
-        .min(fit_zoom_that_fits(size_mm))
+        .min(fit_zoom_that_fits(size_mm, limit))
 }
 
 /// The zoom a page can be drawn at and still be rasterized sharply, which is
-/// what `dpi_that_fits` permits, expressed as the zoom it implies.
-pub fn fit_zoom_that_fits(size_mm: (f32, f32)) -> f32 {
-    dpi_that_fits(size_mm) / 72.0
+/// what `dpi_within` permits, expressed as the zoom it implies.
+pub fn fit_zoom_that_fits(size_mm: (f32, f32), limit: u32) -> f32 {
+    dpi_within(size_mm, limit) / 72.0
 }
 
 /// Rasterize one page, within what the texture limit can hold. Past the limit
@@ -279,7 +296,7 @@ pub fn render_page(
     page: usize,
     dpi: f32,
 ) -> Result<RenderedPage, sofd_error::OfdError> {
-    render_page_at(doc, page, dpi, None)
+    render_page_at(doc, page, dpi, None, MAX_TEXTURE_SIDE)
 }
 
 /// Rasterize the part of one page a reader can see, at the resolution its zoom
@@ -290,8 +307,9 @@ pub fn render_page_at(
     page: usize,
     dpi: f32,
     window: Option<sofd_common::Rect>,
+    limit: u32,
 ) -> Result<RenderedPage, sofd_error::OfdError> {
-    render_page_with_seals(doc, page, dpi, &[], window)
+    render_page_with_seals(doc, page, dpi, &[], window, limit)
 }
 
 /// Rasterize one page and stamp any seals whose page it is onto the raster.
@@ -303,6 +321,7 @@ pub fn render_page_with_seals(
     dpi: f32,
     seals: &[sofd::Seal],
     window: Option<sofd_common::Rect>,
+    limit: u32,
 ) -> Result<RenderedPage, sofd_error::OfdError> {
     let size_mm = doc
         .page(page)
@@ -315,9 +334,9 @@ pub fn render_page_with_seals(
     // A caller with no window asked for the whole page, and there is nothing
     // to narrow: the resolution is what has to give, or the raster would
     // exceed the texture limit and the toolkit would refuse it at upload.
-    let whole = wanted.min(dpi_that_fits(size_mm));
+    let whole = wanted.min(dpi_within(size_mm, limit));
     let (effective, window) = match window {
-        Some(area) if whole < wanted => (wanted, Some(narrow(area, wanted))),
+        Some(area) if whole < wanted => (wanted, Some(narrow(area, wanted, limit))),
         _ => (whole, None),
     };
     let options = RenderOptions {
@@ -371,8 +390,8 @@ fn clip_to_page(area: sofd_common::Rect, size_mm: (f32, f32)) -> sofd_common::Re
 
 /// Shrink a visible area until its raster fits the texture limit, keeping its
 /// top left corner: a reader scrolled to a corner keeps that corner.
-fn narrow(window: sofd_common::Rect, dpi: f32) -> sofd_common::Rect {
-    let most = f64::from(MAX_TEXTURE_SIDE) * (1.0 - LIMIT_MARGIN) / (f64::from(dpi) / MM_PER_INCH);
+fn narrow(window: sofd_common::Rect, dpi: f32, limit: u32) -> sofd_common::Rect {
+    let most = f64::from(limit.max(1)) * (1.0 - LIMIT_MARGIN) / (f64::from(dpi) / MM_PER_INCH);
     sofd_common::Rect::new(window.x, window.y, window.w.min(most), window.h.min(most))
 }
 
@@ -388,6 +407,7 @@ pub fn window_for(
     visible: sofd_common::Rect,
     size_mm: (f32, f32),
     dpi: f32,
+    limit: u32,
 ) -> sofd_common::Rect {
     let page_w = f64::from(size_mm.0);
     let page_h = f64::from(size_mm.1);
@@ -396,7 +416,7 @@ pub fn window_for(
     // Narrowed first, then placed: the texture limit can leave a raster
     // smaller than the margin asked for, and where it lands has to answer to
     // what the reader is looking at rather than to the page's corner.
-    let mut area = narrow(sofd_common::Rect::new(0.0, 0.0, w, h), dpi);
+    let mut area = narrow(sofd_common::Rect::new(0.0, 0.0, w, h), dpi, limit);
     area.x = (visible.x + visible.w / 2.0 - area.w / 2.0).clamp(0.0, (page_w - area.w).max(0.0));
     area.y = (visible.y + visible.h / 2.0 - area.h / 2.0).clamp(0.0, (page_h - area.h).max(0.0));
     area
@@ -537,7 +557,8 @@ mod tests {
         let seals = doc.seals().expect("the seals read");
         let page = seals[0].page;
         let drawn =
-            render_page_with_seals(&doc, page, 96.0, &seals, None).expect("the page renders");
+            render_page_with_seals(&doc, page, 96.0, &seals, None, MAX_TEXTURE_SIDE)
+                .expect("the page renders");
         let mm = 96.0 / MM_PER_INCH;
         let (x0, y0) = (
             (seals[0].boundary.x * mm) as usize,
@@ -595,7 +616,7 @@ mod tests {
             .map(|page| (page.page_box.w as f32, page.page_box.h as f32))
             .expect("the page has a box");
         let asked = sofd_common::Rect::new(20.0, 10.0, 60.0, 60.0);
-        let rendered = render_page_with_seals(&doc, 0, MAX_DPI, &[], Some(asked))
+        let rendered = render_page_with_seals(&doc, 0, MAX_DPI, &[], Some(asked), MAX_TEXTURE_SIDE)
             .expect("the part renders");
         let part = rendered
             .window
@@ -636,7 +657,7 @@ mod tests {
             .map(|page| (page.page_box.w as f32, page.page_box.h as f32))
             .expect("the page has a box");
         let page = sofd_common::Rect::new(0.0, 0.0, f64::from(size.0), f64::from(size.1));
-        let rendered = render_page_with_seals(&doc, 0, 96.0, &[], Some(page))
+        let rendered = render_page_with_seals(&doc, 0, 96.0, &[], Some(page), MAX_TEXTURE_SIDE)
             .expect("the page renders");
         assert!(
             rendered.window.is_none(),
@@ -670,10 +691,20 @@ mod tests {
     fn the_window_follows_the_visible_area() {
         let size = (210.0_f32, 297.0_f32);
         let dpi = 300.0_f32;
-        let top = window_for(sofd_common::Rect::new(0.0, 0.0, 80.0, 80.0), size, dpi);
+        let top = window_for(
+            sofd_common::Rect::new(0.0, 0.0, 80.0, 80.0),
+            size,
+            dpi,
+            MAX_TEXTURE_SIDE,
+        );
         assert_eq!((top.x, top.y), (0.0, 0.0), "the corner stays the corner");
 
-        let far = window_for(sofd_common::Rect::new(130.0, 217.0, 80.0, 80.0), size, dpi);
+        let far = window_for(
+            sofd_common::Rect::new(130.0, 217.0, 80.0, 80.0),
+            size,
+            dpi,
+            MAX_TEXTURE_SIDE,
+        );
         assert!(
             covers(Some(far), sofd_common::Rect::new(130.0, 217.0, 80.0, 80.0)),
             "the visible area at the far corner is not inside {far:?}"
@@ -688,7 +719,12 @@ mod tests {
     fn the_window_stays_on_the_page() {
         let size = (210.0_f32, 297.0_f32);
         for (x, y) in [(0.0, 0.0), (200.0, 290.0), (-40.0, -40.0), (400.0, 500.0)] {
-            let area = window_for(sofd_common::Rect::new(x, y, 80.0, 80.0), size, 300.0);
+            let area = window_for(
+                sofd_common::Rect::new(x, y, 80.0, 80.0),
+                size,
+                300.0,
+                MAX_TEXTURE_SIDE,
+            );
             assert!(
                 area.x >= 0.0
                     && area.y >= 0.0
@@ -723,6 +759,23 @@ mod tests {
             "a page with every font it needs reports {:?}",
             rendered.short
         );
+    }
+
+    /// Rounding up is what once turned a resolution that fits exactly into a
+    /// raster one pixel too wide, which the toolkit then refused outright.
+    #[test]
+    fn no_limit_produces_a_raster_past_it() {
+        let size = (210.0_f32, 297.0_f32);
+        for limit in [512_u32, 1024, 2048, 4096, 8192, 16384] {
+            let dpi = dpi_within(size, limit);
+            for mm in [size.0, size.1] {
+                let px = (f64::from(mm) * f64::from(dpi) / MM_PER_INCH).ceil() as u32;
+                assert!(
+                    px <= limit,
+                    "{px} px at {dpi} dpi exceeds the {limit} px limit"
+                );
+            }
+        }
     }
 
     #[test]

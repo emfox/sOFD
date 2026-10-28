@@ -8,7 +8,7 @@ use crate::viewer::{self, RenderedPage};
 
 /// What has been asked for on a page: the resolution, and the visible area in
 /// whole millimetres, which is what makes two requests the same request.
-type Asked = (f32, Option<(i64, i64, i64, i64)>);
+type Asked = (f32, u32, Option<(i64, i64, i64, i64)>);
 
 /// One unit of work: rasterize `page` at `dpi`, as generation `generation`.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -21,6 +21,8 @@ pub struct RenderRequest {
     pub dpi: f32,
     /// The part of the page on screen, in millimetres; `None` asks for it all.
     pub window: Option<sofd_common::Rect>,
+    /// The largest texture the backend can hold, in pixels.
+    pub limit: u32,
 }
 
 /// A finished raster, carrying the generation it was requested under.
@@ -95,7 +97,13 @@ impl RenderQueue {
     /// Ask for a page. Returns the generation the request was stamped with.
     /// Asking twice for the same page at the same resolution is not new
     /// information, and honouring every repeat would starve the worker.
-    pub fn request(&mut self, page: usize, dpi: f32, window: Option<sofd_common::Rect>) -> u64 {
+    pub fn request(
+        &mut self,
+        page: usize,
+        dpi: f32,
+        window: Option<sofd_common::Rect>,
+        limit: u32,
+    ) -> u64 {
         // Rounded to whole millimetres, so a scroll of a tenth of one does not
         // restamp a request the worker is already answering.
         let key = window.map(|w| {
@@ -109,17 +117,18 @@ impl RenderQueue {
         if self
             .in_flight
             .get(&page)
-            .is_some_and(|asked| *asked == (dpi, key))
+            .is_some_and(|asked| *asked == (dpi, limit, key))
         {
             return self.newest;
         }
         self.newest += 1;
-        self.in_flight.insert(page, (dpi, key));
+        self.in_flight.insert(page, (dpi, limit, key));
         let request = RenderRequest {
             generation: self.newest,
             page,
             dpi,
             window,
+            limit,
         };
         // A closed worker means the thread is gone; the caller then simply
         // never sees a result, which reads as "still pending" and is safe.
@@ -223,8 +232,15 @@ fn run_worker(
         let doc = document.as_ref().expect("opened just above");
         let stamps = seals.as_deref().unwrap_or(&[]);
         let outcome =
-            viewer::render_page_with_seals(doc, request.page, request.dpi, stamps, request.window)
-                .map_err(|e| e.to_string());
+            viewer::render_page_with_seals(
+                doc,
+                request.page,
+                request.dpi,
+                stamps,
+                request.window,
+                request.limit,
+            )
+            .map_err(|e| e.to_string());
         let _ = finish.send(RenderResult {
             generation: request.generation,
             page: request.page,
