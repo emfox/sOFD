@@ -16,9 +16,6 @@ on:
 
 permissions:
   contents: write
-  # The server's image is published to the GitHub container registry rather than
-  # attached to the release, so the token needs to write packages.
-  packages: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -369,6 +366,12 @@ jobs:
   # straight from a build cannot.
   server:
     runs-on: ubuntu-latest
+    # The image is published to the GitHub container registry rather than
+    # attached to the release, so this job's token needs to write packages. It
+    # is declared here and not at the top: every other job would inherit it.
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
