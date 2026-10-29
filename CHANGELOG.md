@@ -8,6 +8,11 @@ release is written up is in
 
 ## [Unreleased]
 
+### Engine
+
+- **A page can be drawn from geometry instead of a bitmap**: `Document::vector_page` hands a shell the outlines in page millimetres, so a zoom is a transform rather than another render. `canvas_shell` is the worked example, and a document from another producer is now committed and checked against annex A.
+- **A space is no longer counted as a missing glyph**, so a document whose fonts are complete stops warning that it lost every space it contains.
+
 ### Server
 
 - **The server ships as a container image** on the GitHub container registry, `ghcr.io/emfox/sofd-server`, tagged with the version and `latest`; the release job proves it serves and draws before it pushes.
