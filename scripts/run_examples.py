@@ -189,6 +189,18 @@ def wait_for(url: str, process: subprocess.Popen, seconds: int = STARTUP) -> byt
     raise Failure(f"{url} did not answer in {seconds}s — is the port it binds ours?")
 
 
+def canvas_shell(work: Path, book: Path, pages: int) -> None:
+    """Walk every page into geometry, and report shapes rather than pictures."""
+    output = run([str(binary("canvas_shell")), str(book)])
+    if f"{pages} page(s)" not in output:
+        raise Failure(f"canvas_shell did not report {pages} pages: {output!r}")
+    # A page of the book carries text objects, so the walk has to have found
+    # runs; a shell handed an empty shape list would draw a blank page and say
+    # nothing was wrong.
+    if "0 text run(s)" in output:
+        raise Failure(f"canvas_shell found no text to draw: {output!r}")
+
+
 def http_service(work: Path, book: Path, pages: int) -> None:
     """Answer `/healthz`, take a document, and hand back a PDF of it."""
     port = free_port()
@@ -239,6 +251,7 @@ EXAMPLES = (
     ("command_line", command_line),
     ("c_abi", c_abi),
     ("desktop_viewer", desktop_viewer),
+    ("canvas_shell", canvas_shell),
     ("http_service", http_service),
 )
 
