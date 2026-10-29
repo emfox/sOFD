@@ -298,3 +298,50 @@ fn a_colour_without_a_value_is_the_default_not_an_error() {
     assert!(omitted.is_default(), "alpha alone is not a colour");
     assert_eq!(omitted.to_rgb().expect("default black"), (0, 0, 0));
 }
+
+/// Open a document another implementation wrote, kept in the tree under
+/// `compliance/fixtures` so the annex A gate validates it beside ours.
+fn committed_fixture(name: &str) -> Fixture {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../compliance/fixtures")
+        .join(name);
+    let bytes = std::fs::read(&path).expect("the fixture is committed");
+    let package = Package::from_bytes(&bytes).expect("open the fixture package");
+    Fixture(Parser::new(Box::leak(Box::new(package))))
+}
+
+#[test]
+fn a_document_another_producer_wrote_survives_to_the_page() {
+    // Suwell OFD convertor writes one text object per phrase, each stating its
+    // own origin, and mixes an image in between. None of that is what our own
+    // writer emits, so this reads another producer's shape rather than ours.
+    let mut fixture = committed_fixture("suwell.ofd");
+    let document = fixture.parse();
+    let page = fixture.0.page_display(&document, 0).expect("page display");
+    let texts: Vec<_> = page
+        .ops
+        .iter()
+        .filter_map(|op| match op {
+            DrawOp::Text(run) => Some(run),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(texts.len(), 36, "one run per text object the page states");
+    assert!(
+        texts
+            .iter()
+            .all(|run| !run.codes_are_glyphs && run.len() == run.plain_text().chars().count()),
+        "every run spells characters, and the glyphs match the text"
+    );
+    // The heading opens the document, so it is the first run on the page.
+    assert!(
+        texts[0].plain_text().starts_with("关于"),
+        "got {:?}",
+        texts[0].plain_text()
+    );
+    assert!(
+        page.ops.iter().any(|op| matches!(op, DrawOp::Image { .. })),
+        "and the background image is drawn, not dropped"
+    );
+    assert!(!page.is_blank(), "the page carries ink");
+}
