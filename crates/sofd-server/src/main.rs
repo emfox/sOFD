@@ -6,19 +6,37 @@ use std::process::ExitCode;
 use sofd_server::api;
 use sofd_server::{AppState, Drain, Settings, Store};
 
+/// What a container's `ENTRYPOINT` is given, or nothing at all.
+const USAGE: &str = "usage: sofd-server [--health-check]";
+
 #[tokio::main]
 async fn main() -> ExitCode {
-    // A container's health check asks this process whether it can answer: the
-    // route a caller would use, fetched from inside, so a container that
-    // started but cannot serve is not reported healthy.
-    if std::env::args().nth(1).as_deref() == Some("--health-check") {
-        return match health_check().await {
-            Ok(()) => ExitCode::SUCCESS,
-            Err(message) => {
-                eprintln!("sofd-server: {message}");
-                ExitCode::FAILURE
-            }
-        };
+    match std::env::args().nth(1).as_deref() {
+        // A container's health check asks this process whether it can answer:
+        // the route a caller would use, fetched from inside, so a container
+        // that started but cannot serve is not reported healthy.
+        Some("--health-check") => {
+            return match health_check().await {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(message) => {
+                    eprintln!("sofd-server: {message}");
+                    ExitCode::FAILURE
+                }
+            };
+        }
+        Some("-h" | "--help") => {
+            println!("{USAGE}");
+            println!("Every setting is an environment variable; docs/Server.md lists them.");
+            return ExitCode::SUCCESS;
+        }
+        // A mistyped flag used to start a service that looked like the intended
+        // one and never exited, which inside a container reads as "up".
+        Some(flag) if flag.starts_with('-') => {
+            eprintln!("sofd-server: {flag} is not an option this takes");
+            eprintln!("{USAGE}");
+            return ExitCode::from(2);
+        }
+        _ => {}
     }
     match run().await {
         Ok(()) => ExitCode::SUCCESS,
