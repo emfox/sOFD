@@ -9,7 +9,7 @@ use sofd_error::{FontError, Result};
 use sofd_geometry::Path;
 
 use crate::config::FontConfig;
-use crate::face::FontFace;
+use crate::face::{FontFace, is_space};
 use crate::registry::{FontId, FontRegistry, FontSource, Unresolved};
 
 /// Owns the registry and the cache of loaded faces. The system source is a
@@ -525,6 +525,12 @@ impl FontManager {
         // A face that answers this code with a glyph of its own but no
         // outline states a blank on purpose, which is not a gap.
         if glyph_index && face.codes_glyph(code) {
+            return false;
+        }
+        // Whitespace draws nothing whether or not the face maps it, and the
+        // coverage test already treats it as covered; counting it here would
+        // report every space on a page as a character that had no glyph.
+        if !glyph_index && is_space(u32::from(code)) {
             return false;
         }
         self.outline_for_code_in(face, code, glyph_index, &[])

@@ -123,6 +123,31 @@ fn a_real_glyph_has_an_outline_and_a_space_does_not() {
 }
 
 #[test]
+fn a_space_is_not_counted_missing_though_it_has_no_outline() {
+    // A space has no ink, so there is never a path to hand back, and a reader
+    // asking whether a run lost a character must not take that for a gap, or a
+    // page of prose would report every space it contains.
+    let (manager, id) = manager_with_fixture();
+    let face = manager.face(id).expect("load");
+    let space = face.glyph_id(' ' as u32).expect("the fixture maps a space");
+    assert!(
+        manager.outline_for_code(&face, ' ' as u16, false).is_none(),
+        "a blank has no outline to draw"
+    );
+    assert!(
+        !manager.is_missing_code(&face, ' ' as u16, false),
+        "and drawing nothing is not the same as lacking the glyph"
+    );
+    assert!(
+        !manager.is_missing_code(&face, space, true),
+        "the same blank reached by its glyph id is no more a gap"
+    );
+    // A character the face really lacks is still a gap on both paths.
+    assert!(manager.is_missing_code(&face, '中' as u16, false));
+    assert!(manager.is_missing_code(&face, 43981, true));
+}
+
+#[test]
 fn a_glyph_advance_is_positive_for_a_drawn_character() {
     let (manager, id) = manager_with_fixture();
     let face = manager.face(id).expect("load");

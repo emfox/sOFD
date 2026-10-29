@@ -315,7 +315,7 @@ impl FontFace {
 }
 
 /// Whitespace a face need not map to count as covering a run.
-fn is_space(cp: u32) -> bool {
+pub(crate) fn is_space(cp: u32) -> bool {
     matches!(cp, 0x20 | 0xA0 | 0x3000)
 }
 
