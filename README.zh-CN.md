@@ -72,6 +72,7 @@ sOFD 是 [GB/T 33190-2016《电子文件存储与交换格式 版式文档》](h
 | 产物 | 面向 | 运行方式 |
 |---|---|---|
 | `sofd-<version>-linux.tar.gz`、`-macos.zip`、`-windows.zip` | 桌面 | 解压后运行其中的 reader；每个系统单独一个下载，且用该系统的原生归档——Windows 没有能解开 `tar` 的工具 |
+| `sofd-<version>.flatpak` | Linux 桌面 | `flatpak install sofd-<version>.flatpak`；运行在 freedesktop 运行时上，不依赖宿主发行版的库 |
 | `sofd-<version>-web.zip` | 浏览器 | 解压后用 HTTP 提供 `site/`；`file://` 页面无法加载该模块 |
 | `sofd-<version>-android.apk` | Android 7.0+（arm64） | 侧载；用一次性调试密钥签名，不能上架应用商店 |
 | `sofd-<version>-uos-amd64.deb` | UOS 桌面 V20 | `dpkg -i`，或在文件管理器中安装 |

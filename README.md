@@ -76,6 +76,7 @@ product, named for the release it came from:
 | Artefact | For | How it runs |
 |---|---|---|
 | `sofd-<version>-linux.tar.gz`, `-macos.zip`, `-windows.zip` | Desktop | unpack and run the reader inside; one download per system, and the archive is the one that system opens — Windows has no `tar` to unpack with |
+| `sofd-<version>.flatpak` | Linux desktop | `flatpak install sofd-<version>.flatpak`; runs on the freedesktop runtime, so it does not depend on the distribution's libraries |
 | `sofd-<version>-web.zip` | Browser | unpack; serve `site/` over HTTP, because a `file://` page cannot load the module |
 | `sofd-<version>-android.apk` | Android 7.0+ (arm64) | sideload; signed with a throwaway debug key, not a store upload |
 | `sofd-<version>-uos-amd64.deb` | UOS Desktop V20 | `dpkg -i`, or install it from the file manager |

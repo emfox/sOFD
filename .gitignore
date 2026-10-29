@@ -11,6 +11,10 @@
 # ─── Build output ───
 build/
 dist/
+# `flatpak-builder` keeps its work tree beside the manifest, which a local run
+# leaves in the current directory.
+.flatpak-builder/
+flatpak-repo/
 *.dll
 *.dylib
 *.so

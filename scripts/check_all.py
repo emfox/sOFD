@@ -139,6 +139,10 @@ CHECKS: tuple[Check, ...] = (
     # leaves behind, so what a download contains is a promise this makes.
     Check("release-package", "package", (py("scripts/release_package.py", "selftest"),)),
     Check("uos", "package", (py("scripts/uos_package.py", "selftest"),)),
+    # The Flatpak manifest is generated, so what the builder reads is a file no
+    # one reviews. This is the gate over it: the app id, the runtime, and the
+    # sandbox grants, read back out of the text the script would write.
+    Check("flatpak", "package", (py("scripts/flatpak_package.py", "selftest"),)),
     Check(
         "commits",
         "policy",

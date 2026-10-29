@@ -14,6 +14,7 @@ release is written up is in
 
 ### Reader
 
+- **The Linux reader ships as a Flatpak** alongside the tarball, so it runs on the runtime rather than on whichever freetype the distribution happens to keep, and it opens a document from inside a sandbox with no access to the home directory.
 - **A zoomed page keeps its shape and shows the part on screen**, instead of the whole sheet drawn from its top-left corner.
 - **A page zooms to 1,667%**, where it stopped at 417%: what limits a raster is the card's texture, not a fixed ceiling.
 - **A page is rasterized at what the card can hold**, so a desktop shows an A4 at nearly four times the resolution chosen for the weakest board.

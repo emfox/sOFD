@@ -241,6 +241,94 @@ jobs:
           path: dist/sofd-*.apk
           if-no-files-found: error
 
+  # The reader as a Flatpak: the one Linux download that does not depend on
+  # which distribution the user runs. It builds its own copy of the reader
+  # rather than taking the desktop job's artefact, because a build machine's
+  # glibc is not the runtime's: the app has to link against what the freedesktop
+  # SDK provides, which is what inside the sandbox will actually be there.
+  #
+  # Not in the `desktop` matrix: that job produces a bare executable per system,
+  # and this produces a sandboxed app, which is a different kind of artefact.
+  flatpak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev pkg-config flatpak flatpak-builder
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-flatpak
+
+      - name: Install the runtime the manifest names
+        run: |
+          flatpak remote-add --if-not-exists --user flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive -y flathub \
+            org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
+
+      - name: Build the reader
+        run: cargo build --release -p sofd-reader
+
+      - name: Build the app and bundle it
+        run: |
+          # The tag is the version; see the note at the top.
+          VERSION="${GITHUB_REF_NAME#v}"
+          python3 scripts/flatpak_package.py build \
+            --version "$VERSION" --binary target/release/sofd-reader --out dist
+
+      # Installed rather than inspected: a bundle that imports and whose
+      # executable is where the manifest said is the part a build log cannot
+      # show. What runs inside is then held to the document: the `sofd` binary
+      # in the same sandbox opens the fixture, converts it, and the page is
+      # counted ink pixel by ink pixel. A reader that opens its window onto a
+      # blank page has shipped before, and this is the check that sees it.
+      - name: Prove the app in the sandbox
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          python3 scripts/flatpak_package.py verify --bundle "dist/sofd-$VERSION.flatpak"
+          # `sofd-cli` is built on the same host but run by the runtime, so this
+          # also proves the binary finds the runtime's fontconfig and freetype
+          # rather than the runner's. The fixture embeds no font, so the page
+          # is drawn — or not — with whatever face the runtime offers.
+          cargo build --release -p sofd-cli
+          mkdir -p dist/proof
+          flatpak build --filesystem="$PWD:ro" --die-with-parent \
+            dist/sofd-build \
+            sh -c "
+              test -x /app/bin/sofd-reader
+              target/release/sofd convert tests/fixtures/ofdrw/helloworld.ofd \
+                --format png --output dist/proof
+            "
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          from PIL import Image
+          # Measured on this fixture: 704 ink pixels with a CJK face available
+          # and 0 without one. 200 sits far from both.
+          pages = sorted(Path("dist/proof").glob("*.png"))
+          if not pages:
+              sys.exit("error: the conversion wrote no page")
+          image = Image.open(pages[0]).convert("L")
+          ink = sum(1 for pixel in image.tobytes() if pixel < 0xF0)
+          print(f"{ink} ink pixels in {image.width}x{image.height}")
+          sys.exit(0 if ink > 200 else "error: the page was drawn without text")
+          PY
+
+      - name: Hand the app to the packing job
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: dist/sofd-*.flatpak
+          if-no-files-found: error
+
   # The libraries other programs link against, and the browser bindings of the
   # engine itself. These are the same on every desktop system, so one build.
   artefacts:
@@ -465,7 +553,7 @@ jobs:
   # Every one of them is assembled by the job that builds it, so the error that
   # names a missing file lands in the job that was meant to produce it.
   pack:
-    needs: [desktop, web, android, uos, artefacts]
+    needs: [desktop, web, android, flatpak, uos, artefacts]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -481,7 +569,7 @@ jobs:
 
       - name: Collect the products
         run: |
-          cp parts/sofd-*.tar.gz parts/sofd-*.zip parts/sofd-*.apk parts/sofd-*.deb dist/
+          cp parts/sofd-*.tar.gz parts/sofd-*.zip parts/sofd-*.apk parts/sofd-*.deb parts/sofd-*.flatpak dist/
           ls -la dist
 
       - name: Read the release notes from the changelog
