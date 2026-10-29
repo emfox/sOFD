@@ -133,6 +133,21 @@ impl Document {
         sofd_render::render_page(page, &self.fonts, options)
     }
 
+    /// Walk one page into geometry, in page millimetres, without rasterizing
+    /// it. A shell with a canvas of its own draws this rather than a bitmap,
+    /// so a zoom costs a transform instead of another render.
+    #[cfg(feature = "render")]
+    pub fn vector_page(
+        &self,
+        index: usize,
+        options: &sofd_render::RenderOptions,
+    ) -> Result<sofd_render::VectorPage> {
+        let page = self
+            .page(index)
+            .ok_or_else(|| out_of_range(index, self.page_count()))?;
+        Ok(sofd_render::page_to_vector(page, &self.fonts, options))
+    }
+
     /// Rasterize one page and encode it as PNG, reporting what the page was
     /// short of. The face search only happens while drawing, so a caller that
     /// needs to warn about a missing font has to ask here and not before.

@@ -1013,3 +1013,59 @@ fn a_signature_with_no_timestamp_reports_absent() {
     let verdicts = doc.verify_timestamps().expect("timestamp verdicts");
     assert_eq!(verdicts, vec![sofd::TimestampStatus::Absent]);
 }
+
+#[cfg(feature = "render")]
+#[test]
+fn a_shell_can_draw_a_page_from_geometry_without_a_bitmap() {
+    // A shell with a canvas of its own asks the facade for geometry and draws
+    // it, never holding a pixmap. This is that path, with the face coming from
+    // the container rather than from whatever the machine has installed.
+    let entries = [
+        ("OFD.xml", OFD_XML.as_bytes().to_vec()),
+        (
+            "Doc_0/Document.xml",
+            document_xml(&text_page("7", "6.0", "AB")).into_bytes(),
+        ),
+        (
+            "Doc_0/PublicRes.xml",
+            font_table("7", "Orbitron", "Orbitron-Bold.ttf").into_bytes(),
+        ),
+        ("Doc_0/Res/Orbitron-Bold.ttf", font_bytes()),
+    ];
+    let doc = open(&entries);
+    let options = sofd::RenderOptions::default();
+    let page = doc.vector_page(0, &options).expect("geometry");
+
+    let text: Vec<&sofd::Shape> = page
+        .shapes
+        .iter()
+        .filter(|s| matches!(s, sofd::Shape::Text { .. }))
+        .collect();
+    assert_eq!(text.len(), 1, "one run of two letters");
+    let sofd::Shape::Text { path, fill, .. } = text[0] else {
+        unreachable!("filtered on text");
+    };
+    assert!(fill.is_some(), "the run's paint comes with it");
+    assert!(!path.is_empty(), "the letters are outlines, not codes");
+    let bbox = path.bounding_box();
+    assert!(
+        bbox.x >= 9.0 && bbox.x < 11.0 && bbox.y > 10.0 && bbox.y < 26.0,
+        "the geometry lands where the text object says: {bbox:?}"
+    );
+
+    // And the raster of the same page agrees, so the two backends are not
+    // drawing different documents.
+    let raster = doc.render_page(0, &options).expect("render");
+    let scale = options.dpi / 25.4;
+    let mid_y = ((bbox.y + bbox.h / 2.0) * scale) as u32;
+    let bytes = raster.rgba_bytes();
+    let painted = |x: u32, y: u32| {
+        let base = ((y * raster.width + x) * 4) as usize;
+        bytes[base] < 128
+    };
+    let mut inked = (bbox.x * scale) as u32..((bbox.x + bbox.w) * scale) as u32;
+    assert!(
+        inked.any(|x| painted(x, mid_y)),
+        "the raster puts ink where the geometry says the letters are"
+    );
+}

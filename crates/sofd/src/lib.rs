@@ -24,6 +24,10 @@ pub use document::Seal;
 pub use sofd_font::cjk_face;
 #[cfg(feature = "render")]
 pub use sofd_render::RenderOptions;
+// The geometry a shell draws with, so a canvas backend can name it without
+// depending on the crate that produced it.
+#[cfg(feature = "render")]
+pub use sofd_render::{Shape, VectorPage};
 #[cfg(feature = "search")]
 pub use sofd_search::SearchOptions;
 #[cfg(feature = "sign")]

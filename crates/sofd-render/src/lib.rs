@@ -6,8 +6,10 @@
 #![warn(missing_docs)]
 
 pub mod raster;
+pub mod vector;
 
 pub use raster::{RasterOutput, RenderOptions, render_page};
+pub use vector::{Shape, VectorPage, page_to_vector};
 
 // Subsetting is not this crate's to do: `sofd` cuts each embedded face
 // to the glyphs the display list names, and neither exporter carries a font;
