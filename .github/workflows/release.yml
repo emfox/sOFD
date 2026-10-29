@@ -296,23 +296,23 @@ jobs:
           python3 scripts/flatpak_package.py verify --bundle "dist/sofd-$VERSION.flatpak"
           # `sofd-cli` is built on the same host but run by the runtime, so this
           # also proves the binary finds the runtime's fontconfig and freetype
-          # rather than the runner's. The fixture embeds no font, so the page
-          # is drawn — or not — with whatever face the runtime offers.
+          # rather than the runner's. The fixture is one the tree carries: a
+          # fetched sample is absent on CI, and the check would count nothing.
           cargo build --release -p sofd-cli
           mkdir -p dist/proof
           flatpak build --filesystem="$PWD:ro" --die-with-parent \
             dist/sofd-build \
             sh -c "
               test -x /app/bin/sofd-reader
-              target/release/sofd convert tests/fixtures/ofdrw/helloworld.ofd \
+              target/release/sofd convert compliance/fixtures/minimal.ofd \
                 --format png --output dist/proof
             "
           python3 - <<'PY'
           import sys
           from pathlib import Path
           from PIL import Image
-          # Measured on this fixture: 704 ink pixels with a CJK face available
-          # and 0 without one. 200 sits far from both.
+          # Measured on this fixture: 43,416 ink pixels drew here, and a page
+          # with nothing on it counts zero. 200 sits far from both.
           pages = sorted(Path("dist/proof").glob("*.png"))
           if not pages:
               sys.exit("error: the conversion wrote no page")
@@ -515,12 +515,10 @@ jobs:
           done
           docker exec proof sofd-server --health-check
 
-          # `helloworld.ofd` embeds no font, so the page it draws has to come
-          # from the image's own. An image without one answers `/healthz` and
-          # returns a page that is blank: measured, the same document gives
-          # 704 ink pixels with the font and 0 without, so the count is the
-          # only thing that tells the two apart.
-          id=$(curl -sS -X POST --data-binary @tests/fixtures/ofdrw/helloworld.ofd \
+          # `minimal.ofd` comes from this tree, so the check reads a file the
+          # job actually has. A fetched sample lives only in a working copy:
+          # the tree ignores it, and the count on CI would be of nothing.
+          id=$(curl -sS -X POST --data-binary @compliance/fixtures/minimal.ofd \
                  -H 'Content-Type: application/ofd' \
                  http://127.0.0.1:8080/api/v1/documents | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
           curl -sSf -o /tmp/page.png "http://127.0.0.1:8080/api/v1/documents/$id/pages/0/png"
