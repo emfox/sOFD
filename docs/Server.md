@@ -46,6 +46,7 @@ the image's `HEALTHCHECK` asks exactly that through `sofd-server
 `GET /openapi.json` describes the rest of the API.
 
 An image that answers `/healthz` can still draw a blank page: a missing font is
-not a missing process. The release job therefore opens a document that embeds
-no font and counts the ink in the result, which is 704 pixels with the font and
-0 without.
+not a missing process. The release job therefore opens `compliance/fixtures/minimal.ofd`,
+counts the ink in the result, and fails below 200 pixels — the page draws about
+17,700 here and nothing on it would count zero. The fixture is the one the tree
+carries: a fetched sample is absent on CI, where the count would be of nothing.
