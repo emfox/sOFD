@@ -263,3 +263,47 @@ The golden fixtures and the writer are in
 sOFD's own output against the committed reference PNGs only; no second
 implementation is invoked in CI. The oracle renders and the ofdrw source
 citations above are evidence for this document, not test inputs.
+
+### A document from a second producer
+
+Evidence of a producer's shape does not have to stay out of CI, so one
+document another implementation wrote is committed and tested:
+[`compliance/fixtures/suwell.ofd`](../compliance/fixtures/suwell). Its source
+XML sits beside the archive, as it does for the fixtures we write, because
+that is the shape a person reads.
+
+It is `testPathFillOpacity.ofd` from the ofdrw sample set, written by
+**Suwell OFD convertor** 1.0.22.0526.1854 (`native_producer`
+`swdomsdkqt_20220526`) — a commercial producer, not ofdrw itself and not this
+project. The ofdrw set is fetched rather than committed because its
+documents are not ours to redistribute; that is true of this one too, so the
+copy here is the sample's own bytes under the four corrections below, taken
+under the same footing as citing that set's source.
+
+Four fields had to take the shape annex A declares before the schema would
+accept the document. Each is a producer habit, and the correction is what
+annex A says instead:
+
+| Field | What the producer wrote | What annex A declares |
+| --- | --- | --- |
+| `OFD/@Version` | `1.1` | fixed to `1.0` |
+| `DocInfo/CreationDate`, `ModDate` | `2023-7-12` | `xs:date`, so `2023-07-12` |
+| `CommonData` order | `PageArea` before `MaxUnitID` | `MaxUnitID` first |
+| `Permissions` | `CopyText`, `ContentRegist` | neither is in the 2016 text; removed |
+
+Nothing else about the document is altered: the page content, both embedded
+fonts and the background image are the sample's own bytes. The four
+corrections move no ink — the page renders pixel for pixel the same as the
+sample it came from, which is what `testPathFillOpacity.ofd` and this fixture
+are compared on when either is regenerated.
+
+The 1.1 version is worth naming rather than fixing quietly. The sample states
+it while its `Permissions` carries `CopyText`, an element the 2016 edition
+does not define, so 1.1 is what a producer wrote rather than what this engine
+must accept on the strength of a number alone. `sofd info` on the committed
+fixture reports `Version: 1.0`, because that is what it now declares.
+
+`crates/sofd-parser/tests/third_party.rs` flattens its page and asserts what
+the page has: 36 text runs spelling characters, an image, and ink. The annex A
+gate in `scripts/check_all.py` validates it beside our own fixtures, so it is
+held to the schema and to the renderer at once.
