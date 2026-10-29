@@ -1,0 +1,12 @@
+# Archive layout for the suwell fixture.
+# Taken from a document Suwell OFD convertor wrote, as the ofdrw sample set
+# keeps it. Later commits change four fields to the shape annex A declares.
+# <path inside the .ofd>            <source file>
+OFD.xml                             OFD.xml
+Doc_0/Document.xml                  Document.xml
+Doc_0/PublicRes.xml                 PublicRes.xml
+Doc_0/DocumentRes.xml               DocumentRes.xml
+Doc_0/Pages/Page_0/Content.xml      Content.xml
+Doc_0/Res/font1_59.ttf              Res/font1_59.ttf
+Doc_0/Res/font2_59.ttf              Res/font2_59.ttf
+Doc_0/Res/image_3.png               Res/image_3.png

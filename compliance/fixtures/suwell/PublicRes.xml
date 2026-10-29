@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Res xmlns:ofd="http://www.ofdspec.org/2016" BaseLoc="Res"><ofd:Fonts><ofd:Font ID="16" FontName="方正小标宋简体"><ofd:FontFile>font1_59.ttf</ofd:FontFile></ofd:Font><ofd:Font ID="18" FontName="仿宋_GB2312"/><ofd:Font ID="22" FontName="Times New Roman"><ofd:FontFile>font2_59.ttf</ofd:FontFile></ofd:Font></ofd:Fonts></ofd:Res>
