@@ -4,13 +4,16 @@
 searches it and checks its signatures over HTTP. The desktop reader needs a
 display; this does not, which is what a deployment wants.
 
-Every release attaches `sofd-<version>-server-image.tar`, an image written by
-`docker save`:
+Every release publishes the image to the GitHub container registry, tagged with
+the version and with `latest`:
 
 ```sh
-docker load -i sofd-0.7.0-server-image.tar
-docker run -d -p 8080:8080 -v sofd-data:/var/lib/sofd sofd-server:release
+docker pull ghcr.io/emfox/sofd-server:0.7.0
+docker run -d -p 8080:8080 -v sofd-data:/var/lib/sofd ghcr.io/emfox/sofd-server:0.7.0
 ```
+
+A release tag names a version, so pinning one is what a deployment that must
+not change under it should do. `latest` is there for a trial.
 
 The image is built for `linux/amd64`. It runs as uid 10001, holds documents in
 `/var/lib/sofd` so they survive a restart, and carries one font family

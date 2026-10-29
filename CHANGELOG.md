@@ -10,7 +10,7 @@ release is written up is in
 
 ### Server
 
-- **The server ships as a container image**, `sofd-<version>-server-image.tar`, which `docker load` takes; the release job proves it serves and draws before attaching it.
+- **The server ships as a container image** on the GitHub container registry, `ghcr.io/emfox/sofd-server`, tagged with the version and `latest`; the release job proves it serves and draws before it pushes.
 
 ### Reader
 
