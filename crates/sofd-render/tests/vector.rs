@@ -9,7 +9,7 @@ use std::sync::Arc;
 use sofd_common::{Millimeter, Rect};
 use sofd_display::ops::{Color, Paint, PaintRule, StrokeStyle};
 use sofd_display::text::GlyphRun;
-use sofd_display::{DisplayListBuilder, DrawOp, PageDisplay};
+use sofd_display::{DisplayListBuilder, DrawOp, ImageCodec, ImageRef, PageDisplay};
 use sofd_font::{FontId, FontManager};
 use sofd_geometry::{Affine, Path};
 use sofd_render::{RenderOptions, Shape, VectorPage, page_to_vector, render_page};
@@ -109,6 +109,9 @@ fn draw_onto_canvas(page: &VectorPage, dpi: f64) -> (u32, u32, Vec<u8>) {
                     scale,
                 );
             }
+            // This canvas fills solid colours only, so a bitmap has nothing to
+            // say to it; what an image carries is checked on its own below.
+            Shape::Image { .. } => {}
             Shape::Text { path, fill, .. } => {
                 let Some(Paint::Solid(color)) = fill else {
                     continue;
@@ -414,4 +417,111 @@ fn a_windowed_page_covers_only_the_window() {
         "{:?}",
         vector.page_box
     );
+}
+
+#[test]
+fn an_image_travels_with_its_bytes_and_where_they_go() {
+    // A canvas backend cannot draw a picture the engine decoded for it without
+    // decoding it again, so the bytes come through as the package carries them
+    // and the placement as one matrix.
+    let fonts = FontManager::new();
+    let png = {
+        let mut px = tiny_skia::Pixmap::new(4, 2).expect("pixmap");
+        px.fill(tiny_skia::Color::from_rgba8(255, 0, 0, 255));
+        px.encode_png().expect("png")
+    };
+    let dst = Rect::new(20.0, 30.0, 40.0, 20.0);
+    let image = ImageRef::new("7", Arc::new(png.clone()), (4, 2), ImageCodec::Png);
+    let page = page_with(vec![DrawOp::Image {
+        image,
+        dst,
+        transform: Affine::IDENTITY,
+    }]);
+    let vector = page_to_vector(&page, &fonts, &RenderOptions::default());
+    let Shape::Image { image, to_page } = &vector.shapes[0] else {
+        panic!("expected an image, got {:?}", vector.shapes[0]);
+    };
+    assert_eq!(
+        image.data.as_slice(),
+        png.as_slice(),
+        "the bytes are the package's own"
+    );
+    assert_eq!(image.pixel_size, (4, 2));
+
+    // The four pixel corners land on the four page corners of the box.
+    let corner = |x: f64, y: f64| to_page.apply(x, y);
+    let near = |a: (f64, f64), b: (f64, f64)| (a.0 - b.0).abs() < 1e-9 && (a.1 - b.1).abs() < 1e-9;
+    assert!(
+        near(corner(0.0, 0.0), (20.0, 30.0)),
+        "{:?}",
+        corner(0.0, 0.0)
+    );
+    assert!(
+        near(corner(4.0, 2.0), (60.0, 50.0)),
+        "{:?}",
+        corner(4.0, 2.0)
+    );
+}
+
+#[test]
+fn a_rotated_page_carries_its_images_round_with_it() {
+    // The matrix rather than a rectangle, because a placement can be turned and
+    // a canvas takes a turned image the same way it takes an upright one.
+    let fonts = FontManager::new();
+    let png = {
+        let mut px = tiny_skia::Pixmap::new(2, 2).expect("pixmap");
+        px.fill(tiny_skia::Color::from_rgba8(0, 255, 0, 255));
+        px.encode_png().expect("png")
+    };
+    let image = ImageRef::new("8", Arc::new(png), (2, 2), ImageCodec::Png);
+    let page = page_with(vec![
+        DrawOp::Transform(Affine::rotate_deg(90.0)),
+        DrawOp::Image {
+            image,
+            dst: Rect::new(10.0, 0.0, 10.0, 10.0),
+            transform: Affine::IDENTITY,
+        },
+    ]);
+    let vector = page_to_vector(&page, &fonts, &RenderOptions::default());
+    let Shape::Image { to_page, .. } = &vector.shapes[0] else {
+        panic!("expected an image");
+    };
+    // A quarter turn sends the picture's own x axis down the page, and leaves
+    // the two axes at right angles to each other.
+    let origin = to_page.apply(0.0, 0.0);
+    let along = |x: f64, y: f64| {
+        let p = to_page.apply(x, y);
+        (p.0 - origin.0, p.1 - origin.1)
+    };
+    let across = along(2.0, 0.0);
+    let down = along(0.0, 2.0);
+    assert!(
+        across.1.abs() > across.0.abs(),
+        "the x axis turned down the page: {across:?}"
+    );
+    let dot = across.0 * down.0 + across.1 * down.1;
+    assert!(dot.abs() < 1e-9, "the axes stayed square: {dot}");
+}
+
+#[test]
+fn a_page_reports_the_glyphs_it_could_not_draw() {
+    // The raster counts what it lost; a caller drawing shapes has to be told
+    // the same way, or a page missing a character looks complete.
+    let (fonts, id) = manager_with_fixture();
+    let run = run_of("AB", &fonts, id, (30.0, 60.0));
+    let page = page_with(vec![DrawOp::Text(run)]);
+    let clean = page_to_vector(&page, &fonts, &RenderOptions::default());
+    assert_eq!(clean.missing_glyphs, 0, "the letters resolve");
+    assert_eq!(clean.missing_glyph_runs, 0);
+
+    // The fixture has no ideograph, and no substitute is chained here.
+    let mut run = run_of("AB", &fonts, id, (30.0, 60.0));
+    run.glyphs.push(0x4E2D);
+    run.advances.push(20.0);
+    run.text = Some("AB\u{4e2d}".to_string());
+    let page = page_with(vec![DrawOp::Text(run)]);
+    let partial = page_to_vector(&page, &fonts, &RenderOptions::default());
+    assert_eq!(partial.missing_glyphs, 1, "one character had no outline");
+    assert_eq!(partial.missing_glyph_runs, 1, "and one run was short");
+    assert_eq!(partial.shapes.len(), 1, "the two letters are still drawn");
 }

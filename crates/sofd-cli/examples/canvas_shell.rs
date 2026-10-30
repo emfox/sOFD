@@ -45,22 +45,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     counts.segments += path.len();
                 }
+                // A bitmap is handed over undecoded, so this walk can only say
+                // it is there; a real canvas makes an image of the bytes and
+                // draws it through `to_page`.
+                Shape::Image { .. } => counts.images += 1,
                 Shape::Clip { .. } => counts.clips += 1,
                 Shape::ClipReset => counts.resets += 1,
             }
         }
         println!(
-            "  page {index}: {:.1} x {:.1} mm, {} shape(s), {} segment(s)",
+            "  page {index}: {:.1} x {:.1} mm, {} shape(s), {} image(s), {} segment(s)",
             page.page_box.w,
             page.page_box.h,
             counts.paths + counts.texts,
+            counts.images,
             counts.segments
         );
         total.add(&counts);
     }
     println!(
-        "{} path(s), {} text run(s), {} fill(s), {} stroke(s), {} clip(s) in {} scope(s)",
-        total.paths, total.texts, total.fills, total.strokes, total.clips, total.resets
+        "{} path(s), {} text run(s), {} image(s), {} fill(s), {} stroke(s), {} clip(s) in {} scope(s)",
+        total.paths,
+        total.texts,
+        total.images,
+        total.fills,
+        total.strokes,
+        total.clips,
+        total.resets
     );
     Ok(())
 }
@@ -73,6 +84,7 @@ struct Counts {
     fills: usize,
     strokes: usize,
     segments: usize,
+    images: usize,
     clips: usize,
     resets: usize,
 }
@@ -84,6 +96,7 @@ impl Counts {
         self.fills += other.fills;
         self.strokes += other.strokes;
         self.segments += other.segments;
+        self.images += other.images;
         self.clips += other.clips;
         self.resets += other.resets;
     }
