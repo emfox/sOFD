@@ -563,14 +563,14 @@ impl PageSink for PdfSink<'_> {
         }
     }
 
-    fn image(&mut self, image: &ImageRef, dst: Rect, transform: Affine) {
+    fn image(&mut self, image: &ImageRef, dst: Rect) {
         if image.data.is_empty() {
             return;
         }
         // `Do` paints across the unit square, so the rect is the placement:
         // dividing by the pixel count too would shrink a 159-px seal to a dot.
         let placement = Affine::new(dst.w, 0.0, 0.0, dst.h, dst.x, dst.y);
-        let total = self.to_pt(transform.then(placement));
+        let total = self.to_pt(placement);
         let index = self.images.len();
         self.images.push(PendingImage {
             data: image.data.clone(),
@@ -1302,7 +1302,6 @@ mod tests {
                 sofd_display::ImageCodec::Jbig2,
             ),
             dst: Rect::new(20.0, 20.0, 50.0, 50.0),
-            transform: Affine::IDENTITY,
         }]);
         let bytes = page_to_pdf(&p, &PdfOptions::default()).expect("convert");
         let doc = Document::load_from(&bytes[..]).expect("parse");
@@ -1328,7 +1327,6 @@ mod tests {
                 sofd_display::ImageCodec::Png,
             ),
             dst: Rect::new(5.0, 5.0, 10.0, 10.0),
-            transform: Affine::IDENTITY,
         }]);
         let bytes = page_to_pdf(&p, &PdfOptions::default()).expect("convert");
         let doc = Document::load_from(&bytes[..]).expect("parse");

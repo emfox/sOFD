@@ -56,13 +56,16 @@ pub enum DrawOp {
     Text(GlyphRun),
 
     /// Draw an image.
+    ///
+    /// `dst` is the image's unit square in the object's content space, in
+    /// absolute page millimetres: a backend maps the bitmap onto `dst` and
+    /// the placement CTM on the state carries it to the boundary. No
+    /// per-image transform exists; a placement folds any into the state.
     Image {
         /// Resolved image source.
         image: ImageRef,
         /// Destination rectangle in absolute page space.
         dst: Rect,
-        /// Placement transform.
-        transform: Affine,
     },
 }
 

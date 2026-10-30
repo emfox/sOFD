@@ -183,3 +183,12 @@ codegen-units = 1
 inherits = "release"
 opt-level = "s"
 strip = true
+
+# Debug builds are a local-iteration format, not a deliverable; full debuginfo
+# balloons target/ past 200 GB in a week of edits. Line tables keep backtraces
+# readable at a fraction of the size.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.test]
+debug = "line-tables-only"

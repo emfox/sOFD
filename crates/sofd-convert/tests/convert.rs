@@ -277,7 +277,6 @@ fn seal_page(png: Vec<u8>) -> PageDisplay {
                 sofd_display::ImageCodec::Png,
             ),
             dst: Rect::new(10.0, 10.0, 40.0, 40.0),
-            transform: sofd_geometry::Affine::IDENTITY,
         }],
         content_bbox: Rect::new(10.0, 10.0, 50.0, 50.0),
     }

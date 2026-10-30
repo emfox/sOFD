@@ -442,7 +442,6 @@ mod tests {
         b.push(DrawOp::Image {
             image: image_ref(),
             dst: Rect::new(80.0, 90.0, 40.0, 30.0),
-            transform: Affine::IDENTITY,
         });
         let bbox = b.finish(0).content_bbox;
 

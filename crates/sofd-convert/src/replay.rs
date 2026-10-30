@@ -84,7 +84,7 @@ pub trait PageSink {
     fn text(&mut self, run: &GlyphRun);
 
     /// Draw an image.
-    fn image(&mut self, image: &ImageRef, dst: Rect, transform: Affine);
+    fn image(&mut self, image: &ImageRef, dst: Rect);
 }
 
 /// Replay one page into `sink`, rejecting an unbalanced restore.
@@ -122,11 +122,7 @@ pub fn replay(page: &PageDisplay, sink: &mut impl PageSink) -> Result<()> {
                 rule: *rule,
             }),
             DrawOp::Text(run) => sink.text(run),
-            DrawOp::Image {
-                image,
-                dst,
-                transform,
-            } => sink.image(image, *dst, *transform),
+            DrawOp::Image { image, dst } => sink.image(image, *dst),
         }
     }
     Ok(())
@@ -176,7 +172,7 @@ mod tests {
             self.log.push("text".into());
         }
 
-        fn image(&mut self, _: &ImageRef, _: Rect, _: Affine) {
+        fn image(&mut self, _: &ImageRef, _: Rect) {
             self.log.push("image".into());
         }
     }
@@ -237,7 +233,6 @@ mod tests {
                     ImageCodec::Png,
                 ),
                 dst: Rect::new(0.0, 0.0, 1.0, 1.0),
-                transform: Affine::IDENTITY,
             },
             DrawOp::Path {
                 path: rect.clone(),

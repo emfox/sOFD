@@ -432,11 +432,7 @@ fn an_image_travels_with_its_bytes_and_where_they_go() {
     };
     let dst = Rect::new(20.0, 30.0, 40.0, 20.0);
     let image = ImageRef::new("7", Arc::new(png.clone()), (4, 2), ImageCodec::Png);
-    let page = page_with(vec![DrawOp::Image {
-        image,
-        dst,
-        transform: Affine::IDENTITY,
-    }]);
+    let page = page_with(vec![DrawOp::Image { image, dst }]);
     let vector = page_to_vector(&page, &fonts, &RenderOptions::default());
     let Shape::Image { image, to_page } = &vector.shapes[0] else {
         panic!("expected an image, got {:?}", vector.shapes[0]);
@@ -479,7 +475,6 @@ fn a_rotated_page_carries_its_images_round_with_it() {
         DrawOp::Image {
             image,
             dst: Rect::new(10.0, 0.0, 10.0, 10.0),
-            transform: Affine::IDENTITY,
         },
     ]);
     let vector = page_to_vector(&page, &fonts, &RenderOptions::default());

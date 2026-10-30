@@ -235,12 +235,7 @@ fn gb_t_33190_10_an_image_placement_scales_the_unit_square() {
         .iter()
         .position(|op| matches!(op, DrawOp::Image { .. }))
         .expect("the page places an image");
-    let DrawOp::Image {
-        dst,
-        transform,
-        image,
-    } = &page.ops[placement]
-    else {
+    let DrawOp::Image { dst, image } = &page.ops[placement] else {
         unreachable!()
     };
     // The fixture boundaries the object at "10 10 50 50": an origin of
@@ -250,11 +245,6 @@ fn gb_t_33190_10_an_image_placement_scales_the_unit_square() {
         *dst,
         Rect::new(0.0, 0.0, 1.0, 1.0),
         "the placement addresses a unit square"
-    );
-    assert_eq!(
-        *transform,
-        Affine::IDENTITY,
-        "so that the unit square is scaled once, not twice"
     );
     // The boundary reaches the list as a transform bracketing the placement.
     let boundary = page.ops[..placement]

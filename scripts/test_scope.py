@@ -12,6 +12,11 @@ Tiers:
             (the default, and what a PR should run);
   full      the whole workspace, for releases and changes to shared roots.
 
+The GUI shells (egui, tauri) are where an affected run loses its hour: eframe
+and its test harness link enormous binaries, while the shells themselves are
+thin bindings that a compile check covers. An affected run therefore tests
+the engine and only *checks* the shells; pass --all to test them too.
+
 Usage:
   test_scope.py --tier affected            # diff against HEAD (working tree)
   test_scope.py --tier affected --base main
@@ -25,6 +30,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# Thin bindings over the facade: a type error surfaces in seconds of checking,
+# and their test binaries cost minutes of linking each.
+SHELLS = {"sofd-egui", "sofd-tauri"}
 
 
 def changed_files(base: str | None) -> list[str]:
@@ -89,6 +98,7 @@ def main() -> int:
     ap.add_argument("--tier", choices=["crate", "affected", "full"], default="affected")
     ap.add_argument("--base", help="git ref to diff against (default: working tree)")
     ap.add_argument("--run", action="store_true", help="run cargo test, not just print")
+    ap.add_argument("--all", action="store_true", help="test the GUI shells too, not just check them")
     args = ap.parse_args()
 
     files = changed_files(args.base)
@@ -101,17 +111,29 @@ def main() -> int:
         if args.tier == "crate":
             crates = seeds
 
+    shells = sorted(crates & SHELLS) if crates else []
+    if crates is not None:
+        crates = crates - (set() if args.all else SHELLS)
+
     names = " ".join(sorted(crates)) if crates else "--workspace"
-    reason = "workspace (shared root or no crate mapping)" if crates is None else "affected closure"
+    if crates is None:
+        reason, cmd = "workspace (shared root or no crate mapping)", "cargo test -q --workspace"
+    else:
+        reason = "affected closure"
+        cmd = "cargo test -q" + "".join(f" -p {c}" for c in sorted(crates))
     print(f"# seeds: {', '.join(sorted(seeds)) or '(none)'}")
     print(f"# tier: {args.tier} -> {reason}")
-    print(f"cargo test -q -p {names}" if crates else "cargo test -q --workspace")
+    print(cmd)
+    for shell in shells:
+        if not args.all:
+            print(f"cargo check -q -p {shell}   # shell: checked, tested only in CI")
 
     if args.run:
-        cmd = ["cargo", "test", "-q"] + (
-            sum([["-p", c] for c in sorted(crates)], []) if crates else ["--workspace"]
-        )
-        return subprocess.run(cmd, cwd=ROOT).returncode
+        status = subprocess.run(cmd.split(), cwd=ROOT).returncode
+        for shell in shells:
+            if not args.all:
+                status |= subprocess.run(["cargo", "check", "-q", "-p", shell], cwd=ROOT).returncode
+        return status
     return 0
 
 

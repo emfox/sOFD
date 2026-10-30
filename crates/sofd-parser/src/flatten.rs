@@ -998,7 +998,6 @@ fn flatten_image(i: &ImageObject, builder: &mut DisplayListBuilder) -> Result<()
         b.push(DrawOp::Image {
             image,
             dst: Rect::new(0.0, 0.0, 1.0, 1.0),
-            transform: Affine::IDENTITY,
         });
         Ok(())
     })
@@ -1028,7 +1027,6 @@ fn flatten_composite(
             b.push(DrawOp::Image {
                 image: ImageRef::new(sub.clone(), Arc::new(Vec::new()), (1, 1), ImageCodec::Png),
                 dst: Rect::new(0.0, 0.0, 1.0, 1.0),
-                transform: Affine::IDENTITY,
             });
             Ok(())
         } else {

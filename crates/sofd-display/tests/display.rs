@@ -155,7 +155,6 @@ fn an_image_contributes_its_destination_rectangle() {
             ImageCodec::Png,
         ),
         dst: Rect::new(1.0, 2.0, 30.0, 40.0),
-        transform: Affine::IDENTITY,
     });
     let page = builder.finish(0);
     assert_eq!(page.content_bbox, Rect::new(1.0, 2.0, 30.0, 40.0));

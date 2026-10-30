@@ -259,14 +259,12 @@ pub fn render_page(
                     }
                 }
             }
-            DrawOp::Image {
-                image,
-                dst,
-                transform,
-            } => match draw_image(&mut pixmap, image, *dst, *transform, &state, view, options)? {
-                ImageOutcome::Drawn => {}
-                ImageOutcome::Failed => skipped_image_ops += 1,
-            },
+            DrawOp::Image { image, dst } => {
+                match draw_image(&mut pixmap, image, *dst, &state, view, options)? {
+                    ImageOutcome::Drawn => {}
+                    ImageOutcome::Failed => skipped_image_ops += 1,
+                }
+            }
         }
     }
 
@@ -639,7 +637,6 @@ mod tests {
         let page = page_with(vec![DrawOp::Image {
             image: ImageRef::new("img1", Arc::new(png), (4, 4), ImageCodec::Png),
             dst: Rect::new(10.0, 10.0, 8.0, 8.0),
-            transform: Affine::IDENTITY,
         }]);
         let out = render(&page, &manager);
         assert_eq!(pixel_at(&out, 50, 50)[2], 255, "image area is blue");
@@ -670,7 +667,6 @@ mod tests {
             DrawOp::Image {
                 image: ImageRef::new("img1", Arc::new(png), (4, 4), ImageCodec::Png),
                 dst: Rect::new(1.0, 1.0, 1.0, 1.0),
-                transform: Affine::IDENTITY,
             },
             DrawOp::Restore,
         ]);

@@ -447,11 +447,7 @@ fn an_image_lands_inside_the_rect_its_boundary_names() {
     };
     let dst = Rect::new(20.0, 20.0, 40.0, 40.0);
     let image = ImageRef::new("1", Arc::new(png), (4, 4), ImageCodec::Png);
-    let page = page_with(vec![DrawOp::Image {
-        image,
-        dst,
-        transform: Affine::IDENTITY,
-    }]);
+    let page = page_with(vec![DrawOp::Image { image, dst }]);
     let options = RenderOptions::default();
     let output = render_page(&page, &fonts, &options).expect("render");
     let k = options.dpi / 25.4;
@@ -481,11 +477,7 @@ fn a_jbig2_image_is_decoded_and_painted() {
     assert_eq!((w, h), (100, 100), "the sample is a 100x100 QR code");
     let dst = Rect::new(20.0, 20.0, 50.0, 50.0);
     let image = ImageRef::new("1", Arc::new(data), (w, h), ImageCodec::Jbig2);
-    let page = page_with(vec![DrawOp::Image {
-        image,
-        dst,
-        transform: Affine::IDENTITY,
-    }]);
+    let page = page_with(vec![DrawOp::Image { image, dst }]);
     let output = render_page(&page, &fonts, &RenderOptions::default()).expect("render");
     let bytes = output.rgba_bytes();
     let (pixels, _) = bytes.as_chunks::<4>();
@@ -522,7 +514,6 @@ fn a_placement_with_no_bytes_leaves_the_area_untouched() {
     let page = page_with(vec![DrawOp::Image {
         image,
         dst: Rect::new(10.0, 10.0, 50.0, 50.0),
-        transform: Affine::IDENTITY,
     }]);
     let output = render_page(&page, &fonts, &RenderOptions::default()).expect("render");
     assert_eq!(pixel(&output, 100, 100), [255, 255, 255, 255]);
@@ -537,11 +528,7 @@ fn a_gif_image_is_decoded_and_painted() {
         .expect("the sample is present");
     let dst = Rect::new(20.0, 20.0, 40.0, 30.0);
     let image = ImageRef::new("1", Arc::new(data), (40, 30), ImageCodec::Gif);
-    let page = page_with(vec![DrawOp::Image {
-        image,
-        dst,
-        transform: Affine::IDENTITY,
-    }]);
+    let page = page_with(vec![DrawOp::Image { image, dst }]);
     let output = render_page(&page, &fonts, &RenderOptions::default()).expect("render");
     let bytes = output.rgba_bytes();
     let (pixels, _) = bytes.as_chunks::<4>();
@@ -565,7 +552,6 @@ fn an_image_that_will_not_decode_is_skipped_not_fatal() {
         DrawOp::Image {
             image: broken,
             dst: Rect::new(10.0, 10.0, 20.0, 20.0),
-            transform: Affine::IDENTITY,
         },
     ]);
     let output = render_page(&page, &fonts, &RenderOptions::default()).expect("render");

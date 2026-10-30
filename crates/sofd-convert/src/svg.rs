@@ -468,7 +468,7 @@ impl PageSink for SvgSink<'_> {
         }
     }
 
-    fn image(&mut self, image: &ImageRef, dst: Rect, transform: Affine) {
+    fn image(&mut self, image: &ImageRef, dst: Rect) {
         let Some(href) = data_uri(image) else {
             self.stats.images_skipped += 1;
             return;
@@ -476,8 +476,7 @@ impl PageSink for SvgSink<'_> {
         self.stats.images += 1;
         let (iw, ih) = image.pixel_size;
         let (iw, ih) = (iw.max(1) as f64, ih.max(1) as f64);
-        let pixel_to_page = Affine::new(dst.w / iw, 0.0, 0.0, dst.h / ih, dst.x, dst.y);
-        let place = transform.then(pixel_to_page);
+        let place = Affine::new(dst.w / iw, 0.0, 0.0, dst.h / ih, dst.x, dst.y);
         // The element spans the whole bitmap, so the rectangle form needs the
         // scaled pixel extent; anything mirrored or rotated takes the matrix
         // form, where the element keeps its natural pixel size.
@@ -1306,24 +1305,9 @@ mod tests {
                 ImageCodec::Png,
             ),
             dst: Rect::new(5.0, 6.0, 7.0, 8.0),
-            transform: Affine::IDENTITY,
         }]);
         let svg = page_to_svg(&p, &SvgOptions::default()).expect("convert");
         assert!(svg.contains("<image href=\"data:image/png;base64,AQIDBA==\" x=\"5\" y=\"6\" width=\"7\" height=\"8\"/>"));
-    }
-
-    #[test]
-    fn a_rotated_image_falls_back_to_the_matrix_form() {
-        let p = page(vec![DrawOp::Image {
-            image: ImageRef::new("i", std::sync::Arc::new(vec![1]), (1, 1), ImageCodec::Png),
-            dst: Rect::new(0.0, 0.0, 10.0, 10.0),
-            transform: Affine::rotate_deg(90.0),
-        }]);
-        let svg = page_to_svg(&p, &SvgOptions::default()).expect("convert");
-        assert!(
-            svg.contains("<image href=\"data:image/png;base64,AQ==\" width=\"1\" height=\"1\"")
-        );
-        assert!(svg.contains("transform=\"matrix("));
     }
 
     #[test]

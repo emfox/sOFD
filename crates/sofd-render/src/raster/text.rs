@@ -109,7 +109,6 @@ pub(crate) fn draw_image(
     pixmap: &mut Pixmap,
     image: &ImageRef,
     dst: Rect,
-    transform: Affine,
     state: &State,
     view: Rect,
     options: &RenderOptions,
@@ -135,13 +134,9 @@ pub(crate) fn draw_image(
     };
 
     // The pixels fill the destination rect and nothing else: the placement
-    // CTM is already in the graphics state, so applying `transform` here
-    // would scale the placement a second time.
+    // CTM is already in the graphics state. `post_concat` applies the rect
+    // before the millimetre-to-pixel step, which is the order offsets need.
     let pixel_rect = Affine::new(dst.w / iw as f64, 0.0, 0.0, dst.h / ih as f64, dst.x, dst.y);
-    // `post_concat` multiplies on the right, which applies the rect before the
-    // millimetre-to-pixel step: that is the order the offsets need, since
-    // `pre_concat` would scale the rect's own origin by the page scale.
-    let _ = transform;
     let total = to_ts(pixel_rect).post_concat(total_transform(state, &view, options.dpi));
     pixmap.draw_pixmap(
         0,
