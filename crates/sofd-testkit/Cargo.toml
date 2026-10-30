@@ -12,7 +12,6 @@ publish = false
 [dependencies]
 sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-crypto = { path = "../sofd-crypto", version = "0.7" }
-sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-package = { path = "../sofd-package", version = "0.6" }
 sofd-sign = { path = "../sofd-sign", version = "0.7", optional = true }
 

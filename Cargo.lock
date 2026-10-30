@@ -6358,13 +6358,9 @@ dependencies = [
 name = "sofd-edit"
 version = "0.5.3"
 dependencies = [
- "sofd",
  "sofd-common",
- "sofd-display",
  "sofd-error",
  "sofd-model",
- "sofd-package",
- "sofd-testkit",
  "tracing",
 ]
 
@@ -6384,12 +6380,9 @@ dependencies = [
  "rfd",
  "sofd",
  "sofd-common",
- "sofd-error",
  "sofd-i18n",
  "sofd-icons",
- "sofd-print",
  "sofd-session",
- "sofd-sign",
  "sofd-testkit",
  "tracing",
  "wasm-bindgen",
@@ -6413,7 +6406,6 @@ dependencies = [
  "sofd",
  "sofd-bindings",
  "sofd-error",
- "sofd-font",
  "sofd-testkit",
 ]
 
@@ -6450,7 +6442,6 @@ dependencies = [
  "fluent-bundle",
  "fluent-langneg",
  "serde",
- "sofd-error",
  "tracing",
  "unic-langid",
 ]
@@ -6631,7 +6622,6 @@ version = "0.6.0"
 dependencies = [
  "sofd-common",
  "sofd-crypto",
- "sofd-error",
  "sofd-package",
  "sofd-sign",
 ]
@@ -6646,7 +6636,6 @@ dependencies = [
  "sofd",
  "sofd-bindings",
  "sofd-error",
- "sofd-font",
  "sofd-testkit",
  "tracing-wasm",
  "wasm-bindgen",

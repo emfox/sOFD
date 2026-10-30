@@ -15,7 +15,6 @@ categories = ["localization"]
 # data, and presentation renders the localized text.
 
 [dependencies]
-sofd-error = { path = "../sofd-error", version = "0.5" }
 fluent.workspace = true
 fluent-bundle.workspace = true
 fluent-langneg.workspace = true

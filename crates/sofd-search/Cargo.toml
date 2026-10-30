@@ -14,11 +14,13 @@ categories = ["text-processing"]
 sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-display = { path = "../sofd-display", version = "0.8" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
-sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 tracing.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+# The tests place hits with an `Affine` of their own; the crate itself never
+# names one.
+sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-package = { path = "../sofd-package", version = "0.6" }
 sofd-parser = { path = "../sofd-parser", version = "0.5" }
 sofd-testkit = { path = "../sofd-testkit" }
