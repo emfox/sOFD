@@ -11,7 +11,7 @@ keywords = ["ofd", "raster", "render", "anti-aliasing", "tiny-skia"]
 categories = ["rendering", "multimedia::images"]
 
 [dependencies]
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }

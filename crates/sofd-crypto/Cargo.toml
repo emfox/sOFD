@@ -11,7 +11,7 @@ keywords = ["ofd", "sm2", "sm3", "sm4", "digital-signature"]
 categories = ["cryptography", "authentication"]
 
 [dependencies]
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sm2.workspace = true
 signature.workspace = true

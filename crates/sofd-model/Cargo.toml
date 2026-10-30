@@ -11,7 +11,7 @@ keywords = ["ofd", "document", "model", "gb-t-33190"]
 categories = ["parser-implementations"]
 
 [dependencies]
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 serde.workspace = true
 serde_json.workspace = true

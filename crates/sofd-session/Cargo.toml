@@ -12,7 +12,7 @@ publish = false
 [dependencies]
 sofd = { path = "../sofd", version = "0.7", features = ["render", "search", "pdf", "print", "annot", "sign"] }
 # A search hit carries a page-space rectangle, and `Rect` is defined here.
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-i18n = { path = "../sofd-i18n", version = "0.5" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 # The session plans print jobs through the facade and names their settings.

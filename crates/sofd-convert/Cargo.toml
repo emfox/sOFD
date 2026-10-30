@@ -13,7 +13,7 @@ categories = ["multimedia::encoding"]
 # Conversion reads one display list and writes another format,
 # so it depends on display plus the relevant format readers and writers.
 [dependencies]
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-display = { path = "../sofd-display", version = "0.6" }
 sofd-io = { path = "../sofd-io", version = "0.5" }

@@ -11,7 +11,7 @@ keywords = ["ofd", "search", "full-text", "text"]
 categories = ["text-processing"]
 
 [dependencies]
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-display = { path = "../sofd-display", version = "0.6" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }

@@ -13,7 +13,7 @@ categories = ["rendering"]
 # The display list is the shared IR for render, print and export.
 # It depends on geometry and fonts, never on a concrete backend.
 [dependencies]
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }

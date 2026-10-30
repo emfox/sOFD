@@ -15,9 +15,6 @@ pub use time::{parse_compact_utc, parse_utc};
 pub use units::{Millimeter, Point, Rect, Unit};
 pub use version::{OfdVersion, SpecVersion};
 
-/// Common namespace prefix used throughout OFD documents (GB/T 33190-2016 5.1).
-pub const OFD_NS: &str = "http://www.ofd.org/ofd/1.0/";
-
 /// Conventional ZIP container entry point.
 pub const OFD_ENTRY: &str = "OFD.xml";
 

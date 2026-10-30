@@ -13,7 +13,7 @@ categories = ["multimedia::images"]
 # Printing consumes the same display list as screen rendering,
 # which is what keeps output faithful to the preview.
 [dependencies]
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-display = { path = "../sofd-display", version = "0.6" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }

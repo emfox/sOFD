@@ -11,7 +11,7 @@ keywords = ["ofd", "geometry", "path", "transform", "affine"]
 categories = ["rendering"]
 
 [dependencies]
-sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.6" }
 serde.workspace = true
 
 [package.metadata.cargo-semver-checks.lints]
