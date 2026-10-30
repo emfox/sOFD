@@ -1,13 +1,9 @@
-//! sofd-convert
-//! Turns one page's op stream into another format: SVG, PDF or PNG.
-//! A new target format means one [`replay::PageSink`] implementation and nothing else.
+//! sofd-convert: one page's op stream, written as another format.
+//! A new target format means one [`replay::PageSink`] and nothing else.
 //!
-//! A page, not a document. Assembling pages into one file — the catalog, the
-//! page tree, the counts summed across them — belongs to whoever holds the
-//! document, and that is a layer above this one. What this crate offers that
-//! caller is the per-page sink, which writes one page into a document the
-//! caller owns.
-
+//! A page, not a document: assembling pages into one file belongs to whoever
+//! holds the document, a layer above. What this crate hands that caller — the
+//! facade `sofd` — is the per-page sink, and nothing here opens a document.
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 

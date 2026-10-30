@@ -1,12 +1,7 @@
 //! Assembling one PDF file out of the pages a document converted.
 //!
-//! `sofd-convert` writes a single page into a document and stops there. The
-//! tree over the pages — the `/Pages` node naming them in order, each page's
-//! `/Parent`, the `/Catalog` a reader starts from — is what turns a set of page
-//! objects into a file, and it belongs to whoever holds the document.
-//!
-//! This module is that step and nothing else, so `Document::to_pdf_pages` reads
-//! as the loop it is.
+//! `sofd-convert` writes a single page and stops there; the `/Pages` tree and
+//! the `/Catalog` over them turn page objects into a file, and belong here.
 
 #[cfg(feature = "pdf")]
 use lopdf::{Dictionary, Document, Object, ObjectId};

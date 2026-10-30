@@ -20,10 +20,7 @@ const PAGES: &[usize] = &[1, 8, 20];
 /// The first page of a document, flattened, with the faces it draws from.
 ///
 /// This crate converts one page and never opens a document, so the benchmark
-/// parses one directly rather than going through the facade. The measurement is
-/// the conversion; reaching the page is setup, and reaching it through the
-/// facade would make this crate depend on the layer above it — the very edge
-/// this crate no longer has.
+/// parses one directly: reaching the page is setup, not the measurement.
 fn fixture(pages: usize) -> (PageDisplay, FontManager) {
     let bytes = bench_archive(pages);
     let source = SliceSource::new(&bytes, "benchmark document");

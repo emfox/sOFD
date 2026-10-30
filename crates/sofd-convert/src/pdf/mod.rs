@@ -2,9 +2,8 @@
 //! Every transform is baked into the content stream, so the output is a flat
 //! sequence of absolute painting operators that any viewer can replay.
 //!
-//! One page in, one page out. [`PdfSink::emit_page`] hands a caller the page
-//! object it wrote, so a document-level export composes pages above this crate
-//! rather than here.
+//! One page in, one page out: [`PdfSink::emit_page`] hands back the object it
+//! wrote, so a document-level export composes pages above this crate.
 
 use std::fmt::Write as _;
 

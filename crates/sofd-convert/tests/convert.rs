@@ -3,9 +3,7 @@
 //! observe: the shape of the bytes, the reported stats, and the errors.
 //!
 //! One page at a time, because that is what this crate promises. A test about
-//! exporting a *document* — several pages in one file, a selection, the counts
-//! summed across them — is in `sofd/tests/export.rs`: assembling pages belongs
-//! to the layer that holds the document.
+//! exporting a *document* is in `sofd/tests/export.rs`, beside the facade.
 
 use sofd_common::{Millimeter, Rect};
 use sofd_convert::{ConversionStats, PdfOptions, SvgOptions, TextExport, page_to_pdf, page_to_svg};

@@ -1,14 +1,8 @@
 //! What exporting a whole document produces, driven through the facade.
 //!
-//! These used to live beside the page-level tests in `sofd-convert`, building a
-//! `DisplayList` by hand. That put the document-level expectations in the crate
-//! that only converts a page — and forced it to depend on the facade for the
-//! fixtures. A document is what the facade hands out, so this is where a test
-//! about "the document as one PDF" belongs.
-//!
-//! `sofd-package` builds the archives instead of `sofd_testkit`: the point of
-//! several cases below is a document whose pages are *not* all the same size,
-//! which a fixture archive with one physical box cannot express.
+//! A document is what the facade hands out, so a test about "the document as
+//! one PDF" belongs here. `sofd-package` builds the archives, not a fixture one:
+//! several cases need pages of *different* sizes, which one box cannot express.
 
 /// The entry point naming one document, the shape every OFD container needs.
 const OFD_XML: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
