@@ -709,13 +709,8 @@ fn stops_markup(stops: &[sofd_display::ops::GradientStop]) -> String {
 /// The outline of every glyph in a run, in page space, in draw order. Outlines
 /// are normalized to 1/1000 em with y up, so scale to millimetres then place.
 fn glyph_paths(run: &GlyphRun, face: &sofd_font::FontFace) -> Vec<Path> {
-    let mut offset = 0.0;
     let mut paths = Vec::new();
-    for (i, &gid) in run.glyphs.iter().enumerate() {
-        if i > 0 {
-            offset += run.advances.get(i - 1).copied().unwrap_or(0.0);
-        }
-        offset += run.letter_spacing;
+    for (&gid, offset) in run.glyphs.iter().zip(run.glyph_offsets()) {
         let Some(outline) = face.outline_for_run_code(gid, run.codes_are_glyphs) else {
             continue;
         };

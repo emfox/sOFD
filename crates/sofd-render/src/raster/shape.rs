@@ -47,21 +47,13 @@ pub(crate) fn glyph_outlines(
     face: Arc<sofd_font::FontFace>,
     total: Transform,
 ) -> Result<Vec<tiny_skia::Path>> {
-    let mut offset = 0.0f64;
     let mut paths = Vec::new();
-    for (i, &gid) in run.glyphs.iter().enumerate() {
-        if i > 0 {
-            offset += run.advances.get(i - 1).copied().unwrap_or(0.0);
-        }
-        offset += run.letter_spacing;
+    for (&gid, offset) in run.glyphs.iter().zip(run.glyph_offsets()) {
         let Some((outline, _source)) = fonts.outline_for_code(&face, gid, run.codes_are_glyphs)
         else {
             continue;
         };
-        let k = run.size.value() / 1000.0;
-        let glyph = Affine::new(k, 0.0, 0.0, -k, 0.0, 0.0)
-            .then(Affine::translate(offset, 0.0))
-            .then(run.transform);
+        let glyph = run.glyph_matrix(offset);
         paths.push(to_ts_path(&outline, total.pre_concat(to_ts(glyph)))?);
     }
     Ok(paths)

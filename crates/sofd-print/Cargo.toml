@@ -15,7 +15,7 @@ categories = ["multimedia::images"]
 [dependencies]
 sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
-sofd-display = { path = "../sofd-display", version = "0.6" }
+sofd-display = { path = "../sofd-display", version = "0.7" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-render = { path = "../sofd-render", version = "0.6" }
 sofd-font = { path = "../sofd-font", version = "0.5" }

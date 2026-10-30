@@ -18,7 +18,7 @@ sofd-xml = { path = "../sofd-xml", version = "0.5" }
 sofd-package = { path = "../sofd-package", version = "0.6" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
-sofd-display = { path = "../sofd-display", version = "0.6" }
+sofd-display = { path = "../sofd-display", version = "0.7" }
 sofd-io = { path = "../sofd-io", version = "0.5" }
 tracing.workspace = true
 

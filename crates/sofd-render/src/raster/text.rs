@@ -57,14 +57,9 @@ pub(crate) fn draw_text_inner(
     face: Arc<sofd_font::FontFace>,
     options: &RenderOptions,
 ) -> Result<TextOutcome> {
-    let mut offset = 0.0f64;
     let mut missing = 0usize;
     let wanted = run_wanted(run);
-    for (i, &gid) in run.glyphs.iter().enumerate() {
-        if i > 0 {
-            offset += run.advances.get(i - 1).copied().unwrap_or(0.0);
-        }
-        offset += run.letter_spacing;
+    for (&gid, offset) in run.glyphs.iter().zip(run.glyph_offsets()) {
         let Some((outline, _source)) =
             fonts.outline_for_code_in(&face, gid, run.codes_are_glyphs, &wanted)
         else {

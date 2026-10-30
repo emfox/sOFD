@@ -309,14 +309,9 @@ impl<'a> PdfSink<'a> {
         let Some(fill) = &run.fill else {
             return Outlined::Dropped;
         };
-        let mut offset = 0.0;
         let mut drawn = 0usize;
         let mut missing = 0usize;
-        for (i, &gid) in run.glyphs.iter().enumerate() {
-            if i > 0 {
-                offset += run.advances.get(i - 1).copied().unwrap_or(0.0);
-            }
-            offset += run.letter_spacing;
+        for (&gid, offset) in run.glyphs.iter().zip(run.glyph_offsets()) {
             let Some((outline, _source)) = fonts.outline_for_code(&face, gid, run.codes_are_glyphs)
             else {
                 if fonts.is_missing_code(&face, gid, run.codes_are_glyphs) {

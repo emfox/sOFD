@@ -62,6 +62,25 @@ impl GlyphRun {
         self.text.as_deref().unwrap_or("")
     }
 
+    /// Where each glyph sits along the run, in millimetres.
+    ///
+    /// The advance of the glyph before it moves the pen, and `letter_spacing`
+    /// moves it once per glyph. Every backend places glyphs from this list, so
+    /// the offsets cannot drift apart between the raster, vector, SVG and PDF
+    /// paths.
+    pub fn glyph_offsets(&self) -> Vec<f64> {
+        let mut offset = 0.0;
+        let mut out = Vec::with_capacity(self.glyphs.len());
+        for (i, _) in self.glyphs.iter().enumerate() {
+            if i > 0 {
+                offset += self.advances.get(i - 1).copied().unwrap_or(0.0);
+            }
+            offset += self.letter_spacing;
+            out.push(offset);
+        }
+        out
+    }
+
     /// The matrix that draws a glyph, normalized to 1/1000 em with `y` up, at
     /// `offset` along the run. It turns about its origin before the advance
     /// moves it, so the angle faces the glyph without stepping it.
