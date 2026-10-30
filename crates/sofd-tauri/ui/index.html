@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" data-scheme="light" data-contrast="normal">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- No remote origin is reachable: the window draws documents the reader
+         opened and nothing else. The policy is stated here as well as in the
+         shell's configuration, because this file is what a browser loads. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'"
+    />
+    <title>sOFD</title>
+    <link rel="stylesheet" href="window.css" />
+  </head>
+  <body>
+    <div id="window">
+      <!-- Z1: the header bar. Which document, which view of it, and the rest.
+           Nothing about the page lives here. -->
+      <header class="bar" id="header">
+        <div class="group">
+          <button class="control" id="open" data-icon="Open"></button>
+          <button class="control" id="close" data-icon="Close"></button>
+        </div>
+        <div class="grow"></div>
+        <div class="group" role="group" id="views"></div>
+        <div class="grow"></div>
+        <div class="group">
+          <button
+            class="control"
+            id="menu-button"
+            data-icon="Menu"
+            aria-haspopup="menu"
+            aria-expanded="false"
+          ></button>
+        </div>
+      </header>
+
+      <!-- Z2: the toolbar. Everything that acts on the page on screen, in the
+           order a reader asks: how arranged, which page, how scaled, what
+           written out as. -->
+      <div class="bar" id="toolbar">
+        <div class="group" role="group" id="layouts"></div>
+        <div class="group">
+          <button class="control" id="previous" data-icon="Previous"></button>
+          <button class="control" id="next" data-icon="Next"></button>
+        </div>
+        <div class="group">
+          <button class="control" id="fit-width" data-icon="FitWidth"></button>
+          <button class="control" id="fit-page" data-icon="FitPage"></button>
+        </div>
+        <div class="grow"></div>
+        <div class="group">
+          <button class="control" id="print" data-icon="Print"></button>
+          <button class="control" id="export-pdf" data-icon="ExportPdf"></button>
+          <button class="control" id="export-png" data-icon="ExportPng"></button>
+        </div>
+        <div class="group">
+          <input id="zoom" type="range" min="25" max="800" step="5" />
+          <span id="zoom-value"></span>
+        </div>
+      </div>
+
+      <!-- Z5..Z8 before Z3, so the canvas measures the width actually left. -->
+      <div id="body">
+        <aside class="panel" id="panel" hidden></aside>
+        <!-- Z3: the canvas, and the only zone that draws a page. -->
+        <section id="canvas-zone">
+          <div id="hint"></div>
+          <div id="pages"></div>
+        </section>
+      </div>
+
+      <!-- Z4: what the reader only needs to read. Nothing here is clickable. -->
+      <footer class="bar status" id="status">
+        <span id="document"></span>
+        <span id="position"></span>
+        <span class="grow"></span>
+        <span id="notice"></span>
+        <span class="error" id="error"></span>
+      </footer>
+    </div>
+
+    <!-- The main menu: appearance, language, the shortcuts and the build's
+         name, in that order, and never close or quit. -->
+    <menu class="popover" id="menu" hidden></menu>
+
+    <script src="window.js"></script>
+  </body>
+</html>

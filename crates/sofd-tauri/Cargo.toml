@@ -1,0 +1,42 @@
+[package]
+name = "sofd-tauri"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = "The Tauri shell of the OFD reader: a webview window over the same session"
+# A window, not a library: it has no API of its own to offer, and the webview it
+# links is the platform's, which a registry tarball cannot carry.
+publish = false
+
+[[bin]]
+name = "sofd-tauri"
+path = "src/main.rs"
+
+[dependencies]
+# The window is a webview and the page is a canvas, so the shell supplies what
+# the platform has rather than a renderer of its own.
+tauri = { version = "2.12", features = ["wry", "protocol-asset"] }
+serde.workspace = true
+serde_json.workspace = true
+# The session holds the document, the page cache and every queue, exactly as it
+# does for the `egui` reader; this crate decides how a shape reaches a canvas.
+sofd-session = { path = "../sofd-session", version = "0.6" }
+sofd = { path = "../sofd", version = "0.6", features = ["render", "search", "pdf", "print", "annot", "sign"] }
+# `path_data` writes the same `d` an SVG takes, and `Path2D` takes it too.
+sofd-convert = { path = "../sofd-convert", version = "0.5" }
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-display = { path = "../sofd-display", version = "0.5" }
+sofd-render = { path = "../sofd-render", version = "0.5" }
+# The glyphs are the theme's own drawing, shared with the `egui` shell.
+sofd-icons = { path = "../sofd-icons", version = "0.1" }
+# An image arrives placed by a matrix, which is geometry rather than a rect.
+sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
+
+[dev-dependencies]
+sofd-io = { path = "../sofd-io", version = "0.5" }
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }

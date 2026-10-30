@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The reader asks its own host for pages and state; it opens no remote origin.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

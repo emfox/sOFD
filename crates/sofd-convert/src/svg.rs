@@ -726,7 +726,11 @@ fn glyph_paths(run: &GlyphRun, face: &sofd_font::FontFace) -> Vec<Path> {
 }
 
 /// SVG path data, millimetre coordinates written verbatim.
-fn path_data(path: &Path) -> String {
+///
+/// Public because a canvas takes the same `d`: `Path2D` in a browser, and a
+/// shell that draws geometry rather than a bitmap needs this without the rest
+/// of an SVG document around it.
+pub fn path_data(path: &Path) -> String {
     let mut d = String::new();
     for seg in &path.segments {
         match seg {

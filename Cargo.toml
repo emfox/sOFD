@@ -47,6 +47,7 @@ members = [
     # L5 adapters: the shells, and the session state they share
     "crates/sofd-session",
     "crates/sofd-egui",
+    "crates/sofd-tauri",
 
     # Testing support: fixtures shared by the suites, never released
     "crates/sofd-testkit",

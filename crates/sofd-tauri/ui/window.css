@@ -1,0 +1,348 @@
+/* The window's appearance, from docs/Ui-spec.md section 5.
+ *
+ * This file is the only place in the shell where a colour or a size is written,
+ * exactly as `theme.rs` is for the `egui` reader. A zone names a token; it never
+ * states a number. That is what lets the two shells be recognisably one window
+ * without being byte-identical, and what makes high contrast a change to one
+ * block rather than a hunt through the layout.
+ */
+
+:root {
+  /* 5.1, the light column. */
+  --surface: #fafafa;
+  --panel: #ffffff;
+  --text: #1a1a1a;
+  --dim: #5e5e5e;
+  --border: #dcdcdc;
+  --accent: #1c71d8;
+  --valid: #2a7b3c;
+  --tampered: #b42a2a;
+  --unverified: #8a6100;
+  --canvas: #eeeeee;
+  --hit: #8a6100;
+  --mark: #1559b0;
+
+  /* 5.3, the six-point spacing scale and the sizes a control uses. */
+  --space-small: 6px;
+  --space-medium: 12px;
+  --space-large: 18px;
+  --space-xl: 24px;
+  --control-height: 34px;
+  --radius: 6px;
+  /* 5.4's icon box is 20 points, and a glyph fills 16 of them: the theme draws
+   * on a 16-unit square and the rest is the breathing room that keeps a glyph
+   * from touching the button's edge. The `egui` shell measures its glyphs the
+   * same 16 to 20, so the two are the same size on the same bar. */
+  --icon-box: 16px;
+
+  /* 5.2, the type scale. The reader's text size multiplies the base. */
+  --base-points: 14px;
+  --scale: 1;
+  --text-body: calc(var(--base-points) * var(--scale));
+  --text-caption: calc(var(--base-points) * 0.85 * var(--scale));
+  --text-heading: calc(var(--base-points) * 1.2 * var(--scale));
+  --text-title-1: calc(var(--base-points) * 1.6 * var(--scale));
+  --text-title-3: calc(var(--base-points) * 1.25 * var(--scale));
+
+  --font-ui: "Cantarell", "Ubuntu", "Noto Sans CJK SC", "Source Han Sans SC",
+    system-ui, sans-serif;
+}
+
+/* 5.1, the dark column. Different colours rather than one at two opacities: a
+ * red that reads as wrong on white turns muddy on black, so it has its own. */
+:root[data-scheme="dark"] {
+  --surface: #242424;
+  --panel: #303030;
+  --text: #f2f2f2;
+  --dim: #b8b8b8;
+  --border: #3f3f3f;
+  --accent: #78aeed;
+  --valid: #5fbf78;
+  --tampered: #f0736a;
+  --unverified: #e0b341;
+  --canvas: #1a1a1a;
+}
+
+/* 5.1, high contrast: pure text and a darker or lighter shade of each verdict,
+ * so every pair clears 7:1 while the hues stay recognisable. It tightens
+ * whatever scheme is in force instead of replacing it, so a reader who needs it
+ * does not also lose their light-or-dark choice. */
+:root[data-contrast="sharp"] {
+  --text: #000000;
+  --dim: #000000;
+  --border: #000000;
+  --accent: #003f8c;
+  --tampered: #800000;
+  --unverified: #4d3600;
+}
+
+:root[data-contrast="sharp"][data-scheme="dark"] {
+  --text: #ffffff;
+  --dim: #ffffff;
+  --border: #ffffff;
+  --accent: #9ac8ff;
+  --tampered: #ffc2bd;
+  --unverified: #ffe08a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  /* The window is an application, not a document: nothing to select, no
+   * caret to place, no rubber-band scrolling on a touchpad. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 2, the stack of zones: two fixed bars, a growing canvas, a fixed status. */
+#window {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  height: 100%;
+}
+
+/* 5.3: a group is separated by space, not by a rule. The bars carry no frames. */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+  padding: var(--space-small) var(--space-medium);
+  background: var(--panel);
+  min-height: calc(var(--control-height) + var(--space-small) * 2);
+}
+
+.bar + .bar {
+  /* The one line in the window, and it belongs to neither bar: it is the seam
+   * the zones share, which `Panel::show_separator_line` draws in the reader. */
+  border-top: 1px solid var(--border);
+}
+
+.grow {
+  flex: 1;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-small);
+}
+
+/* A header-bar control has no frame; the frame appears under the pointer, so
+ * the bar stays quiet while every control stays discoverable. */
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-small);
+  height: var(--control-height);
+  min-width: var(--control-height);
+  padding: 0 var(--space-small);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.control:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.control:active:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+/* Focus is visible and is not a colour alone: the outline is a shape. */
+.control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.control[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--accent);
+}
+
+.control:disabled {
+  color: var(--dim);
+  cursor: default;
+  opacity: 0.6;
+}
+
+.control .label {
+  padding-right: var(--space-small);
+}
+
+/* 5.4: the glyph follows the theme and the contrast, because it is filled with
+ * the text colour rather than drawn with one. */
+.glyph {
+  width: var(--icon-box);
+  height: var(--icon-box);
+  flex: none;
+  fill: currentColor;
+}
+
+/* The page sits on its own colour, which is the one thing that does not follow
+ * the theme: a rendered page is white in every theme. */
+#canvas-zone {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: var(--canvas);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+#pages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  align-items: center;
+}
+
+.page {
+  position: relative;
+  /* The page is a bitmap's worth of shape at any zoom because it is drawn as
+   * geometry: a canvas at device resolution, transformed, not scaled up. */
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
+}
+
+.page canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 3, the empty state: the drop hint, centred, in no frame. */
+#hint {
+  align-self: center;
+  color: var(--dim);
+  font-size: var(--text-title-3);
+  text-align: center;
+  max-width: 28ch;
+}
+
+.status {
+  gap: var(--space-medium);
+  font-size: var(--text-caption);
+  color: var(--dim);
+}
+
+.status .error {
+  color: var(--tampered);
+}
+
+/* The zoom slider is the one place a value is dragged rather than clicked. */
+#zoom {
+  width: 140px;
+  accent-color: var(--accent);
+}
+
+#zoom-value {
+  min-width: 5ch;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The main menu, anchored to its button, in the panel colour with a border. */
+menu.popover {
+  position: absolute;
+  top: calc(var(--control-height) + var(--space-small) * 2);
+  right: var(--space-medium);
+  margin: 0;
+  padding: var(--space-small) 0;
+  min-width: 240px;
+  list-style: none;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  z-index: 20;
+}
+
+menu.popover[hidden] {
+  display: none;
+}
+
+menu.popover li {
+  padding: var(--space-small) var(--space-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-medium);
+  cursor: pointer;
+}
+
+menu.popover li:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+menu.popover li[aria-checked="true"]::after {
+  content: "✓";
+  margin-left: auto;
+  color: var(--accent);
+}
+
+menu.popover .heading {
+  color: var(--dim);
+  font-size: var(--text-caption);
+  cursor: default;
+  padding-top: var(--space-medium);
+}
+
+menu.popover .heading:hover {
+  background: transparent;
+}
+
+menu.popover hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: var(--space-small) 0;
+}
+
+/* A side panel: fixed width, before the canvas, closed by picking its own
+ * toggle again. */
+.panel {
+  width: 320px;
+  flex: none;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  overflow: auto;
+  padding: var(--space-medium);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+#body {
+  display: flex;
+  min-height: 0;
+}
+
+.panel h2 {
+  font-size: var(--text-title-3);
+  margin: 0 0 var(--space-medium);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

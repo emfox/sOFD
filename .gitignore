@@ -105,3 +105,8 @@ credentials.toml
 *.profraw
 lcov.info
 tarpaulin-report.html
+
+# Tauri writes the permission schema into `gen/` on the first build. It is
+# derived from the capabilities beside it, so it is reproducible rather than
+# source, and a diff of two generated files is not a change to read.
+/crates/sofd-tauri/gen/
