@@ -32,4 +32,4 @@ uuid.workspace = true
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
-sofd-testkit = { path = "../sofd-testkit" }
+sofd-testkit = { path = "../sofd-testkit", features = ["sign"] }

@@ -706,7 +706,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 5.0, 6.0),
         };
         let page = page_with(vec![DrawOp::Text(run)]);
@@ -751,7 +750,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 5.0, 6.0),
         };
         let page = page_with(vec![DrawOp::Text(run)]);
@@ -795,7 +793,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 10.0, 6.0),
         };
         let page = page_with(vec![DrawOp::Text(run)]);
@@ -823,7 +820,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 10.0, 6.0),
         };
         let page = page_with(vec![DrawOp::Text(run)]);
@@ -850,7 +846,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 3.0, 3.0),
         };
         let page = page_with(vec![DrawOp::Text(run)]);
@@ -927,7 +922,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 10.0, 8.0),
         }
     }

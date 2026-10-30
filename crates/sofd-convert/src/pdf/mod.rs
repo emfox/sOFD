@@ -1445,7 +1445,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 8.0, 10.0),
         };
         let content = content_of(
@@ -1483,7 +1482,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::EMPTY,
         };
         let mut sink = PdfSink::new(Rect::A4_PORTRAIT, &PdfOptions::default());
@@ -1516,7 +1514,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 6.0, 3.0),
         };
         let options = PdfOptions {
@@ -1559,7 +1556,6 @@ mod tests {
                 ..StrokeStyle::default()
             },
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 5.0, 5.0),
         };
         let options = PdfOptions {
@@ -1603,7 +1599,6 @@ mod tests {
             stroke: Some(Paint::Solid(Color::BLACK)),
             stroke_style: StrokeStyle::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 5.0, 5.0),
         };
         let options = PdfOptions {

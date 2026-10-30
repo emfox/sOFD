@@ -51,7 +51,6 @@ fn text_run(bbox: Rect) -> GlyphRun {
         stroke: None,
         stroke_style: Default::default(),
         letter_spacing: 0.0,
-        word_spacing: 0.0,
         bbox,
     }
 }

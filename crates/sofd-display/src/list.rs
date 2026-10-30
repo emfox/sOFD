@@ -268,7 +268,6 @@ mod tests {
             stroke: None,
             stroke_style: StrokeStyle::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox,
         }
     }

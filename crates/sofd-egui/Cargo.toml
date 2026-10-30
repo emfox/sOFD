@@ -135,7 +135,7 @@ egui.workspace = true
 egui_kittest = { version = "0.35", features = ["eframe"] }
 # Layout has nothing to arrange in a one-page document, so the arrangement
 # tests need a fixture with several pages.
-sofd-testkit = { path = "../sofd-testkit" }
+sofd-testkit = { path = "../sofd-testkit", features = ["sign"] }
 # The scroll benchmark measures a cache lookup against the render it saves.
 criterion.workspace = true
 

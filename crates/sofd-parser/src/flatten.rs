@@ -389,7 +389,6 @@ fn text_clip_runs(clip: &sofd_model::TextClip) -> Vec<GlyphRun> {
                 stroke: None,
                 stroke_style: StrokeStyle::default(),
                 letter_spacing: 0.0,
-                word_spacing: 0.0,
                 bbox: Rect::new(0.0, 0.0, 0.0, 0.0),
             });
         }
@@ -656,7 +655,6 @@ fn flatten_text(
                     stroke: stroke.clone(),
                     stroke_style: stroke_style.clone(),
                     letter_spacing,
-                    word_spacing: 0.0,
                     // Text codes address the object space, so the box lives
                     // at its origin too.
                     bbox: Rect::new(0.0, 0.0, t.base.boundary.w, t.base.boundary.h),

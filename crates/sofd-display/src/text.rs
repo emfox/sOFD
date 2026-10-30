@@ -43,8 +43,6 @@ pub struct GlyphRun {
     pub stroke_style: crate::ops::StrokeStyle,
     /// Extra spacing between characters, in millimetres.
     pub letter_spacing: f64,
-    /// Extra spacing between words, in millimetres.
-    pub word_spacing: f64,
     /// Absolute page-space bounds, used for hit testing and search anchoring.
     pub bbox: Rect,
 }

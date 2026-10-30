@@ -9,6 +9,7 @@ mod chain;
 mod der;
 mod document;
 mod golden;
+#[cfg(feature = "sign")]
 mod signed;
 mod timestamp;
 
@@ -21,6 +22,7 @@ pub use document::{
     font_bytes, multipage_archive, multipage_document_xml, open_package, open_package_bytes,
 };
 pub use golden::{Content, DOCS, GoldenDoc, golden_archive, golden_book};
+#[cfg(feature = "sign")]
 pub use signed::{
     descriptor, descriptor_with_proof, fixture_bytes, signed_descriptor_entries, signed_fixture,
     signed_fixture_over, signed_fixture_with, unsigned_descriptor_entries,

@@ -22,7 +22,6 @@ fn run(text: &str, bbox: Rect, per_glyph: f64) -> GlyphRun {
         stroke: None,
         stroke_style: Default::default(),
         letter_spacing: 0.0,
-        word_spacing: 0.0,
         bbox,
     }
 }
@@ -180,7 +179,6 @@ fn glyph_run_of(font: FontId, glyphs: &[u16]) -> GlyphRun {
         stroke: None,
         stroke_style: Default::default(),
         letter_spacing: 0.0,
-        word_spacing: 0.0,
         bbox: box_at(10.0, 30.0),
     }
 }

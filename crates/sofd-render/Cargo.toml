@@ -15,7 +15,7 @@ sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
-sofd-display = { path = "../sofd-display", version = "0.7" }
+sofd-display = { path = "../sofd-display", version = "0.8" }
 sofd-io = { path = "../sofd-io", version = "0.5" }
 tiny-skia.workspace = true
 image.workspace = true

@@ -22,6 +22,7 @@ sofd-display = { path = "../../sofd-display" }
 sofd-font = { path = "../../sofd-font", default-features = false }
 sofd-geometry = { path = "../../sofd-geometry" }
 sofd-package = { path = "../../sofd-package" }
+sofd-parser = { path = "../../sofd-parser" }
 sofd-xml = { path = "../../sofd-xml" }
 
 [dependencies]
@@ -33,6 +34,7 @@ sofd-display.workspace = true
 sofd-font.workspace = true
 sofd-geometry.workspace = true
 sofd-package.workspace = true
+sofd-parser.workspace = true
 sofd-xml.workspace = true
 
 [profile.release]
@@ -69,6 +71,13 @@ bench = false
 [[bin]]
 name = "pdf_write"
 path = "fuzz_targets/pdf_write.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "parser_chain"
+path = "fuzz_targets/parser_chain.rs"
 test = false
 doc = false
 bench = false

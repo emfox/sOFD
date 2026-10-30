@@ -6344,7 +6344,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-display"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -6627,7 +6627,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-testkit"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "sofd-common",
  "sofd-crypto",

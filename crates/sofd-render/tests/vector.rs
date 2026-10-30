@@ -75,7 +75,6 @@ fn run_of(text: &str, fonts: &FontManager, id: FontId, at: (f64, f64)) -> GlyphR
         stroke: None,
         stroke_style: Default::default(),
         letter_spacing: 0.0,
-        word_spacing: 0.0,
         bbox: Rect::new(at.0, at.1, 0.0, 0.0),
     }
 }

@@ -1117,7 +1117,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::EMPTY,
         }
     }
@@ -1214,7 +1213,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::EMPTY,
         };
         let options = SvgOptions {
@@ -1421,7 +1419,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 7.0, 3.5),
         };
         let svg =
@@ -1449,7 +1446,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 3.0, 3.0),
         };
         let svg =
@@ -1475,7 +1471,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::EMPTY,
         };
         let mut sink = SvgSink::new(Rect::A4_PORTRAIT, &SvgOptions::default());
@@ -1509,7 +1504,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 6.0, 3.0),
         };
         let options = SvgOptions {
@@ -1541,7 +1535,6 @@ mod tests {
             stroke: None,
             stroke_style: Default::default(),
             letter_spacing: 0.0,
-            word_spacing: 0.0,
             bbox: Rect::EMPTY,
         };
         let svg =

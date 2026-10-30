@@ -4,7 +4,6 @@
 
 use serde::{Deserialize, Serialize};
 use sofd_common::{Point, Rect};
-use sofd_font::FontId;
 use sofd_geometry::{Affine, Path};
 
 use crate::list::PageDisplay;
@@ -308,7 +307,3 @@ pub enum LineJoin {
     /// Cut the corner flat.
     Bevel,
 }
-
-/// Opaque handle letting a backend look up font data.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct FontHandle(pub FontId);

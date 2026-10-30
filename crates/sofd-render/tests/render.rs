@@ -263,7 +263,6 @@ fn a_text_clip_confines_the_paint_to_the_glyph_outlines() {
         stroke: None,
         stroke_style: Default::default(),
         letter_spacing: 0.0,
-        word_spacing: 0.0,
         bbox: Rect::new(0.0, 0.0, 0.0, 0.0),
     };
     let page = page_with(vec![
@@ -413,7 +412,6 @@ fn a_run_with_no_glyphs_paints_nothing() {
         stroke: None,
         stroke_style: Default::default(),
         letter_spacing: 0.0,
-        word_spacing: 0.0,
         bbox: Rect::new(0.0, 0.0, 0.0, 0.0),
     };
     let page = page_with(vec![DrawOp::Text(run)]);

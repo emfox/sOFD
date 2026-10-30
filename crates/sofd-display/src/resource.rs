@@ -67,12 +67,3 @@ impl ImageRef {
         }
     }
 }
-
-/// Everything one page needs, already resolved.
-#[derive(Debug, Default)]
-pub struct ResolvedResources {
-    /// Font table indexed by [`sofd_font::FontId`].
-    pub fonts: Vec<ResolvedFont>,
-    /// Image table keyed by resource id.
-    pub images: Vec<ImageRef>,
-}

@@ -19,4 +19,4 @@ serde.workspace = true
 workspace = true
 
 [dev-dependencies]
-sofd-testkit = { path = "../sofd-testkit" }
+sofd-testkit = { path = "../sofd-testkit", features = ["sign"] }

@@ -23,4 +23,4 @@ sofd-bindings = { path = "../sofd-bindings", version = "0.2" }
 cbindgen = "0.29"
 
 [dev-dependencies]
-sofd-testkit = { path = "../sofd-testkit" }
+sofd-testkit = { path = "../sofd-testkit", features = ["sign"] }
