@@ -725,3 +725,9 @@ display, waits for the page, and takes one. A headless machine needs
 `WEBKIT_DISABLE_COMPOSITING_MODE=1` there — without it the window appears, the
 sheet applies, and nothing paints, which looks exactly like a broken front end
 and is not one.
+
+What that produced is kept as [`design/tauri-shell.png`](design/tauri-shell.png):
+the toolbar in §2 order, `minimal.ofd` fit to width at 133%, the status bar
+naming the document and the page. It is a record of one run rather than a
+reference the build compares against — a screenshot of a real window depends on
+the fonts and the WebKit version of the machine that took it.
