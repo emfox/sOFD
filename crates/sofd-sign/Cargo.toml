@@ -14,7 +14,7 @@ categories = ["authentication", "cryptography"]
 sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-xml = { path = "../sofd-xml", version = "0.5" }
-sofd-package = { path = "../sofd-package", version = "0.5" }
+sofd-package = { path = "../sofd-package", version = "0.6" }
 sofd-crypto = { path = "../sofd-crypto", version = "0.7" }
 serde.workspace = true
 tracing.workspace = true

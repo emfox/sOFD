@@ -70,7 +70,7 @@ fn gb_t_33190_6_1_entry_point_sits_at_the_root() {
     assert!(package.has_entry_point());
     assert_eq!(
         package.kind_of(ENTRY_POINT),
-        Some(EntryKind::EntryPoint),
+        EntryKind::EntryPoint,
         "OFD.xml is classified as the entry point, not as an unknown file"
     );
     assert_eq!(package.document_dirs(), vec!["Doc_0".to_string()]);

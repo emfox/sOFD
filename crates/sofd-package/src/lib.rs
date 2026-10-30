@@ -317,7 +317,7 @@ impl Package {
     }
 
     /// Classify an entry by its path.
-    pub fn kind_of(&self, path: &str) -> Option<EntryKind> {
+    pub fn kind_of(&self, path: &str) -> EntryKind {
         EntryKind::from_path(path)
     }
 }
@@ -354,7 +354,8 @@ fn map_zip_error(e: zip::result::ZipError) -> OfdError {
     PackageError::Corrupted { reason }.into()
 }
 
-/// Build a ZIP container from named entries, for tests and the writer path.
+/// Build a ZIP container from named entries: what the archive writer emits,
+/// and what every test that needs a document starts from.
 /// Every name is checked the way the reader checks it, so this never writes an
 /// archive its own `Package::open` would reject.
 pub fn build_archive(entries: &[(&str, &[u8])]) -> Result<Vec<u8>> {
@@ -634,9 +635,9 @@ mod tests {
     #[test]
     fn entry_kinds_are_derived_from_paths() {
         let pkg = Package::from_bytes(&fixture()).expect("open");
-        assert_eq!(pkg.kind_of("OFD.xml"), Some(EntryKind::EntryPoint));
-        assert_eq!(pkg.kind_of("Doc_0/Document.xml"), Some(EntryKind::Document));
-        assert_eq!(pkg.kind_of("Doc_0/Res/Font_0.ttf"), Some(EntryKind::Font));
+        assert_eq!(pkg.kind_of("OFD.xml"), EntryKind::EntryPoint);
+        assert_eq!(pkg.kind_of("Doc_0/Document.xml"), EntryKind::Document);
+        assert_eq!(pkg.kind_of("Doc_0/Res/Font_0.ttf"), EntryKind::Font);
     }
 
     #[test]

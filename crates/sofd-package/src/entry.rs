@@ -28,19 +28,20 @@ pub enum EntryKind {
 }
 
 impl EntryKind {
-    /// Classify by path.
-    pub fn from_path(path: &str) -> Option<Self> {
+    /// Classify by path. Every path has a kind: an entry the schema does not
+    /// name is `Other`, which is still a kind, so the answer is not optional.
+    pub fn from_path(path: &str) -> Self {
         let name = path.rsplit('/').next().unwrap_or(path);
         let lower = name.to_ascii_lowercase();
 
         if path == crate::ENTRY_POINT {
-            return Some(Self::EntryPoint);
+            return Self::EntryPoint;
         }
         if name == "Document.xml" {
-            return Some(Self::Document);
+            return Self::Document;
         }
         if name == "Signatures.xml" || name == "Signature.xml" {
-            return Some(Self::Signature);
+            return Self::Signature;
         }
 
         // Extension wins over directory, since a document may store an image
@@ -49,26 +50,26 @@ impl EntryKind {
             extension(&lower).as_deref(),
             Some("ttf" | "otf" | "ttc" | "woff" | "woff2")
         ) {
-            return Some(Self::Font);
+            return Self::Font;
         }
         if matches!(
             extension(&lower).as_deref(),
             Some("png" | "jpg" | "jpeg" | "jbig2" | "jb2" | "bmp" | "tif" | "tiff" | "gif")
         ) {
-            return Some(Self::Image);
+            return Self::Image;
         }
 
         if path.contains("/Pages/") || path.starts_with("Pages/") {
-            return Some(Self::Page);
+            return Self::Page;
         }
         if path.contains("/Tpls/") || path.starts_with("Tpls/") {
-            return Some(Self::Template);
+            return Self::Template;
         }
         if path.contains("/Res/") || path.starts_with("Res/") {
-            return Some(Self::Resource);
+            return Self::Resource;
         }
 
-        Some(Self::Other)
+        Self::Other
     }
 
     /// Whether the entry is binary rather than XML text.
@@ -114,7 +115,7 @@ impl EntryInfo {
     /// Build a description.
     pub fn new(path: impl Into<String>, size: u64) -> Self {
         let path = path.into();
-        let kind = EntryKind::from_path(&path).unwrap_or(EntryKind::Other);
+        let kind = EntryKind::from_path(&path);
         Self { path, kind, size }
     }
 }
@@ -137,18 +138,18 @@ mod tests {
 
     #[test]
     fn entry_point_is_recognized() {
-        assert_eq!(EntryKind::from_path("OFD.xml"), Some(EntryKind::EntryPoint));
+        assert_eq!(EntryKind::from_path("OFD.xml"), EntryKind::EntryPoint);
     }
 
     #[test]
     fn document_and_page_paths_are_recognized() {
         assert_eq!(
             EntryKind::from_path("Doc_0/Document.xml"),
-            Some(EntryKind::Document)
+            EntryKind::Document
         );
         assert_eq!(
             EntryKind::from_path("Doc_0/Pages/Page_0/Content.xml"),
-            Some(EntryKind::Page)
+            EntryKind::Page
         );
     }
 
@@ -156,7 +157,7 @@ mod tests {
     fn templates_are_distinguished_from_pages() {
         assert_eq!(
             EntryKind::from_path("Doc_0/Tpls/Tpl_0/Content.xml"),
-            Some(EntryKind::Template)
+            EntryKind::Template
         );
     }
 
@@ -164,11 +165,11 @@ mod tests {
     fn fonts_and_images_are_detected_by_extension() {
         assert_eq!(
             EntryKind::from_path("Doc_0/Res/Font_0.ttf"),
-            Some(EntryKind::Font)
+            EntryKind::Font
         );
         assert_eq!(
             EntryKind::from_path("Doc_0/Res/Image_1.PNG"),
-            Some(EntryKind::Image)
+            EntryKind::Image
         );
     }
 
@@ -177,7 +178,7 @@ mod tests {
         // Extension wins over directory so a misplaced asset is still decodable.
         assert_eq!(
             EntryKind::from_path("Doc_0/Pages/img.png"),
-            Some(EntryKind::Image)
+            EntryKind::Image
         );
     }
 
@@ -185,7 +186,7 @@ mod tests {
     fn signatures_are_recognized() {
         assert_eq!(
             EntryKind::from_path("Doc_0/Signs/Signatures.xml"),
-            Some(EntryKind::Signature)
+            EntryKind::Signature
         );
     }
 
@@ -193,7 +194,7 @@ mod tests {
     fn unknown_paths_fall_back_to_other() {
         assert_eq!(
             EntryKind::from_path("Doc_0/Misc/notes.bin"),
-            Some(EntryKind::Other)
+            EntryKind::Other
         );
     }
 
@@ -216,9 +217,6 @@ mod tests {
 
     #[test]
     fn paths_without_an_extension_do_not_panic() {
-        assert_eq!(
-            EntryKind::from_path("Doc_0/Res/font"),
-            Some(EntryKind::Resource)
-        );
+        assert_eq!(EntryKind::from_path("Doc_0/Res/font"), EntryKind::Resource);
     }
 }

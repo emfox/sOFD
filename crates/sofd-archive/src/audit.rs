@@ -144,7 +144,7 @@ impl Auditor {
         // Clause 6.2.6 e): any raster image is one of six formats. The
         // extension is the only hint available without decoding the bytes.
         for path in package.entries().iter() {
-            if package.kind_of(path) != Some(EntryKind::Image) {
+            if package.kind_of(path) != EntryKind::Image {
                 continue;
             }
             if is_archival_image(path) {
