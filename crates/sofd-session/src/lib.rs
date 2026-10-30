@@ -16,7 +16,7 @@ pub mod render_worker;
 pub mod typography;
 pub mod viewer;
 
-pub use action::Action;
+pub use action::{Action, Held, KeyPress, escape_target, interpret};
 pub use app::{
     App, AppError, Canvas, ExportReport, Fit, Hit, PrintReport, SignatureReport, TextSize,
     ThemeChoice, Verdict,

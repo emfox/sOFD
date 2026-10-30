@@ -273,12 +273,15 @@ fn take_shortcuts(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests) {
     let focused = ctx.memory(|memory| memory.has_focus(shortcuts::search_box_id()));
     let mut escape = None;
     for key in pressed_keys(&ctx) {
-        let modifiers = ctx.input(|input| input.modifiers);
+        let modifiers = shortcuts::held(ctx.input(|input| input.modifiers));
         if key == egui::Key::Escape {
             escape = shortcuts::escape_target(app.search_open(), focused);
             continue;
         }
-        let Some(action) = shortcuts::interpret(key, modifiers, app.is_open()) else {
+        let Some(press) = shortcuts::press(key) else {
+            continue;
+        };
+        let Some(action) = shortcuts::interpret(press, modifiers, app.is_open()) else {
             continue;
         };
         if action == shortcuts::Action::FocusSearch {

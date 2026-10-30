@@ -65,3 +65,123 @@ pub fn escape_target(search_open: bool, search_focused: bool) -> Option<Action> 
         None
     }
 }
+
+/// The keys a reader binds, named after what they do rather than where they
+/// sit, so a shell translates its own key codes into these and the map below
+/// stays the only place the bindings are written down.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyPress {
+    /// The key that pages forward.
+    Right,
+    /// The key that pages backward.
+    Left,
+    /// The key that steps forward a screen.
+    Down,
+    /// The key that steps backward a screen.
+    Up,
+    /// A second key for paging, which a reader arrives with instead of arrows.
+    PageDown,
+    /// The matching second key for paging back.
+    PageUp,
+    /// Start of the document.
+    Home,
+    /// End of the document.
+    End,
+    /// The key a layout prints `=` on, which zooms in.
+    Equal,
+    /// The key a layout prints `+` on, which zooms in too.
+    Plus,
+    /// Zoom out.
+    Minus,
+    /// Reset the zoom.
+    Zero,
+    /// Walk the search hits.
+    F3,
+    /// The find shortcut's key, and a plain slash means nothing.
+    Slash,
+    /// Leave a panel or the search box.
+    Escape,
+    /// Open a document.
+    O,
+    /// Write a PDF.
+    S,
+    /// Print.
+    P,
+    /// Find on the page.
+    F,
+    /// Next annotation.
+    J,
+    /// Previous annotation, and with Ctrl the panel itself.
+    K,
+    /// A digit no binding uses, so a test can press one that means nothing.
+    Seven,
+    /// A letter no binding uses, for the same reason.
+    Q,
+    /// A second unused letter.
+    A,
+}
+
+/// Which modifier keys were held with a press. Only the two that change a
+/// binding are tracked; the rest are read as "no modifier".
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Held {
+    /// Ctrl, or the Command key where that is the platform's equivalent.
+    pub ctrl: bool,
+    /// Shift, which gives one key a second meaning.
+    pub shift: bool,
+}
+
+/// Resolve one key press, or `None` if it means nothing to the reader. The
+/// flag gates shortcuts that act on a page, so a key does nothing rather than
+/// failing when there is no document to act on.
+pub fn interpret(key: KeyPress, held: Held, has_document: bool) -> Option<Action> {
+    let action = action_for(key, held)?;
+    if !needs_document(action) || has_document {
+        Some(action)
+    } else {
+        None
+    }
+}
+
+/// The mapping itself, without the document check.
+fn action_for(key: KeyPress, held: Held) -> Option<Action> {
+    if held.ctrl {
+        return match key {
+            KeyPress::O => Some(Action::Open),
+            KeyPress::F => Some(Action::ToggleSearch),
+            KeyPress::S => Some(Action::ExportPdf),
+            KeyPress::P => Some(Action::Print),
+            // The browser's find shortcut. The key carries a slash, not the
+            // question mark some layouts print on it: the binding follows the
+            // hardware, because the layout is not ours to interpret.
+            KeyPress::Slash => Some(Action::FocusSearch),
+            KeyPress::Home => Some(Action::FirstPage),
+            KeyPress::End => Some(Action::LastPage),
+            KeyPress::K => Some(Action::ToggleAnnotations),
+            KeyPress::J => Some(Action::NextAnnotation),
+            _ => None,
+        };
+    }
+    match key {
+        KeyPress::Right | KeyPress::Down if held.shift => Some(Action::NextHit),
+        KeyPress::Left | KeyPress::Up if held.shift => Some(Action::PreviousHit),
+        KeyPress::Right | KeyPress::PageDown => Some(Action::NextPage),
+        KeyPress::Left | KeyPress::PageUp => Some(Action::PreviousPage),
+        KeyPress::Home => Some(Action::FirstPage),
+        KeyPress::End => Some(Action::LastPage),
+        // Animation-style stepping through the marks: one key forward, one
+        // back, as the browsers that show annotations use.
+        KeyPress::J => Some(Action::NextAnnotation),
+        KeyPress::K => Some(Action::PreviousAnnotation),
+        KeyPress::Equal | KeyPress::Plus => Some(Action::ZoomIn),
+        KeyPress::Minus => Some(Action::ZoomOut),
+        KeyPress::Zero => Some(Action::ZoomReset),
+        KeyPress::F3 => Some(if held.shift {
+            Action::PreviousHit
+        } else {
+            Action::NextHit
+        }),
+        KeyPress::Escape => Some(Action::Escape),
+        _ => None,
+    }
+}
