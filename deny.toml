@@ -17,13 +17,14 @@ version = 2
 # and turning every yanked crate into a blocked build trains people to ignore it.
 db-urls = ["https://github.com/RustSec/advisory-db"]
 ignore = [
-    # zbus, zbus_names and zvariant are deprecated by their own authors in
-    # favour of each other. They reach this build only through accesskit_unix,
-    # which winit pulls in for Linux accessibility, and atspi still names
-    # zbus_names even at its newest version, so the fix is an eframe upgrade
-    # and not a change this project can make. Tracked as #5.
-    "RUSTSEC-2026-0371",
+    # zvariant, zbus_names and zvariant_derive were folded into zbus 6.0.0 as
+    # its wire, names and derive modules, so these three say "unmaintained",
+    # not "unsound". They arrive for Linux accessibility: atspi-common, which
+    # is the crate that still names the three, asks for zbus ^5.5 and atspi
+    # 0.30 has not moved to 6, so nothing this project can upgrade clears
+    # them. Tracked as #5.
     "RUSTSEC-2026-0370",
+    "RUSTSEC-2026-0371",
     "RUSTSEC-2026-0372",
 ]
 
