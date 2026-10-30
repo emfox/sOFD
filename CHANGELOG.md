@@ -8,6 +8,16 @@ release is written up is in
 
 ## [Unreleased]
 
+### Fixed
+
+- **A seal stays transparent over what it signs.** Three faults stacked on one
+  page: an object's `Alpha` attribute was never read, so a producer's
+  `Alpha="0"` backplate painted out the whole sheet; an image exported to PDF
+  was scaled by its own pixel count, shrinking a 159-px seal to a dot; and
+  image alpha was dropped on the way out. `Alpha` now multiplies into the fill
+  and stroke, PDF carries the alpha as an `/SMask`, and `Do` paints across the
+  placement rather than across one pixel.
+
 ### Architecture
 
 - **`sofd-convert` converts one page, the facade assembles documents.** The

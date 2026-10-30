@@ -128,10 +128,17 @@ impl<'a> PdfSink<'a> {
         if !self.images.is_empty() {
             let mut xobjects = Dictionary::new();
             for (index, pending) in self.images.iter().enumerate() {
-                let stream = image_xobject(pending)?;
+                let mut painted = image_xobject(pending)?;
+                // The mask has to be an indirect object before the image can
+                // name it, and the image is not one yet — so the mask goes in
+                // first and its number is written back as `/SMask`.
+                if let Some(mask) = painted.mask.take() {
+                    let mask_id = doc.add_object(mask);
+                    painted.image.dict.set("SMask", Object::Reference(mask_id));
+                }
                 xobjects.set(
                     format!("Im{index}"),
-                    Object::Reference(doc.add_object(stream)),
+                    Object::Reference(doc.add_object(painted.image)),
                 );
             }
             resources.set("XObject", Object::Dictionary(xobjects));
@@ -560,12 +567,10 @@ impl PageSink for PdfSink<'_> {
         if image.data.is_empty() {
             return;
         }
-        let (iw, ih) = (
-            image.pixel_size.0.max(1) as f64,
-            image.pixel_size.1.max(1) as f64,
-        );
-        let pixel_to_page = Affine::new(dst.w / iw, 0.0, 0.0, dst.h / ih, dst.x, dst.y);
-        let total = self.to_pt(transform.then(pixel_to_page));
+        // `Do` paints across the unit square, so the rect is the placement:
+        // dividing by the pixel count too would shrink a 159-px seal to a dot.
+        let placement = Affine::new(dst.w, 0.0, 0.0, dst.h, dst.x, dst.y);
+        let total = self.to_pt(transform.then(placement));
         let index = self.images.len();
         self.images.push(PendingImage {
             data: image.data.clone(),
@@ -1332,7 +1337,13 @@ mod tests {
         assert_eq!(images.len(), 1, "one image xobject");
         let content = content_of(&bytes);
         assert!(content.contains("/Im0 Do"));
-        assert!(content.contains("14.1732 0 0 -14.1732 14.1732 827.7165 cm"));
+        // The placement is 10 mm square, so the matrix spans 10 mm in points
+        // whatever the image's own pixel count is: `Do` paints across the unit
+        // square, not across one pixel.
+        assert!(
+            content.contains("28.3465 0 0 -28.3465 14.1732 827.7165 cm"),
+            "{content}"
+        );
     }
 
     #[test]

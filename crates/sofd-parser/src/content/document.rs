@@ -827,6 +827,10 @@ fn parse_base(node: &Node) -> Result<ObjectBase> {
             None => None,
         },
         name: a.get("Name").map(str::to_string),
+        // Object opacity, multiplying whatever the fills and strokes say. A
+        // producer writes `Alpha="0"` for a backplate it does not want seen;
+        // read as opaque, that backplate paints out the page beneath it.
+        alpha: a.optional_as::<u8>(element, "Alpha")?,
         // Clause 8.2 fixes these on the graphic unit itself; a draw parameter
         // only supplies them when the object does not.
         line_width: a.optional_as::<f64>(element, "LineWidth")?,

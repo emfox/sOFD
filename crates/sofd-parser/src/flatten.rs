@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use sofd_common::{Point, Rect};
-use sofd_display::ops::{LineCap, LineJoin};
+use sofd_display::ops::{Color, GradientStop, LineCap, LineJoin};
 use sofd_display::{
     DisplayListBuilder, DrawOp, GlyphRun, ImageCodec, ImageRef, LinearGradientSpec, MeshSpec,
     Paint, PaintRule, RadialGradientSpec, StrokeStyle,
@@ -478,6 +478,49 @@ fn resolve_paint_color<'a>(
     own.or_else(|| param.and_then(which)).unwrap_or(black)
 }
 
+/// Scale a paint's alpha by the object's own `Alpha`, which multiplies rather
+/// than replaces what the colour already states.
+///
+/// A backplate written `Alpha="0"` is the reason: read as opaque, it covers
+/// everything the page drew before it, a seal under a heading included.
+fn faded(paint: Paint, object_alpha: Option<u8>) -> Paint {
+    let Some(factor) = object_alpha else {
+        return paint;
+    };
+    if factor == u8::MAX {
+        return paint;
+    }
+    let scale = factor as u32;
+    let dim = |c: u8| ((c as u32 * scale + 127) / 255) as u8;
+    match paint {
+        Paint::Solid(c) => Paint::Solid(Color::rgba(c.r, c.g, c.b, dim(c.a))),
+        // A gradient's stops carry the alpha a backend paints with.
+        Paint::LinearGradient(mut g) => {
+            g.stops = g
+                .stops
+                .into_iter()
+                .map(|stop| GradientStop {
+                    color: Color::rgba(stop.color.r, stop.color.g, stop.color.b, dim(stop.color.a)),
+                    ..stop
+                })
+                .collect();
+            Paint::LinearGradient(g)
+        }
+        Paint::RadialGradient(mut g) => {
+            g.stops = g
+                .stops
+                .into_iter()
+                .map(|stop| GradientStop {
+                    color: Color::rgba(stop.color.r, stop.color.g, stop.color.b, dim(stop.color.a)),
+                    ..stop
+                })
+                .collect();
+            Paint::RadialGradient(g)
+        }
+        other => other,
+    }
+}
+
 fn flatten_path(
     p: &PathObject,
     params: &HashMap<String, DrawParam>,
@@ -510,12 +553,15 @@ fn flatten_path(
     );
     with_object_space(&p.base, params, builder, |b| {
         let fill = if fill_on {
-            Some(paint_of(fill_color, &path, colors, b)?)
+            Some(faded(paint_of(fill_color, &path, colors, b)?, p.base.alpha))
         } else {
             None
         };
         let stroke = if stroke_on {
-            Some(paint_of(stroke_color, &path, colors, b)?)
+            Some(faded(
+                paint_of(stroke_color, &path, colors, b)?,
+                p.base.alpha,
+            ))
         } else {
             None
         };

@@ -2981,3 +2981,61 @@ fn gb_t_33190_annex_a_a_path_naming_only_a_fill_colour_is_stroked() {
     assert!(fill.is_none(), "a path with no `Fill` is not filled");
     assert!(stroke.is_some(), "a path with no `Stroke` is stroked");
 }
+
+#[test]
+fn an_object_alpha_multiplies_what_its_colours_state() {
+    // A producer backs a heading with a paper-coloured plate and writes
+    // `Alpha="0"` to keep it invisible. Read as opaque, the plate paints out
+    // everything drawn before it — the seal under the heading included.
+    let ops = page_ops(
+        r##"<PathObject ID="10" Boundary="0 0 210 297" Alpha="0" Fill="true">
+  <FillColor Value="#FFFFFF"/>
+  <AbbreviatedData>M 0 0 L 210 0 L 210 297 L 0 297 Z</AbbreviatedData>
+</PathObject>"##,
+        "",
+    );
+    let fill = ops
+        .iter()
+        .find_map(|op| match op {
+            DrawOp::Path {
+                fill: Some(fill), ..
+            } => Some(fill),
+            _ => None,
+        })
+        .expect("the plate still reach the list as a fill");
+    match fill {
+        Paint::Solid(c) => {
+            assert_eq!(c.a, 0, "an alpha of zero draws nothing");
+            assert_eq!(
+                (c.r, c.g, c.b),
+                (255, 255, 255),
+                "the colour itself is kept"
+            );
+        }
+        other => panic!("expected a solid paint, got {other:?}"),
+    }
+}
+
+#[test]
+fn an_object_alpha_scales_rather_than_replaces_the_colour_alpha() {
+    // One notch down from opaque, on a colour that is already half transparent:
+    // the two multiply, so a producer can dim a colour and a layer together.
+    let ops = page_ops(
+        r##"<PathObject ID="10" Boundary="0 0 20 20" Alpha="128" Fill="true">
+  <FillColor Value="#FF0000" Alpha="128"/>
+  <AbbreviatedData>M 0 0 L 20 0 L 20 20 Z</AbbreviatedData>
+</PathObject>"##,
+        "",
+    );
+    let a = ops
+        .iter()
+        .find_map(|op| match op {
+            DrawOp::Path {
+                fill: Some(Paint::Solid(c)),
+                ..
+            } => Some(c.a),
+            _ => None,
+        })
+        .expect("a fill");
+    assert_eq!(a, 64, "half of a half");
+}

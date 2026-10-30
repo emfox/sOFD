@@ -11,27 +11,88 @@ pub(crate) fn channel_array(c: &Color) -> Object {
     )
 }
 
-/// Build an image XObject from encoded bytes, dropping alpha.
+/// An image XObject and, when the resource carries transparency, its mask.
+pub(crate) struct Painted {
+    /// The colour image.
+    pub(crate) image: Stream,
+    /// The alpha channel as a `DeviceGray` image, referenced from
+    /// `/SMask`. Present only when some pixel is not fully opaque.
+    pub(crate) mask: Option<Stream>,
+}
+
+/// Build an image XObject from encoded bytes, keeping its transparency.
 ///
-/// The decode is `sofd_io`'s, the same one the rasteriser asks for, so a
-/// resource this exports is a resource that paints: OFD's two groups of formats
-/// are one set here rather than two that drift apart.
-pub(crate) fn image_xobject(image: &PendingImage) -> Result<Stream> {
-    let rgb = sofd_io::decode(&image.data, image.codec, sofd_io::Pixels::Rgb)
-        .map_err(|reason| convert_error("image", reason))?
-        .bytes;
+/// A seal is drawn *over* the heading it signs, so dropping the alpha paints a
+/// white card across the text. PDF has no fourth image channel, so the alpha
+/// travels as an `/SMask`, the soft mask multiplying the colour by it. The
+/// decode is `sofd_io`'s, the same one the rasteriser asks for.
+pub(crate) fn image_xobject(image: &PendingImage) -> Result<Painted> {
+    let decoded = sofd_io::decode(&image.data, image.codec, sofd_io::Pixels::Rgba)
+        .map_err(|reason| convert_error("image", reason))?;
+    let (rgb, alpha) = split_alpha(&decoded.bytes);
+    let mut stream = Stream::new(image_dict(image, b"DeviceRGB"), rgb);
+    stream
+        .compress()
+        .map_err(|e| convert_error("image stream", e.to_string()))?;
+    let mask = match alpha {
+        None => None,
+        Some(gray) => {
+            let mut stream = Stream::new(image_dict(image, b"DeviceGray"), gray);
+            stream
+                .compress()
+                .map_err(|e| convert_error("image mask", e.to_string()))?;
+            Some(stream)
+        }
+    };
+    Ok(Painted {
+        image: stream,
+        mask,
+    })
+}
+
+/// The dictionary both halves of an image share: same box, one channel each.
+fn image_dict(image: &PendingImage, colorspace: &[u8]) -> Dictionary {
     let mut dict = Dictionary::new();
     dict.set("Type", Object::Name(b"XObject".to_vec()));
     dict.set("Subtype", Object::Name(b"Image".to_vec()));
     dict.set("Width", image.pixels.0 as i64);
     dict.set("Height", image.pixels.1 as i64);
-    dict.set("ColorSpace", Object::Name(b"DeviceRGB".to_vec()));
+    dict.set("ColorSpace", Object::Name(colorspace.to_vec()));
     dict.set("BitsPerComponent", Object::Integer(8));
-    let mut stream = Stream::new(dict, rgb);
-    stream
-        .compress()
-        .map_err(|e| convert_error("image stream", e.to_string()))?;
-    Ok(stream)
+    dict
+}
+
+/// Split premultiplied RGBA into colour and an alpha plane.
+///
+/// The colour is un-premultiplied, because PDF composites the mask over the
+/// page itself and would otherwise multiply the alpha in twice. A fully opaque
+/// image yields no plane at all, so the common case writes no mask.
+fn split_alpha(rgba: &[u8]) -> (Vec<u8>, Option<Vec<u8>>) {
+    let opaque = rgba.chunks_exact(4).all(|px| px[3] == u8::MAX);
+    if opaque {
+        return (
+            rgba.chunks_exact(4)
+                .flat_map(|px| &px[..3])
+                .copied()
+                .collect(),
+            None,
+        );
+    }
+    let mut rgb = Vec::with_capacity(rgba.len() / 4 * 3);
+    let mut alpha = Vec::with_capacity(rgba.len() / 4);
+    for px in rgba.chunks_exact(4) {
+        let a = px[3] as u32;
+        let un = |c: u8| {
+            if a == 0 || a == 255 {
+                c
+            } else {
+                ((c as u32 * 255 + a / 2) / a).min(255) as u8
+            }
+        };
+        rgb.extend_from_slice(&[un(px[0]), un(px[1]), un(px[2])]);
+        alpha.push(px[3]);
+    }
+    (rgb, Some(alpha))
 }
 
 /// `r g b` operands for a colour, each channel `0..=1`.

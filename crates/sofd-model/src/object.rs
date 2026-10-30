@@ -235,6 +235,11 @@ pub struct ObjectBase {
     /// and then to the default for the object's kind.
     #[serde(rename = "Fill", skip_serializing_if = "Option::is_none")]
     pub fill: Option<bool>,
+    /// Object opacity, `0..=255`, multiplying whatever the fills and strokes
+    /// carry. Producers write `Alpha="0"` on a spacer or a paper-coloured
+    /// backplate: drawn as opaque, it paints out everything beneath it.
+    #[serde(rename = "Alpha", skip_serializing_if = "Option::is_none")]
+    pub alpha: Option<u8>,
     /// Whether the outline is stroked; `None` defers as `fill` does.
     #[serde(rename = "Stroke", skip_serializing_if = "Option::is_none")]
     pub stroke: Option<bool>,

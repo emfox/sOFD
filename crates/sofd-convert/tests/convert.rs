@@ -243,3 +243,115 @@ fn content_of(pdf: &[u8]) -> String {
     let page = doc.get_pages().into_values().next().expect("a page");
     String::from_utf8_lossy(&doc.get_page_content(page)).into_owned()
 }
+
+/// A 2x2 PNG: red everywhere, with the right column half transparent.
+///
+/// The shape a seal has over the line it signs: colour where the ink is,
+/// nothing where the paper should show through.
+fn translucent_png() -> Vec<u8> {
+    let mut rgba = Vec::with_capacity(2 * 2 * 4);
+    for x in 0..2 {
+        let alpha = if x == 0 { 255 } else { 0 };
+        for _ in 0..2 {
+            rgba.extend_from_slice(&[220, 30, 30, alpha]);
+        }
+    }
+    let image = image::RgbaImage::from_raw(2, 2, rgba).expect("2x2 pixels");
+    let mut png = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgba8(image)
+        .write_to(&mut png, image::ImageFormat::Png)
+        .expect("encode the fixture");
+    png.into_inner()
+}
+
+/// A page whose only content is that resource, placed over the whole sheet.
+fn seal_page(png: Vec<u8>) -> PageDisplay {
+    PageDisplay {
+        index: 0,
+        page_box: Rect::A4_PORTRAIT,
+        ops: vec![DrawOp::Image {
+            image: sofd_display::ImageRef::new(
+                "seal",
+                std::sync::Arc::new(png),
+                (2, 2),
+                sofd_display::ImageCodec::Png,
+            ),
+            dst: Rect::new(10.0, 10.0, 40.0, 40.0),
+            transform: sofd_geometry::Affine::IDENTITY,
+        }],
+        content_bbox: Rect::new(10.0, 10.0, 50.0, 50.0),
+    }
+}
+
+#[test]
+fn a_translucent_image_travels_as_a_soft_mask() {
+    let page = seal_page(translucent_png());
+    let pdf = page_to_pdf(&page, &PdfOptions::default()).expect("convert");
+    let doc = lopdf::Document::load_mem(&pdf).expect("the export is a PDF");
+
+    let images: Vec<_> = doc
+        .objects
+        .values()
+        .filter_map(|o| o.as_stream().ok())
+        .filter(|s| {
+            s.dict.get(b"Subtype").and_then(|v| v.as_name()).ok() == Some(b"Image".as_ref())
+        })
+        .collect();
+    assert_eq!(images.len(), 2, "the colour image and its mask");
+
+    let painted = images
+        .iter()
+        .find(|s| {
+            s.dict.get(b"ColorSpace").and_then(|v| v.as_name()).ok() == Some(b"DeviceRGB".as_ref())
+        })
+        .expect("the colour image");
+    let mask_ref = painted
+        .dict
+        .get(b"SMask")
+        .expect("the image names a mask")
+        .as_reference()
+        .expect("an indirect mask");
+    let mask = doc
+        .get_object(mask_ref)
+        .and_then(|o| o.as_stream())
+        .expect("the mask is a stream");
+    assert_eq!(
+        mask.dict.get(b"ColorSpace").and_then(|v| v.as_name()).ok(),
+        Some(b"DeviceGray".as_ref()),
+        "a soft mask is one channel"
+    );
+    let alpha = mask.decompressed_content().expect("the mask content");
+    assert_eq!(
+        alpha,
+        vec![255, 255, 0, 0],
+        "left column opaque, right column clear"
+    );
+}
+
+#[test]
+fn an_opaque_image_writes_no_mask() {
+    let mut png = std::io::Cursor::new(Vec::new());
+    let mut rgba = Vec::new();
+    for _ in 0..4 {
+        rgba.extend_from_slice(&[200, 10, 10, 255]);
+    }
+    let image = image::RgbaImage::from_raw(2, 2, rgba).expect("2x2 pixels");
+    image::DynamicImage::ImageRgba8(image)
+        .write_to(&mut png, image::ImageFormat::Png)
+        .expect("encode the fixture");
+    let page = seal_page(png.into_inner());
+    let pdf = page_to_pdf(&page, &PdfOptions::default()).expect("convert");
+    let doc = lopdf::Document::load_mem(&pdf).expect("the export is a PDF");
+    let painted = doc
+        .objects
+        .values()
+        .filter_map(|o| o.as_stream().ok())
+        .find(|s| {
+            s.dict.get(b"ColorSpace").and_then(|v| v.as_name()).ok() == Some(b"DeviceRGB".as_ref())
+        })
+        .expect("the colour image");
+    assert!(
+        painted.dict.get(b"SMask").is_err(),
+        "nothing was translucent, so there is nothing to mask"
+    );
+}
