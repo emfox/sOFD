@@ -29,7 +29,7 @@ sofd-sign = { path = "../sofd-sign", version = "0.6", optional = true }
 # bring a second path to the same dependency.
 sofd-convert = { path = "../sofd-convert", version = "0.7", optional = true, default-features = false }
 sofd-edit = { path = "../sofd-edit", version = "0.5", optional = true }
-sofd-search = { path = "../sofd-search", version = "0.5", optional = true }
+sofd-search = { path = "../sofd-search", version = "0.6", optional = true }
 sofd-archive = { path = "../sofd-archive", version = "0.5", optional = true }
 sofd-print = { path = "../sofd-print", version = "0.5", optional = true }
 tracing.workspace = true

@@ -6,8 +6,32 @@
 #![warn(missing_docs)]
 
 use sofd_common::Rect;
-use sofd_display::text::GlyphRun;
+use sofd_display::text::{GlyphRun, run_face};
 use sofd_display::{DisplayList, DrawOp};
+use sofd_font::{FontFace, FontManager};
+
+/// The text a run stands for, from its own field or from the face's `cmap`.
+fn text_of(run: &GlyphRun, fonts: Option<&FontManager>) -> String {
+    if let Some(text) = &run.text {
+        return text.clone();
+    }
+    if run.codes_are_glyphs {
+        // Glyph indices mean nothing without the face that names them.
+        let Some(face) = fonts.and_then(|fonts| run_face(fonts, run)) else {
+            return String::new();
+        };
+        return run
+            .glyphs
+            .iter()
+            .filter_map(|&glyph| face.reverse_cmap(glyph))
+            .filter_map(char::from_u32)
+            .collect();
+    }
+    run.glyphs
+        .iter()
+        .filter_map(|&code| char::from_u32(u32::from(code)))
+        .collect()
+}
 
 /// One indexed text run on one page.
 #[derive(Debug, Clone)]
@@ -56,6 +80,17 @@ pub struct SearchIndex {
 impl SearchIndex {
     /// Build an index from a display list.
     pub fn build(list: &DisplayList) -> Self {
+        Self::collect(list, None)
+    }
+
+    /// Build an index, reading text from the font for runs that carry only
+    /// glyph ids: a subset font with no ToUnicode map still names its glyphs,
+    /// and the face can turn them back into characters.
+    pub fn build_with_fonts(list: &DisplayList, fonts: &FontManager) -> Self {
+        Self::collect(list, Some(fonts))
+    }
+
+    fn collect(list: &DisplayList, fonts: Option<&FontManager>) -> Self {
         let mut pages = Vec::new();
         for page in &list.pages {
             let mut indexed = IndexedPage {
@@ -67,7 +102,7 @@ impl SearchIndex {
                     indexed.runs.push(IndexedRun {
                         page: page.index,
                         op_index,
-                        text: run.text.clone().unwrap_or_default(),
+                        text: text_of(run, fonts),
                         bbox: run.bbox,
                         advances: run.advances.clone(),
                     });
@@ -216,6 +251,24 @@ pub fn glyph_to_text(run: &GlyphRun, glyph_index: usize) -> Option<String> {
     } else {
         Some(out)
     }
+}
+
+/// Reverse lookup with a face behind it, for a run that carries no text.
+///
+/// The cluster map answers when the run has one; otherwise the glyph id is
+/// asked of the face's `cmap`, which is what makes a subset font selectable.
+pub fn glyph_to_text_with_face(
+    run: &GlyphRun,
+    glyph_index: usize,
+    face: &FontFace,
+) -> Option<String> {
+    if let Some(text) = glyph_to_text(run, glyph_index) {
+        return Some(text);
+    }
+    let glyph = *run.glyphs.get(glyph_index)?;
+    face.reverse_cmap(glyph)
+        .and_then(char::from_u32)
+        .map(String::from)
 }
 
 fn whole_word(haystack: &str, start: usize, end: usize) -> bool {

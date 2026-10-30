@@ -145,3 +145,76 @@ fn glyph_to_text_maps_clusters_back_to_characters() {
     bare.cluster_map = None;
     assert_eq!(glyph_to_text(&bare, 1), None);
 }
+
+/// The face the run was set in, so a glyph id can be turned back into a
+/// character the way a subset font needs.
+fn manager_with_fixture() -> (sofd_font::FontManager, FontId) {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../sofd-render/tests/data/Orbitron-Bold.ttf"
+    );
+    let bytes = std::fs::read(path).expect("font fixture");
+    let mut manager = sofd_font::FontManager::new();
+    let id = manager.registry_mut().register_embedded(
+        "Res/Orbitron-Bold.ttf",
+        "Orbitron",
+        std::sync::Arc::new(bytes),
+    );
+    (manager, id)
+}
+
+/// A run whose text was never mapped: glyph ids only, as a subset font ships.
+fn glyph_run_of(font: FontId, glyphs: &[u16]) -> GlyphRun {
+    GlyphRun {
+        font,
+        size: sofd_common::Millimeter(3.5),
+        glyphs: glyphs.to_vec(),
+        advances: vec![3.5; glyphs.len()],
+        text: None,
+        cluster_map: None,
+        codes_are_glyphs: true,
+        transform: Affine::IDENTITY,
+        glyph_angle: 0.0,
+        fill: None,
+        stroke: None,
+        letter_spacing: 0.0,
+        word_spacing: 0.0,
+        bbox: box_at(10.0, 30.0),
+    }
+}
+
+#[test]
+fn a_run_without_text_is_indexed_from_its_font() {
+    let (fonts, id) = manager_with_fixture();
+    let face = fonts.face(id).expect("fixture face");
+    let glyphs: Vec<u16> = "OFD"
+        .chars()
+        .filter_map(|c| face.glyph_id(c as u32))
+        .collect();
+    assert_eq!(glyphs.len(), 3, "the fixture maps O, F and D");
+    let mut builder = DisplayListBuilder::new(Rect::new(0.0, 0.0, 210.0, 297.0));
+    builder.push(DrawOp::Text(glyph_run_of(id, &glyphs)));
+    let list = DisplayList {
+        page_count: 1,
+        pages: vec![builder.finish(0)],
+    };
+
+    // Without a face the run carries no text, which is the old behaviour.
+    assert_eq!(SearchIndex::build(&list).page_text(0), "");
+    let index = SearchIndex::build_with_fonts(&list, &fonts);
+    assert_eq!(index.page_text(0), "OFD");
+    assert_eq!(index.search("ofd", SearchOptions::default()).len(), 1);
+}
+
+#[test]
+fn a_face_answers_when_the_cluster_map_is_missing() {
+    let (fonts, id) = manager_with_fixture();
+    let face = fonts.face(id).expect("fixture face");
+    let glyph = face.glyph_id('A' as u32).expect("A in the fixture");
+    let run = glyph_run_of(id, &[glyph]);
+    assert_eq!(
+        sofd_search::glyph_to_text_with_face(&run, 0, &face).as_deref(),
+        Some("A")
+    );
+    assert_eq!(sofd_search::glyph_to_text_with_face(&run, 5, &face), None);
+}

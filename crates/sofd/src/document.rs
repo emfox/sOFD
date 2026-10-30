@@ -464,7 +464,7 @@ impl Document {
         needle: &str,
         options: sofd_search::SearchOptions,
     ) -> Vec<sofd_search::SearchHit> {
-        let index = sofd_search::SearchIndex::build(&self.list);
+        let index = sofd_search::SearchIndex::build_with_fonts(&self.list, &self.fonts);
         index.search(needle, options)
     }
 
