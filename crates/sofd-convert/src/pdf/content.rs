@@ -62,10 +62,11 @@ fn image_dict(image: &PendingImage, colorspace: &[u8]) -> Dictionary {
     dict
 }
 
-/// Split premultiplied RGBA into colour and an alpha plane.
+/// Split straight-alpha RGBA into colour and an alpha plane.
 ///
-/// The colour is un-premultiplied, because PDF composites the mask over the
-/// page itself and would otherwise multiply the alpha in twice. A fully opaque
+/// Decode hands out straight (non-premultiplied) alpha, so the colour is the
+/// first three channels as they are: PDF composites the mask over the page
+/// itself and would otherwise multiply the alpha in twice. A fully opaque
 /// image yields no plane at all, so the common case writes no mask.
 fn split_alpha(rgba: &[u8]) -> (Vec<u8>, Option<Vec<u8>>) {
     let opaque = rgba.chunks_exact(4).all(|px| px[3] == u8::MAX);
@@ -81,15 +82,7 @@ fn split_alpha(rgba: &[u8]) -> (Vec<u8>, Option<Vec<u8>>) {
     let mut rgb = Vec::with_capacity(rgba.len() / 4 * 3);
     let mut alpha = Vec::with_capacity(rgba.len() / 4);
     for px in rgba.chunks_exact(4) {
-        let a = px[3] as u32;
-        let un = |c: u8| {
-            if a == 0 || a == 255 {
-                c
-            } else {
-                ((c as u32 * 255 + a / 2) / a).min(255) as u8
-            }
-        };
-        rgb.extend_from_slice(&[un(px[0]), un(px[1]), un(px[2])]);
+        rgb.extend_from_slice(&px[..3]);
         alpha.push(px[3]);
     }
     (rgb, Some(alpha))

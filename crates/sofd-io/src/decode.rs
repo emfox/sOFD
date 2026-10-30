@@ -21,15 +21,11 @@ pub fn decode(data: &[u8], codec: ImageCodec, pixels: Pixels) -> Result<Decoded,
     let read = read(data, codec)?;
     let (width, height) = (read.width(), read.height());
     let bytes = match pixels {
-        // An RGB image is written out as it is: premultiplying is the raster
-        // backend's need, and an exporter embedding the pixels has nowhere to
-        // put the alpha it would be multiplying by.
         Pixels::Rgb => read.to_rgb8().into_raw(),
-        Pixels::Rgba => read
-            .to_rgba8()
-            .pixels()
-            .flat_map(|p| premultiply(p.0))
-            .collect(),
+        // Straight alpha: the only caller that wants premultiplied pixels is
+        // the raster backend, and it premultiplies at the tiny-skia boundary
+        // itself, so no consumer here undoes this step a second time.
+        Pixels::Rgba => read.to_rgba8().into_raw(),
     };
     Ok(Decoded {
         bytes,
@@ -56,7 +52,8 @@ pub fn pixel_size(data: &[u8], codec: ImageCodec) -> Option<(u32, u32)> {
 pub enum Pixels {
     /// Three channels, no alpha: what an image XObject embedded in a PDF holds.
     Rgb,
-    /// Four channels, premultiplied: what a raster backend blits.
+    /// Four channels, straight (non-premultiplied) alpha: an exporter embeds
+    /// it as it is, and the raster backend premultiplies at its boundary.
     Rgba,
 }
 
@@ -137,8 +134,9 @@ fn format_of(codec: ImageCodec) -> image::ImageFormat {
 
 /// Scale a colour channel by its alpha, the form a raster canvas expects.
 ///
-/// An opaque pixel is returned untouched, which is every pixel of a JPEG and
-/// most of a scan.
+/// Decode hands out straight alpha; only the raster backend needs this, at
+/// the tiny-skia boundary where a `Pixmap` takes premultiplied pixels. An
+/// opaque pixel is returned untouched, which is every pixel of a JPEG.
 pub fn premultiply(px: [u8; 4]) -> [u8; 4] {
     let a = px[3] as u32;
     if a == 255 {

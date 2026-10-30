@@ -377,3 +377,22 @@ reshaped freely and only has to settle before it ships.
 `cargo semver-checks` skips `publish = false` without being told, which is why
 the eight unpublished crates need no opt-in line at all.
 
+
+## 7. Scoped testing
+
+A full `cargo test --workspace` is for releases and for changes to shared
+roots, not for every edit: most of its time goes to crates the change cannot
+reach. `scripts/test_scope.py` maps the changed files to their crates and
+walks the reverse-dependency graph, and a change declares which tier it needs:
+
+| Tier | Scope | When to use |
+| --- | --- | --- |
+| `crate` | the crates owning the changed files | iterating on a fix |
+| `affected` | the crates plus every crate depending on them | before pushing a commit |
+| `full` | the whole workspace | releases; changes to `common`, `error`, `xml`, `io`, `package` or the root manifest |
+
+`python3 scripts/test_scope.py --tier affected --run` diffs the working tree
+by default; `--base main` diffs a pushed branch. The facade and the shells
+sit downstream of everything, so a change below L3 pulls them in — that is
+the price of the layering, and the tier system's job is only to skip what is
+genuinely untouched.

@@ -156,9 +156,10 @@ pub(crate) fn draw_image(
 
 /// Decode a placed resource into premultiplied RGBA.
 ///
-/// Which encodings this accepts, and how each is read, is `sofd_io`'s to
-/// say: an export embeds the same bytes, so a format known here and not there
-/// would render and then refuse to leave the page.
+/// `sofd_io` decodes straight alpha; tiny-skia's `Pixmap` takes premultiplied
+/// pixels, so the premultiplication happens here, at that boundary. Which
+/// encodings this accepts is `sofd_io`'s to say, so a format known here and
+/// not there would render and then refuse to leave the page.
 pub(crate) fn decode_resource(image: &ImageRef) -> Result<(Vec<u8>, u32, u32)> {
     let decoded =
         sofd_io::decode(&image.data, image.codec, sofd_io::Pixels::Rgba).map_err(|reason| {
@@ -176,5 +177,12 @@ pub(crate) fn decode_resource(image: &ImageRef) -> Result<(Vec<u8>, u32, u32)> {
             ),
         }));
     }
-    Ok((decoded.bytes, decoded.width, decoded.height))
+    let bytes = decoded
+        .bytes
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .flat_map(|&px| sofd_io::premultiply(px))
+        .collect();
+    Ok((bytes, decoded.width, decoded.height))
 }
