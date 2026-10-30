@@ -27,7 +27,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for shape in &page.shapes {
             match shape {
                 Shape::Path {
-                    path, fill, stroke, ..
+                    path,
+                    fill,
+                    stroke,
+                    stroke_style,
+                    ..
                 } => {
                     counts.paths += 1;
                     if fill.is_some() {
@@ -35,6 +39,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     if stroke.is_some() {
                         counts.strokes += 1;
+                        counts.widest = counts.widest.max(stroke_style.width);
+                        counts.dashed += usize::from(!stroke_style.dash.is_empty());
                     }
                     counts.segments += path.len();
                 }
@@ -73,6 +79,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         total.clips,
         total.resets
     );
+    if total.strokes > 0 {
+        // A canvas sets one width per stroke, so this is the number it needs
+        // beside the paint — the thing the walk used to leave behind.
+        println!(
+            "widest stroke {:.2} mm, {} dashed of {}",
+            total.widest, total.dashed, total.strokes
+        );
+    }
     Ok(())
 }
 
@@ -87,6 +101,8 @@ struct Counts {
     images: usize,
     clips: usize,
     resets: usize,
+    widest: f64,
+    dashed: usize,
 }
 
 impl Counts {
@@ -99,5 +115,7 @@ impl Counts {
         self.images += other.images;
         self.clips += other.clips;
         self.resets += other.resets;
+        self.widest = self.widest.max(other.widest);
+        self.dashed += other.dashed;
     }
 }

@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use sofd_common::{Millimeter, Rect};
-use sofd_display::ops::{Color, Paint, PaintRule, StrokeStyle};
+use sofd_display::ops::{Color, LineCap, LineJoin, Paint, PaintRule, StrokeStyle};
 use sofd_display::text::GlyphRun;
 use sofd_display::{DisplayListBuilder, DrawOp, ImageCodec, ImageRef, PageDisplay};
 use sofd_font::{FontId, FontManager};
@@ -524,4 +524,37 @@ fn a_page_reports_the_glyphs_it_could_not_draw() {
     assert_eq!(partial.missing_glyphs, 1, "one character had no outline");
     assert_eq!(partial.missing_glyph_runs, 1, "and one run was short");
     assert_eq!(partial.shapes.len(), 1, "the two letters are still drawn");
+}
+
+/// A stroked path used to arrive with its paint and no geometry, so a shell
+/// drew every outline at one width. A table rule and a seal are both strokes,
+/// and they are not the same width.
+#[test]
+fn a_stroke_carries_the_width_it_was_drawn_with() {
+    let fonts = FontManager::new();
+    let style = StrokeStyle {
+        width: 2.5,
+        dash: vec![3.0, 1.0],
+        dash_offset: 0.5,
+        cap: LineCap::Round,
+        join: LineJoin::Bevel,
+        miter_limit: 2.0,
+    };
+    let page = page_with(vec![DrawOp::Path {
+        path: rect(10.0, 10.0, 20.0, 20.0),
+        fill: None,
+        stroke: Some(Paint::Solid(Color::BLACK)),
+        stroke_style: style,
+        rule: PaintRule::NonZero,
+    }]);
+    let vector = page_to_vector(&page, &fonts, &RenderOptions::default());
+    let Shape::Path { stroke_style, .. } = &vector.shapes[0] else {
+        panic!("expected a path, got {:?}", vector.shapes[0]);
+    };
+    assert_eq!(stroke_style.width, 2.5, "the width reached the shape");
+    assert_eq!(stroke_style.dash, vec![3.0, 1.0], "and its dash pattern");
+    assert_eq!(stroke_style.dash_offset, 0.5);
+    assert_eq!(stroke_style.cap, LineCap::Round);
+    assert_eq!(stroke_style.join, LineJoin::Bevel);
+    assert_eq!(stroke_style.miter_limit, 2.0);
 }

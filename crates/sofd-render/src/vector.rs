@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use sofd_common::Rect;
-use sofd_display::{DrawOp, GlyphRun, ImageRef, PageDisplay, Paint, PaintRule};
+use sofd_display::{DrawOp, GlyphRun, ImageRef, PageDisplay, Paint, PaintRule, StrokeStyle};
 use sofd_font::FontManager;
 use sofd_geometry::{Affine, Path};
 
@@ -46,6 +46,10 @@ pub enum Shape {
         fill: Option<Paint>,
         /// Stroke paint; `None` leaves the outline untouched.
         stroke: Option<Paint>,
+        /// Stroke geometry: width in millimetres, dashes, cap and join. A
+        /// backend that took the paint without this would draw every outline at
+        /// one width, which is a table rule and a seal at once.
+        stroke_style: StrokeStyle,
         /// How the path decides what is inside itself.
         rule: PaintRule,
     },
@@ -164,12 +168,13 @@ pub fn page_to_vector(
                 path,
                 fill,
                 stroke,
+                stroke_style,
                 rule,
-                ..
             } => out.shapes.push(Shape::Path {
                 path: path.transformed(&ctm),
                 fill: fill.clone(),
                 stroke: stroke.clone(),
+                stroke_style: stroke_style.clone(),
                 rule: *rule,
             }),
             DrawOp::Text(run) => {
