@@ -12,7 +12,7 @@ categories = ["text-processing"]
 
 [dependencies]
 sofd-common = { path = "../sofd-common", version = "0.5" }
-sofd-display = { path = "../sofd-display", version = "0.5" }
+sofd-display = { path = "../sofd-display", version = "0.6" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 tracing.workspace = true
 

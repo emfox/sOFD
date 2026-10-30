@@ -4,7 +4,6 @@
 
 use sofd_common::Rect;
 use sofd_display::{DrawOp, ImageCodec};
-use sofd_geometry::Affine;
 use sofd_package::{Package, build_archive};
 use sofd_parser::{ParsedDocument, Parser};
 

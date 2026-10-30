@@ -15,7 +15,7 @@ categories = ["multimedia::encoding"]
 [dependencies]
 sofd-common = { path = "../sofd-common", version = "0.5" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
-sofd-display = { path = "../sofd-display", version = "0.5" }
+sofd-display = { path = "../sofd-display", version = "0.6" }
 sofd-io = { path = "../sofd-io", version = "0.5" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
