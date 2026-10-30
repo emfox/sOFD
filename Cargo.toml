@@ -15,6 +15,10 @@ members = [
     # L1.5 i18n: depended on by presentation only, never by the engine
     "crates/sofd-i18n",
 
+    # L1.5 artwork: the icon set as the theme's own path data, so the `egui`
+    # shell and the Tauri shell draw the same glyphs instead of two copies
+    "crates/sofd-icons",
+
     # L2 engine: parsing, geometry, rendering, fonts
     "crates/sofd-geometry",
     "crates/sofd-font",

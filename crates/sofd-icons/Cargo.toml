@@ -1,0 +1,21 @@
+[package]
+name = "sofd-icons"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = "The symbolic icon set the reader's shells draw, as the desktop theme's own path data"
+keywords = ["ofd", "icons", "adwaita", "symbolic"]
+categories = ["graphics"]
+
+# Layer L1.5: depended on by presentation only. This crate holds no toolkit
+# type at all — an icon is a list of `d` strings and the reader that turns them
+# into subpaths — so the `egui` shell and the Tauri shell draw the same glyphs
+# rather than each keeping a copy that drifts.
+
+[dependencies]
+
+[package.metadata.cargo-semver-checks.lints]
+workspace = true

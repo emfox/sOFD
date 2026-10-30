@@ -4773,6 +4773,7 @@ dependencies = [
  "sofd-common",
  "sofd-error",
  "sofd-i18n",
+ "sofd-icons",
  "sofd-print",
  "sofd-session",
  "sofd-sign",
@@ -4839,6 +4840,10 @@ dependencies = [
  "tracing",
  "unic-langid",
 ]
+
+[[package]]
+name = "sofd-icons"
+version = "0.1.0"
 
 [[package]]
 name = "sofd-io"

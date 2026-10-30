@@ -1,272 +1,39 @@
-//! The symbolic icon set, drawn from the path data the desktop's icon theme
-//! ships for the same names. Colours come from the window, so a glyph follows a
-//! theme switch and nothing is rasterized until a frame asks for it.
-
-mod path;
-
-use std::sync::OnceLock;
+//! The symbolic icon set, filled for this toolkit. The glyphs themselves live
+//! in `sofd-icons`, so the Tauri shell draws the same shapes rather than a
+//! second copy; what is here is the fill, which `egui`'s own polygon shape
+//! cannot do correctly for an outlined glyph.
 
 use eframe::egui::{self, Color32, Pos2, Rect, Response, Sense, Shape, Vec2};
 
 use crate::theme::{self, Token};
-use path::Subpath;
 
-/// The square every glyph is drawn on, before the reader's scale.
-pub const SIZE: f32 = 16.0;
+pub use sofd_icons::{Icon, SIZE};
 
-/// One of the window's icons. Each is the theme's own drawing of the same idea,
-/// so a reader who knows the theme already knows these.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Icon {
-    /// Open a file.
-    Open,
-    /// Close the open document.
-    Close,
-    /// Search the document.
-    Search,
-    /// The signature report.
-    Signatures,
-    /// The annotation list.
-    Annotations,
-    /// The main menu: three bars, as the theme draws it.
-    Menu,
-    /// The previous page or entry.
-    Previous,
-    /// The next page or entry.
-    Next,
-    /// One page at a time.
-    SinglePage,
-    /// Two pages facing.
-    FacingPages,
-    /// The document scrolling.
-    Continuous,
-    /// Fit the width.
-    FitWidth,
-    /// Fit the whole page.
-    FitPage,
-    /// Print.
-    Print,
-    /// Write a PDF.
-    ExportPdf,
-    /// Write PNG files.
-    ExportPng,
-    /// A signature that holds.
-    Valid,
-    /// Tampered.
-    Tampered,
-    /// A proof nothing can confirm.
-    Unverified,
-    /// A sound proof whose signer is not trusted.
-    Untrusted,
-}
-
-impl Icon {
-    /// Every icon, so a test can draw all of them.
-    pub const ALL: [Self; 20] = [
-        Self::Open,
-        Self::Close,
-        Self::Search,
-        Self::Signatures,
-        Self::Annotations,
-        Self::Menu,
-        Self::Previous,
-        Self::Next,
-        Self::SinglePage,
-        Self::FacingPages,
-        Self::Continuous,
-        Self::FitWidth,
-        Self::FitPage,
-        Self::Print,
-        Self::ExportPdf,
-        Self::ExportPng,
-        Self::Valid,
-        Self::Tampered,
-        Self::Unverified,
-        Self::Untrusted,
-    ];
-
-    /// The name of the theme icon this glyph is. It is also the name of the
-    /// file the path data was taken from, which is how a reviewer checks it.
-    pub fn theme_name(self) -> &'static str {
-        match self {
-            Self::Open => "document-open-symbolic",
-            Self::Close => "window-close-symbolic",
-            Self::Search => "edit-find-symbolic",
-            Self::Signatures => "application-certificate-symbolic",
-            Self::Annotations => "view-list-symbolic",
-            Self::Menu => "open-menu-symbolic",
-            Self::Previous => "go-previous-symbolic",
-            Self::Next => "go-next-symbolic",
-            Self::SinglePage => "view-paged-symbolic",
-            Self::FacingPages => "view-dual-symbolic",
-            Self::Continuous => "view-continuous-symbolic",
-            Self::FitWidth => "zoom-fit-best-symbolic",
-            Self::FitPage => "zoom-in-symbolic",
-            Self::Print => "document-print-symbolic",
-            Self::ExportPdf => "document-save-symbolic",
-            Self::ExportPng => "image-x-generic-symbolic",
-            Self::Valid => "emblem-ok-symbolic",
-            Self::Tampered => "dialog-error-symbolic",
-            Self::Unverified => "dialog-question-symbolic",
-            Self::Untrusted => "dialog-warning-symbolic",
-        }
-    }
-
-    /// The themed paths this one is drawn from, in the order the theme's file
-    /// lists them. Each is one `<path>` element's `d`, and nothing else.
-    fn paths(self) -> &'static [&'static str] {
-        match self {
-            Self::Open => &[OPEN_0, OPEN_1],
-            Self::Close => &[CLOSE_0],
-            Self::Search => &[SEARCH_0],
-            Self::Signatures => &[CERTIFICATE_0],
-            Self::Annotations => &[LIST_0],
-            Self::Menu => &[MENU_0, MENU_1, MENU_2],
-            Self::Previous => &[PREVIOUS_0],
-            Self::Next => &[NEXT_0],
-            Self::SinglePage => &[PAGED_0, PAGED_1, PAGED_2],
-            Self::FacingPages => &[DUAL_0, DUAL_1],
-            Self::Continuous => &[CONTINUOUS_0, CONTINUOUS_1],
-            Self::FitWidth => &[FIT_WIDTH_0],
-            Self::FitPage => &[FIT_PAGE_0],
-            Self::Print => &[PRINT_0],
-            Self::ExportPdf => &[SAVE_0],
-            Self::ExportPng => &[IMAGE_0, IMAGE_1],
-            Self::Valid => &[OK_0],
-            Self::Tampered => &[ERROR_0],
-            Self::Unverified => &[QUESTION_0],
-            Self::Untrusted => &[WARNING_0],
-        }
-    }
-
-    /// The drawing as it is stored, read once and kept for the process.
-    fn drawing(self) -> &'static Drawing {
-        static CACHE: OnceLock<Vec<Drawing>> = OnceLock::new();
-        let all = CACHE.get_or_init(|| Icon::ALL.iter().map(|icon| icon.read()).collect());
-        &all[Icon::ALL
-            .iter()
-            .position(|icon| *icon == self)
-            .expect("every icon is in ALL")]
-    }
-
-    /// Read this glyph's paths, and note the ones the theme draws faded: the
-    /// parts that only hint at a second page behind the first.
-    fn read(self) -> Drawing {
-        let mut drawing = Drawing::default();
-        for text in self.paths() {
-            let shade = if text.contains(FADED) { 0.349 } else { 1.0 };
-            let subpaths = path::parse(text)
-                .unwrap_or_else(|e| panic!("{} does not read: {e:?}", self.theme_name()));
-            drawing
-                .parts
-                .extend(subpaths.into_iter().map(|s| (s, shade)));
-        }
-        drawing
-    }
-
-    /// The glyph's outlines as closed rings of points on the 16-unit square,
-    /// curves spelled out as the short straight steps a fill can count.
-    fn flattened(self) -> Vec<(Vec<Pos2>, f32)> {
-        self.drawing()
-            .parts
-            .iter()
-            .map(|(subpath, shade)| {
-                let mut ring = vec![Pos2::new(subpath.start.0, subpath.start.1)];
-                for segment in &subpath.segments {
-                    match *segment {
-                        path::Segment::Line(to) => ring.push(Pos2::new(to.0, to.1)),
-                        path::Segment::Cubic(c1, c2, to) => {
-                            let from = ring[ring.len() - 1];
-                            let at = |(x, y): (f32, f32)| Pos2::new(x, y);
-                            ring.extend(curve(from, at(c1), at(c2), at(to)));
-                        }
+/// A glyph's outlines as closed rings of points on the 16-unit square,
+/// curves spelled out as the short straight steps a fill can count.
+fn flattened(icon: Icon) -> Vec<(Vec<Pos2>, f32)> {
+    icon.drawing()
+        .parts
+        .iter()
+        .map(|(subpath, shade)| {
+            let mut ring = vec![Pos2::new(subpath.start.0, subpath.start.1)];
+            for segment in &subpath.segments {
+                match *segment {
+                    sofd_icons::path::Segment::Line(to) => ring.push(Pos2::new(to.0, to.1)),
+                    sofd_icons::path::Segment::Cubic(c1, c2, to) => {
+                        let from = ring[ring.len() - 1];
+                        let at = |(x, y): (f32, f32)| Pos2::new(x, y);
+                        ring.extend(curve(from, at(c1), at(c2), at(to)));
                     }
                 }
-                if subpath.closed && ring.len() > 1 {
-                    ring.push(ring[0]);
-                }
-                (ring, *shade)
-            })
-            .collect()
-    }
+            }
+            if subpath.closed && ring.len() > 1 {
+                ring.push(ring[0]);
+            }
+            (ring, *shade)
+        })
+        .collect()
 }
-
-/// One glyph's paths, each with the strength the theme draws it at.
-#[derive(Debug, Default)]
-struct Drawing {
-    parts: Vec<(Subpath, f32)>,
-}
-
-/// The `opacity` an SVG marks a path the theme draws faded with.
-const FADED: &str = "fill-opacity=\"0.349\"";
-
-/// `document-open-symbolic`: a folder with a sheet lifting out of it.
-const OPEN_0: &str = "m 3 1 c -1.644531 0 -3 1.355469 -3 3 v 8 c 0 1.644531 1.355469 3 3 3 h 8.882812 c 0.832032 0 1.578126 -0.402344 2.054688 -0.9375 c 0.472656 -0.53125 0.738281 -1.167969 0.910156 -1.800781 l 0.972656 -2.609375 c 0.390626 -1.449219 -0.09375 -2.652344 -0.820312 -3.167969 c -0.484375 -0.34375 -0.714844 -0.292969 -1 -0.324219 v -1.160156 c 0 -0.855469 -0.558594 -1.589844 -1.09375 -1.828125 c -0.53125 -0.238281 -1.011719 -0.167969 -1.011719 -0.167969 l 0.105469 -0.003906 h -3.585938 l -1.707031 -1.707031 c -0.1875 -0.1875 -0.441406 -0.292969 -0.707031 -0.292969 z m 0 2 h 2.585938 l 1.707031 1.707031 c 0.1875 0.1875 0.441406 0.292969 0.707031 0.292969 h 4 c 0.035156 0 0.070312 -0.003906 0.105469 -0.007812 c 0 0 0.019531 0.019531 -0.011719 0.003906 c -0.035156 -0.011719 -0.09375 -0.25 -0.09375 0.003906 v 2 c 0 0.550781 0.449219 1 1 1 c 1 0 1.046875 0.703125 0.886719 1.128906 l -0.972657 2.609375 c -0.117187 0.4375 -0.296874 0.800781 -0.472656 0.996094 c -0.175781 0.199219 -0.285156 0.265625 -0.558594 0.265625 h -8.882812 c -0.570312 0 -1 -0.429688 -1 -1 v -8 c 0 -0.570312 0.46875 -0.792969 1 -1 z";
-const OPEN_1: &str = "m 7 6 l 0.042969 0.003906 c -0.914063 -0.042968 -1.75 0.390625 -2.195313 0.96875 c -0.710937 1.222656 -1.15625 2.277344 -1.800781 3.71875 c -0.171875 0.523438 0.117187 1.089844 0.640625 1.261719 c 0.527344 0.171875 1.09375 -0.117187 1.261719 -0.640625 c 0.488281 -1.011719 0.921875 -1.816406 1.339843 -2.808594 c 0.210938 -0.503906 0.703126 -0.492187 0.898438 -0.503906 h 5.8125 c 0.550781 0 1 -0.449219 1 -1 c 0 -0.550781 -0.449219 -1 -1 -1 z";
-
-/// `window-close-symbolic`: two bars crossing.
-const CLOSE_0: &str = "m 4 4 h 1 h 0.03125 c 0.253906 0.011719 0.511719 0.128906 0.6875 0.3125 l 2.28125 2.28125 l 2.3125 -2.28125 c 0.265625 -0.230469 0.445312 -0.304688 0.6875 -0.3125 h 1 v 1 c 0 0.285156 -0.035156 0.550781 -0.25 0.75 l -2.28125 2.28125 l 2.25 2.25 c 0.1875 0.1875 0.28125 0.453125 0.28125 0.71875 v 1 h -1 c -0.265625 0 -0.53125 -0.09375 -0.71875 -0.28125 l -2.28125 -2.28125 l -2.28125 2.28125 c -0.1875 0.1875 -0.453125 0.28125 -0.71875 0.28125 h -1 v -1 c 0 -0.265625 0.09375 -0.53125 0.28125 -0.71875 l 2.28125 -2.25 l -2.28125 -2.28125 c -0.210938 -0.195312 -0.304688 -0.46875 -0.28125 -0.75 z";
-
-/// `edit-find-symbolic`: a magnifier over the page.
-const SEARCH_0: &str = "m 6.5 0 c -3.578125 0 -6.5 2.921875 -6.5 6.5 c 0 3.578125 2.921875 6.5 6.5 6.5 c 1.429688 0 2.753906 -0.46875 3.828125 -1.257812 l 2.945313 2.945312 c 0.957031 0.9375 2.363281 -0.5 1.40625 -1.4375 l -2.929688 -2.929688 c 0.785156 -1.074218 1.25 -2.394531 1.25 -3.820312 c 0 -3.578125 -2.921875 -6.5 -6.5 -6.5 z m 0 2 c 2.496094 0 4.5 2.003906 4.5 4.5 c 0 2.496094 -2.003906 4.5 -4.5 4.5 c -2.496094 0 -4.5 -2.003906 -4.5 -4.5 c 0 -2.496094 2.003906 -4.5 4.5 -4.5 z";
-
-/// `application-certificate-symbolic`: a seal hanging from a certificate.
-const CERTIFICATE_0: &str = "m 3 0 c -1.644531 0 -3 1.355469 -3 3 v 7 c 0 1.644531 1.355469 3 3 3 h 3 v -2 h -3 c -0.554688 0 -1 -0.445312 -1 -1 v -7 c 0 -0.570312 0.429688 -1 1 -1 h 10 c 0.570312 0 1 0.429688 1 1 v 7 c 0 0.554688 -0.445312 1 -1 1 h -1 v 2 h 1 c 1.644531 0 3 -1.355469 3 -3 v -7 c 0 -1.644531 -1.355469 -3 -3 -3 z m 6 4 c -1.65625 0 -3 1.34375 -3 3 c 0 0.851562 0.363281 1.664062 1 2.234375 v 6.765625 l 2 -1.5 l 2 1.5 v -6.765625 c 0.636719 -0.570313 1 -1.382813 1 -2.234375 c 0 -1.65625 -1.34375 -3 -3 -3 z";
-
-/// `view-list-symbolic`: three markers down the side, three lines beside them.
-const LIST_0: &str = "m 2 1 c -0.554688 0 -1 0.445312 -1 1 v 2 c 0 0.554688 0.445312 1 1 1 h 2 c 0.554688 0 1 -0.445312 1 -1 v -2 c 0 -0.554688 -0.445312 -1 -1 -1 z m 5 1 v 2 h 8 v -2 z m -5 4.015625 c -0.554688 0 -1 0.445313 -1 1 v 1.980469 c 0 0.550781 0.445312 1 1 1 h 2 c 0.554688 0 1 -0.449219 1 -1 v -1.980469 c 0 -0.554687 -0.445312 -1 -1 -1 z m 5 0.984375 v 2 h 8 v -2 z m -5 4 c -0.554688 0 -1 0.445312 -1 1 v 1.980469 c 0 0.550781 0.445312 1 1 1 h 2 c 0.554688 0 1 -0.449219 1 -1 v -1.980469 c 0 -0.554688 -0.445312 -1 -1 -1 z m 5 0.984375 v 2 h 8 v -2 z";
-
-/// `open-menu-symbolic`: three bars.
-const MENU_0: &str = "m 1 2 h 14 v 2 h -14 z";
-const MENU_1: &str = "m 1 7 h 14 v 2 h -14 z";
-const MENU_2: &str = "m 1 12 h 14 v 2 h -14 z";
-
-/// `go-previous-symbolic`: a chevron pointing back.
-const PREVIOUS_0: &str = "m 12 2 c 0 -0.265625 -0.105469 -0.519531 -0.292969 -0.707031 c -0.390625 -0.390625 -1.023437 -0.390625 -1.414062 0 l -6 6 c -0.1875 0.1875 -0.292969 0.441406 -0.292969 0.707031 c 0 0.265625 0.105469 0.519531 0.292969 0.707031 l 6 6 c 0.390625 0.390625 1.023437 0.390625 1.414062 0 c 0.1875 -0.1875 0.292969 -0.441406 0.292969 -0.707031 c 0 -0.265625 -0.105469 -0.519531 -0.292969 -0.707031 l -5.292969 -5.292969 l 5.292969 -5.292969 c 0.1875 -0.1875 0.292969 -0.441406 0.292969 -0.707031 z";
-
-/// `go-next-symbolic`: the same chevron, pointing on.
-const NEXT_0: &str = "m 4 2 c 0 -0.265625 0.105469 -0.519531 0.292969 -0.707031 c 0.390625 -0.390625 1.023437 -0.390625 1.414062 0 l 6 6 c 0.1875 0.1875 0.292969 0.441406 0.292969 0.707031 c 0 0.265625 -0.105469 0.519531 -0.292969 0.707031 l -6 6 c -0.390625 0.390625 -1.023437 0.390625 -1.414062 0 c -0.1875 -0.1875 -0.292969 -0.441406 -0.292969 -0.707031 c 0 -0.265625 0.105469 -0.519531 0.292969 -0.707031 l 5.292969 -5.292969 l -5.292969 -5.292969 c -0.1875 -0.1875 -0.292969 -0.441406 -0.292969 -0.707031 z";
-
-/// `view-paged-symbolic`: one sheet, a second behind it, and two text lines.
-const PAGED_0: &str = "m 9 5.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 h -3 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 3 c 0.277344 0 0.5 -0.222656 0.5 -0.5 z";
-const PAGED_1: &str = "m 4 0 c -1.644531 0 -3 1.355469 -3 3 v 7 c 0 1.644531 1.355469 3 3 3 h 6 c 1.644531 0 3 -1.355469 3 -3 v -7 c 0 -1.644531 -1.355469 -3 -3 -3 z m 0 2 h 6 c 0.570312 0 1 0.429688 1 1 v 7 c 0 0.570312 -0.429688 1 -1 1 h -6 c -0.570312 0 -1 -0.429688 -1 -1 v -7 c 0 -0.570312 0.429688 -1 1 -1 z m 11 2 c -0.550781 0 -1 0.449219 -1 1 v 8 c 0 0.550781 -0.449219 1 -1 1 h -7 c -0.550781 0 -1 0.449219 -1 1 c 0 0.550781 0.449219 1 1 1 h 7 c 1.65625 0 3 -1.34375 3 -3 v -8 c 0 -0.550781 -0.449219 -1 -1 -1 z";
-const PAGED_2: &str = "m 9 8.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 h -3 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 3 c 0.277344 0 0.5 -0.222656 0.5 -0.5 z";
-
-/// `view-dual-symbolic`: two sheets side by side, lines on each.
-const DUAL_0: &str = "m 3.5 5 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 2 c 0.277344 0 0.5 -0.222656 0.5 -0.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 z m 7 0 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 2 c 0.277344 0 0.5 -0.222656 0.5 -0.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 z m -7 3 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 2 c 0.277344 0 0.5 -0.222656 0.5 -0.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 z m 7 0 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 2 c 0.277344 0 0.5 -0.222656 0.5 -0.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 z";
-const DUAL_1: &str = "m 3 1 c -1.644531 0 -3 1.355469 -3 3 v 8 c 0 1.644531 1.355469 3 3 3 h 10 c 1.644531 0 3 -1.355469 3 -3 v -8 c 0 -1.644531 -1.355469 -3 -3 -3 z m 0 2 h 4 v 10 h -4 c -0.570312 0 -1 -0.429688 -1 -1 v -8 c 0 -0.570312 0.429688 -1 1 -1 z m 6 0 h 4 c 0.570312 0 1 0.429688 1 1 v 8 c 0 0.570312 -0.429688 1 -1 1 h -4 z";
-
-/// `view-continuous-symbolic`: a band scrolling, marked at both ends.
-const CONTINUOUS_0: &str = "m 5.5 0 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 5 c 0.277344 0 0.5 -0.222656 0.5 -0.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 z m 0 3 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 5 c 0.277344 0 0.5 -0.222656 0.5 -0.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 z m 0 8 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 5 c 0.277344 0 0.5 -0.222656 0.5 -0.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 z m 0 3 c -0.277344 0 -0.5 0.222656 -0.5 0.5 v 1 c 0 0.277344 0.222656 0.5 0.5 0.5 h 5 c 0.277344 0 0.5 -0.222656 0.5 -0.5 v -1 c 0 -0.277344 -0.222656 -0.5 -0.5 -0.5 z";
-const CONTINUOUS_1: &str = "m 15 7 h -14 v 2 h 14 z";
-
-/// `zoom-fit-best-symbolic`: four corner brackets reaching for the edges.
-const FIT_WIDTH_0: &str = "m 4 1 c -1.660156 0 -3 1.339844 -3 3 v 8 c 0 1.660156 1.339844 3 3 3 h 8 c 1.660156 0 3 -1.339844 3 -3 v -8 c 0 -1.660156 -1.339844 -3 -3 -3 z m 0 2 h 3.011719 v 2 h -2 v 2 h -2 l -0.011719 -3 c 0 -0.128906 0.027344 -0.253906 0.074219 -0.375 c 0.003906 -0.003906 0.003906 -0.007812 0.007812 -0.011719 c 0.046875 -0.117187 0.117188 -0.21875 0.203125 -0.308593 c 0.007813 -0.007813 0.011719 -0.011719 0.019532 -0.019532 c 0.089843 -0.085937 0.191406 -0.15625 0.308593 -0.203125 c 0.003907 -0.003906 0.007813 -0.007812 0.015625 -0.007812 c 0.117188 -0.046875 0.242188 -0.074219 0.371094 -0.074219 z m 5 0 h 3.011719 c 0.125 0 0.253906 0.027344 0.371093 0.074219 c 0.003907 0.003906 0.011719 0.003906 0.015626 0.007812 c 0.113281 0.046875 0.21875 0.117188 0.304687 0.203125 c 0.007813 0.007813 0.015625 0.011719 0.019531 0.019532 c 0.089844 0.089843 0.160156 0.191406 0.207032 0.308593 c 0 0.003907 0.003906 0.007813 0.007812 0.015625 c 0.046875 0.117188 0.070312 0.242188 0.074219 0.371094 l -0.011719 3 h -2 v -2 h -2 z m -5.988281 6 h 2 v 2 h 2 v 2 h -3.011719 c -0.128906 0 -0.253906 -0.027344 -0.375 -0.074219 c -0.003906 -0.003906 -0.007812 -0.003906 -0.011719 -0.007812 c -0.117187 -0.046875 -0.21875 -0.117188 -0.308593 -0.203125 c -0.007813 -0.007813 -0.011719 -0.011719 -0.019532 -0.019532 c -0.085937 -0.089843 -0.15625 -0.191406 -0.203125 -0.308593 c -0.003906 -0.003907 -0.007812 -0.007813 -0.007812 -0.015625 c -0.046875 -0.117188 -0.074219 -0.242188 -0.074219 -0.371094 z m 7.988281 0 h 2 l 0.011719 3 c -0.003907 0.128906 -0.027344 0.253906 -0.074219 0.375 c -0.003906 0.003906 -0.003906 0.007812 -0.007812 0.011719 c -0.046876 0.117187 -0.117188 0.21875 -0.203126 0.308593 c -0.007812 0.007813 -0.015624 0.011719 -0.019531 0.019532 c -0.089843 0.085937 -0.195312 0.15625 -0.308593 0.203125 c -0.003907 0.003906 -0.011719 0.007812 -0.015626 0.007812 c -0.117187 0.046875 -0.246093 0.074219 -0.371093 0.074219 h -3.011719 v -2 h 2 z";
-
-/// `zoom-in-symbolic`: a magnifier over a plus, on the same frame.
-const FIT_PAGE_0: &str = "m 4 1 c -1.660156 0 -3 1.339844 -3 3 v 8 c 0 1.660156 1.339844 3 3 3 h 8 c 1.660156 0 3 -1.339844 3 -3 v -8 c 0 -1.660156 -1.339844 -3 -3 -3 z m 3 3 h 2 v 3 h 3 v 2 h -3 v 3 h -2 v -3 h -3 v -2 h 3 z";
-
-/// `document-print-symbolic`: a sheet fed through a printer.
-const PRINT_0: &str = "m 5 1 c -0.550781 0 -1 0.449219 -1 1 v 1 h 8 v -1 c 0 -0.550781 -0.449219 -1 -1 -1 z m -3 3 c -1.109375 0 -2 0.890625 -2 2 v 4 c 0 1.109375 0.890625 2 2 2 v 1 c 0 1.089844 0.910156 2 2 2 h 8 c 1.089844 0 2 -0.910156 2 -2 v -1 c 1.109375 0 2 -0.890625 2 -2 v -4 c 0 -1.109375 -0.890625 -2 -2 -2 z m 2 6 h 8 v 3 h -8 z";
-
-/// `document-save-symbolic`: an arrow down onto a tray.
-const SAVE_0: &str = "m 8 0 c -0.550781 0 -1 0.449219 -1 1 v 8.585938 l -1.292969 -1.292969 c -0.1875 -0.1875 -0.441406 -0.292969 -0.707031 -0.292969 c -0.265625 0 -0.519531 0.105469 -0.707031 0.292969 c -0.390625 0.390625 -0.390625 1.023437 0 1.414062 l 3 3 c 0.390625 0.390625 1.023437 0.390625 1.414062 0 l 3 -3 c 0.390625 -0.390625 0.390625 -1.023437 0 -1.414062 c -0.390625 -0.390625 -1.023437 -0.390625 -1.414062 0 l -1.292969 1.292969 v -8.585938 c 0 -0.550781 -0.449219 -1 -1 -1 z m -7 14 v 2 h 14 v -2 z";
-
-/// `image-x-generic-symbolic`: a picture in a frame.
-const IMAGE_0: &str = "m 6 5 c -0.550781 0 -1 0.449219 -1 1 c 0 0.550781 0.449219 1 1 1 c 0.550781 0 1 -0.449219 1 -1 c 0 -0.550781 -0.449219 -1 -1 -1 z m 3.5 3 l -2 2 l -1.5 -1 l -2 2 v 0.5 c 0 0.5 0.5 0.5 0.5 0.5 h 7 c 0 0 0.472656 -0.035156 0.5 -0.5 v -1 z";
-const IMAGE_1: &str = "m 4 1 c -1.644531 0 -3 1.355469 -3 3 v 8 c 0 1.644531 1.355469 3 3 3 h 8 c 1.644531 0 3 -1.355469 3 -3 v -8 c 0 -1.644531 -1.355469 -3 -3 -3 z m 0 2 h 8 c 0.570312 0 1 0.429688 1 1 v 8 c 0 0.570312 -0.429688 1 -1 1 h -8 c -0.570312 0 -1 -0.429688 -1 -1 v -8 c 0 -0.570312 0.429688 -1 1 -1 z";
-
-/// `emblem-ok-symbolic`: a tick, and no box around it.
-const OK_0: &str = "m 13.753906 4.660156 c 0.175782 -0.199218 0.261719 -0.460937 0.246094 -0.726562 c -0.019531 -0.265625 -0.140625 -0.511719 -0.339844 -0.6875 c -0.199218 -0.175782 -0.460937 -0.261719 -0.726562 -0.246094 c -0.265625 0.019531 -0.511719 0.140625 -0.6875 0.339844 l -6.296875 7.195312 l -2.242188 -2.242187 c -0.390625 -0.390625 -1.023437 -0.390625 -1.414062 0 c -0.1875 0.1875 -0.292969 0.441406 -0.292969 0.707031 c 0 0.265625 0.105469 0.519531 0.292969 0.707031 l 3 3 c 0.195312 0.195313 0.464843 0.304688 0.738281 0.292969 c 0.277344 -0.007812 0.539062 -0.132812 0.722656 -0.339844 z";
-
-/// `dialog-error-symbolic`: a filled disc with a bar cut out of it.
-const ERROR_0: &str = "m 8 1 c -3.871094 0 -7 3.128906 -7 7 c 0 3.871094 3.128906 7 7 7 c 3.871094 0 7 -3.128906 7 -7 c 0 -3.871094 -3.128906 -7 -7 -7 z m -4 6 h 8 v 2 h -8 z";
-
-/// `dialog-question-symbolic`: a diamond asking a question.
-const QUESTION_0: &str = "m 8 0.03125 c -0.398438 0 -0.816406 0.160156 -1.125 0.46875 l -6.375 6.375 c -0.621094 0.621094 -0.621094 1.628906 0 2.25 l 6.375 6.375 c 0.621094 0.621094 1.628906 0.621094 2.25 0 l 6.375 -6.375 c 0.621094 -0.621094 0.621094 -1.628906 0 -2.25 l -6.375 -6.375 c -0.308594 -0.308594 -0.726562 -0.46875 -1.125 -0.46875 z m 0.152344 2.976562 c 0.726562 0.035157 1.433594 0.335938 1.96875 0.871094 c 0.855468 0.855469 1.113281 2.152344 0.652344 3.269532 c -0.332032 0.796874 -0.988282 1.390624 -1.773438 1.671874 v 1.179688 h -2 v -2 c 0 -0.550781 0.449219 -1 1 -1 c 0.40625 0 0.769531 -0.242188 0.925781 -0.617188 c 0.152344 -0.375 0.070313 -0.800781 -0.21875 -1.089843 c -0.289062 -0.289063 -0.714843 -0.371094 -1.089843 -0.21875 c -0.375 0.15625 -0.617188 0.519531 -0.617188 0.925781 h -2 c 0 -1.210938 0.734375 -2.308594 1.851562 -2.769531 c 0.417969 -0.175781 0.863282 -0.246094 1.300782 -0.222657 z m -0.152344 7.992188 c 0.550781 0 1 0.449219 1 1 c 0 0.550781 -0.449219 1 -1 1 c -0.550781 0 -1 -0.449219 -1 -1 c 0 -0.550781 0.449219 -1 1 -1 z";
-
-/// `dialog-warning-symbolic`: a triangle with an exclaimed line and dot.
-const WARNING_0: &str = "m 7.90625 0.09375 c -0.527344 -0.027344 -1.039062 0.28125 -1.4375 0.96875 l -6.25 11.59375 c -0.535156 0.964844 0.046875 2.34375 1.09375 2.34375 h 13.15625 c 0.980469 0 1.902344 -1.160156 1.21875 -2.34375 l -6.3125 -11.53125 c -0.398438 -0.644531 -0.941406 -1.003906 -1.46875 -1.03125 z m 1.09375 3.90625 v 5 c 0.007812 0.527344 -0.472656 1 -1 1 c -0.527344 0 -1.007812 -0.472656 -1 -1 v -5 z m -1 7 c 0.550781 0 1 0.449219 1 1 c 0 0.550781 -0.449219 1 -1 1 c -0.550781 0 -1 -0.449219 -1 -1 c 0 -0.550781 0.449219 -1 1 -1 z";
 
 /// Paint one icon into `rect`, in `colour`. The fill is worked out here rather
 /// than handed to the painter, which fills a polygon as a fan over its points
@@ -327,7 +94,7 @@ const SLICES: usize = (SIZE as usize) * 4;
 /// one an SVG path fills by default, and it is what makes the inner half of a
 /// doubled outline a hole.
 fn bands(icon: Icon) -> Vec<Band> {
-    let paths = icon.flattened();
+    let paths = flattened(icon);
     let height = SIZE / SLICES as f32;
     let mut out = Vec::new();
     for slice in 0..SLICES {

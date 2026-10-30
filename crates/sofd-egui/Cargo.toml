@@ -35,6 +35,9 @@ sofd-sign = { path = "../sofd-sign", version = "0.6" }
 sofd-common = { path = "../sofd-common", version = "0.5" }
 sofd-i18n = { path = "../sofd-i18n", version = "0.5" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
+# The glyphs are the theme's own path data, shared with every other shell so
+# two of them cannot drift into wearing different artwork.
+sofd-icons = { path = "../sofd-icons", version = "0.1" }
 # The reader prints what it shows, so it plans print jobs through the facade
 # and names the settings types that go with them.
 sofd-print = { path = "../sofd-print", version = "0.5" }
