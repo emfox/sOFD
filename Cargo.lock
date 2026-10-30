@@ -6456,7 +6456,7 @@ version = "0.5.2"
 dependencies = [
  "hayro-jbig2",
  "image",
- "sofd-display",
+ "sofd-common",
  "sofd-error",
  "tracing",
 ]

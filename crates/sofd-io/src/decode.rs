@@ -4,7 +4,7 @@
 //! so the reading is here: a format only some of them knew would still render
 //! and then refuse to export.
 
-use sofd_display::ImageCodec;
+use sofd_common::ImageCodec;
 
 /// Decode an image resource into the pixels a consumer asked for.
 ///

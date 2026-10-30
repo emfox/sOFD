@@ -18,6 +18,7 @@ pub use ops::{
     RadialGradientSpec, Reflect, StrokeStyle,
 };
 pub use page::{PageInfo, RenderQuality, Viewport};
-pub use resource::{ImageCodec, ImageRef, ResolvedFont, ResolvedResources};
+pub use resource::{ImageRef, ResolvedFont, ResolvedResources};
 pub use shading::{FocalCone, RadialForm, radial_form};
+pub use sofd_common::ImageCodec;
 pub use text::{GlyphRun, TextSpan, run_face, run_face_for};

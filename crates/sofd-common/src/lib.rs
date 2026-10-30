@@ -5,10 +5,12 @@
 #![warn(missing_docs)]
 
 pub mod base64;
+pub mod image;
 pub mod time;
 pub mod units;
 pub mod version;
 
+pub use image::ImageCodec;
 pub use time::{parse_compact_utc, parse_utc};
 pub use units::{Millimeter, Point, Rect, Unit};
 pub use version::{OfdVersion, SpecVersion};

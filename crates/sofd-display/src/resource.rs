@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use sofd_common::ImageCodec;
 use sofd_common::Rect;
 use sofd_font::FontId;
 
@@ -64,49 +65,6 @@ impl ImageRef {
             nominal_size: Rect::default(),
             codec,
         }
-    }
-}
-
-/// Supported image encodings.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ImageCodec {
-    /// JPEG.
-    Jpeg,
-    /// PNG.
-    Png,
-    /// TIFF.
-    Tiff,
-    /// BMP.
-    Bmp,
-    /// GIF, which the standard's own test documents embed.
-    Gif,
-    /// JBIG2, common for bi-level scanned pages where it saves a lot of space.
-    Jbig2,
-    /// Uncompressed bitmap.
-    Raw,
-}
-
-impl ImageCodec {
-    /// Guess the encoding from a file name, the way the package does when it
-    /// classifies an entry. Unknown names read as `Raw`, which no decoder
-    /// claims, so a wrong guess fails loudly instead of painting noise.
-    pub fn from_file_name(name: &str) -> Self {
-        let lower = name.to_ascii_lowercase();
-        let ext = lower.rsplit('.').next().unwrap_or_default();
-        match ext {
-            "jpg" | "jpeg" => Self::Jpeg,
-            "png" => Self::Png,
-            "tif" | "tiff" => Self::Tiff,
-            "bmp" => Self::Bmp,
-            "gif" => Self::Gif,
-            "jbig2" | "jb2" => Self::Jbig2,
-            _ => Self::Raw,
-        }
-    }
-
-    /// Whether a decoder exists for this encoding.
-    pub fn is_decodable(self) -> bool {
-        !matches!(self, Self::Raw)
     }
 }
 

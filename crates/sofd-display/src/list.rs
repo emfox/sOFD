@@ -208,8 +208,9 @@ mod tests {
     use super::*;
     use crate::LinearGradientSpec;
     use crate::ops::{Color, Paint, PaintRule, StrokeStyle};
-    use crate::resource::{ImageCodec, ImageRef};
+    use crate::resource::ImageRef;
     use crate::text::GlyphRun;
+    use sofd_common::ImageCodec;
     use sofd_common::Point;
     use sofd_error::FormatError;
     use sofd_font::FontId;
