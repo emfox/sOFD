@@ -11,6 +11,17 @@ use sofd_model::document::Document as ModelDocument;
 use sofd_package::Package;
 use sofd_parser::{ParsedDocument, Parser};
 
+/// One page's vector-conversion counts, folded into a whole-run outcome.
+#[cfg(feature = "convert")]
+fn fold(stats: sofd_convert::ConversionStats, pages: usize) -> crate::ConversionOutcome {
+    let mut outcome = crate::ConversionOutcome {
+        pages,
+        ..Default::default()
+    };
+    outcome.absorb_stats(&stats);
+    outcome
+}
+
 /// An opened OFD document: pages flattened and container fonts registered,
 /// so every capability works against the same prepared state.
 pub struct Document {
@@ -300,6 +311,39 @@ impl Document {
             page_ids.push(sink.emit_page(&mut doc)?);
         }
         Ok((crate::export::finish_document(&mut doc, page_ids)?, stats))
+    }
+
+    /// Convert the named pages to one PDF, with one merged account of what
+    /// the conversion lost across all of them.
+    #[cfg(feature = "pdf")]
+    pub fn pdf_outcome(&self, pages: &[usize]) -> Result<(Vec<u8>, crate::ConversionOutcome)> {
+        let (bytes, stats) = self.to_pdf_pages_with_stats(pages)?;
+        Ok((bytes, fold(stats, pages.len())))
+    }
+
+    /// Convert one page to PNG, with one merged account of what it lost.
+    #[cfg(all(feature = "render", feature = "convert"))]
+    pub fn png_outcome(
+        &self,
+        index: usize,
+        options: &sofd_render::RenderOptions,
+    ) -> Result<(Vec<u8>, crate::ConversionOutcome)> {
+        let (png, raster) = self.to_png_with_stats(index, options)?;
+        let mut outcome = crate::ConversionOutcome {
+            pages: 1,
+            missing_glyphs: raster.missing_glyphs,
+            missing_images: raster.skipped_image_ops,
+            ..Default::default()
+        };
+        outcome.missing_fonts = self.missing_fonts().len();
+        Ok((png, outcome))
+    }
+
+    /// Convert one page to SVG, with one merged account of what it lost.
+    #[cfg(feature = "convert")]
+    pub fn svg_outcome(&self, index: usize) -> Result<(String, crate::ConversionOutcome)> {
+        let (svg, stats) = self.to_svg_with_stats(index)?;
+        Ok((svg, fold(stats, 1)))
     }
 
     /// Convert every page to SVG, one standalone document per page, in order.

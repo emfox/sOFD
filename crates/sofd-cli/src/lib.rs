@@ -10,15 +10,15 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use clap::Parser;
-use sofd::{Document, RenderOptions, SearchOptions, VerifyStatus};
-use sofd_archive::Severity;
+use sofd::{
+    AuditReport, ConversionOutcome, Document, PaperSize, PrintSettings, RenderOptions,
+    SearchOptions, Severity, SignatureDetails, VerifyStatus,
+};
 use sofd_error::{FontError, FormatError, OfdError};
 use sofd_font::FontSource;
 use sofd_i18n::format::LocalizedFormat;
 use sofd_i18n::{FluentValue, I18n, Locale, MessageId};
 use sofd_io::FileSource;
-use sofd_print::{PaperSize, PrintSettings};
-use sofd_sign::details::SignatureDetails;
 
 use crate::cli::{Cli, Command, FormatArg, PaperArg};
 
@@ -342,15 +342,15 @@ fn convert(
 
     // A conversion that loses a face or a glyph still writes a file, so the
     // counts collected on the way out are the only sign it happened.
-    let mut missing_glyphs = 0usize;
-    let mut missing_images = 0usize;
+    // The facade merges the per-page counts, so this loop only writes files.
+    let mut lost = ConversionOutcome::default();
     let (count, wrote) = match format {
         FormatArg::Pdf => {
             let out = dir.join(format!("{stem}.pdf"));
             // One document, not one file per page: a page at a time leaves
             // only the last of them under the document's name.
-            let (pdf, stats) = doc.to_pdf_pages_with_stats(&indices)?;
-            missing_glyphs += stats.missing_glyphs;
+            let (pdf, outcome) = doc.pdf_outcome(&indices)?;
+            lost = outcome;
             std::fs::write(&out, pdf)?;
             (indices.len(), Some(out))
         }
@@ -361,9 +361,8 @@ fn convert(
             };
             for index in &indices {
                 let out = dir.join(format!("{stem}-{index}.png"));
-                let (png, raster) = doc.to_png_with_stats(*index, &options)?;
-                missing_glyphs += raster.missing_glyphs;
-                missing_images += raster.skipped_image_ops;
+                let (png, outcome) = doc.png_outcome(*index, &options)?;
+                lost.merge(&outcome);
                 std::fs::write(&out, png)?;
             }
             (indices.len(), None)
@@ -371,8 +370,8 @@ fn convert(
         FormatArg::Svg => {
             for index in &indices {
                 let out = dir.join(format!("{stem}-{index}.svg"));
-                let (svg, stats) = doc.to_svg_with_stats(*index)?;
-                missing_glyphs += stats.missing_glyphs;
+                let (svg, outcome) = doc.svg_outcome(*index)?;
+                lost.merge(&outcome);
                 std::fs::write(&out, svg)?;
             }
             (indices.len(), None)
@@ -394,8 +393,8 @@ fn convert(
     }
     let work = LocalizedFormat::new(i18n.locale().clone());
     let mut warnings = font_warnings(&doc, i18n, &work);
-    warnings.extend(glyph_warning(missing_glyphs, i18n, &work));
-    warnings.extend(image_warning(missing_images, i18n, &work));
+    warnings.extend(glyph_warning(lost.missing_glyphs, i18n, &work));
+    warnings.extend(image_warning(lost.missing_images, i18n, &work));
     Ok(Report::ok(lines.join("\n")).warn(warnings))
 }
 
@@ -468,7 +467,7 @@ fn search(
 
 fn audit(path: &Path, i18n: &I18n) -> Result<Report> {
     let mut doc = open(path)?;
-    let report = doc.audit()?;
+    let report: AuditReport = doc.audit()?;
     if report.findings.is_empty() {
         return Ok(Report::ok(i18n.text(MessageId::CliAuditClean)));
     }

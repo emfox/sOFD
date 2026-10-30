@@ -187,3 +187,42 @@ fn a_document_with_no_pages_still_produces_a_valid_pdf() {
         "no catalog in {text}"
     );
 }
+
+/// The merged account of a conversion has to say how many pages it covered,
+/// or a caller reading "no losses" cannot tell it was over an empty selection.
+#[test]
+fn a_pdf_outcome_counts_the_pages_it_converted() {
+    let doc = document_of(3);
+    let (bytes, outcome) = doc.pdf_outcome(&[0, 1, 2]).expect("convert");
+    assert!(!bytes.is_empty(), "the file was written");
+    assert_eq!(outcome.pages, 3);
+    assert!(
+        outcome.is_lossless(),
+        "blank pages lose nothing: {outcome:?}"
+    );
+}
+
+/// Two pages short one glyph each are two glyphs short, not one.
+#[test]
+fn an_outcome_merges_page_by_page() {
+    let mut total = sofd::ConversionOutcome::default();
+    for _ in 0..2 {
+        let page = sofd::ConversionOutcome {
+            pages: 1,
+            missing_glyphs: 1,
+            ..Default::default()
+        };
+        total.merge(&page);
+    }
+    assert_eq!(total.pages, 2);
+    assert_eq!(total.missing_glyphs, 2);
+    assert!(!total.is_lossless());
+}
+
+/// A selection names pages by index, and one out of range fails rather than
+/// silently converting fewer.
+#[test]
+fn a_page_past_the_end_fails_the_conversion() {
+    let doc = document_of(1);
+    assert!(doc.pdf_outcome(&[0, 3]).is_err());
+}

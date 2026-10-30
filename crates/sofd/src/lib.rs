@@ -9,6 +9,8 @@ mod compare;
 mod document;
 #[cfg(feature = "pdf")]
 mod export;
+#[cfg(feature = "convert")]
+mod outcome;
 
 pub use compare::{Comparison, PageChange, PageDiff};
 #[cfg(feature = "annot")]
@@ -31,6 +33,16 @@ pub use sofd_font::cjk_face;
 pub use sofd_convert::{ConversionStats, TextExport};
 #[cfg(feature = "render")]
 pub use sofd_render::RenderOptions;
+// What a whole-document conversion lost, merged across its pages.
+#[cfg(feature = "convert")]
+pub use outcome::ConversionOutcome;
+// The print and audit types a caller must name to ask for either.
+#[cfg(feature = "archive")]
+pub use sofd_archive::{Report as AuditReport, Severity};
+#[cfg(feature = "print")]
+pub use sofd_print::{PaperSize, PrintJob, PrintSettings};
+#[cfg(feature = "sign")]
+pub use sofd_sign::details::SignatureDetails;
 // The geometry a shell draws with, so a canvas backend can name it without
 // depending on the crate that produced it.
 #[cfg(feature = "render")]
