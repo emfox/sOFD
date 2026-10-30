@@ -38,6 +38,10 @@ rayon = { version = "1.11", optional = true }
 # job and so lives here rather than in the crate that converts one page.
 lopdf = { workspace = true, optional = true }
 
+[[test]]
+name = "edit_round_trip"
+required-features = ["archive"]
+
 [dev-dependencies]
 # Fixture archives, so a test opens a real document rather than hand-built XML.
 sofd-testkit = { path = "../sofd-testkit" }
@@ -57,6 +61,8 @@ sign     = ["dep:sofd-sign", "dep:sofd-crypto"]
 # Convert pulls in the raster backend anyway (PNG output goes through it),
 # so naming the dependency here costs no extra compilation.
 convert  = ["dep:sofd-convert", "dep:sofd-render"]
+# `pdf` nests inside `convert` (convert is the superset): enabling it means
+# "convert, plus the PDF writer on top", not a parallel alternative.
 pdf      = ["convert", "sofd-convert/pdf", "dep:lopdf"]
 # No `office` or `ocr` feature here either: a forwarding name enabled nothing
 # in the crate it named, so a caller asked for a capability and compiled
@@ -64,10 +70,12 @@ pdf      = ["convert", "sofd-convert/pdf", "dep:lopdf"]
 edit     = ["dep:sofd-edit"]
 search   = ["dep:sofd-search"]
 archive  = ["dep:sofd-archive"]
-# Annotations are read through the parser, which is never optional, so this
-# feature only names the capability: it trims nothing at compile time.
+# Annotations are read through the parser either way; this feature only gates
+# the `annotations()` accessor, so a slim build compiles it out.
 annot    = []
-async    = ["dep:rayon"]
+# `batch` is a rendering strategy, not a document capability: it turns the
+# page loop in `render_pages` into a rayon parallel sweep.
+batch    = ["dep:rayon"]
 
 [package.metadata.cargo-semver-checks.lints]
 workspace = true

@@ -599,7 +599,7 @@ impl App {
     /// One of the reader's own messages, with arguments.
     pub fn text_with<'a, I>(&self, message: crate::message::ReaderMessage, args: I) -> String
     where
-        I: IntoIterator<Item = (&'a str, sofd_i18n::FluentValue<'a>)>,
+        I: IntoIterator<Item = (&'a str, sofd_i18n::Value<'a>)>,
     {
         self.i18n.text_key_with(message.key(), args)
     }

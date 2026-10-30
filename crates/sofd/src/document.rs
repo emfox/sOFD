@@ -227,7 +227,7 @@ impl Document {
         indices: &[usize],
         options: &sofd_render::RenderOptions,
     ) -> Vec<Result<sofd_render::RasterOutput>> {
-        #[cfg(feature = "async")]
+        #[cfg(feature = "batch")]
         {
             use rayon::prelude::*;
             indices
@@ -235,7 +235,7 @@ impl Document {
                 .map(|&index| self.render_page(index, options))
                 .collect()
         }
-        #[cfg(not(feature = "async"))]
+        #[cfg(not(feature = "batch"))]
         {
             indices
                 .iter()
@@ -524,6 +524,23 @@ impl Document {
     #[cfg(feature = "archive")]
     pub fn audit(&mut self) -> Result<sofd_archive::Report> {
         sofd_archive::audit(&mut self.package)
+    }
+
+    /// Rewrite the container as an OFD-A archival archive, stripping the
+    /// optional entries the profile forbids and declaring the profile.
+    #[cfg(feature = "archive")]
+    pub fn archive(&mut self) -> Result<(Vec<u8>, sofd_archive::Archived)> {
+        let names = self.package.entries().to_vec();
+        let mut read = Vec::with_capacity(names.len());
+        for name in &names {
+            read.push(self.package.read(name)?);
+        }
+        let entries: Vec<(&str, &[u8])> = names
+            .iter()
+            .zip(&read)
+            .map(|(name, data)| (name.as_str(), data.as_slice()))
+            .collect();
+        sofd_archive::archive(&entries)
     }
 
     /// One annotation, as a reader needs it: which page it marks up, what kind

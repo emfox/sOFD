@@ -1257,7 +1257,7 @@ fn the_paper_names_come_from_the_catalogue() {
     // hardcoded in the reader's source. The reader owns its catalogue, so the
     // bundle it builds is what holds these keys.
     use sofd_egui::ReaderMessage;
-    use sofd_i18n::{FluentValue, Locale};
+    use sofd_i18n::{Locale, Value};
     let english = sofd_egui::message::bundle_for(Locale::en_us());
     assert_eq!(english.text_key(ReaderMessage::PaperA4.key()), "A4");
     assert!(
@@ -1265,9 +1265,9 @@ fn the_paper_names_come_from_the_catalogue() {
             .text_key_with(
                 ReaderMessage::PrintDone.key(),
                 [
-                    ("pages", FluentValue::from(1)),
-                    ("sheets", FluentValue::from(1)),
-                    ("paper", FluentValue::from("A4")),
+                    ("pages", Value::from(1)),
+                    ("sheets", Value::from(1)),
+                    ("paper", Value::from("A4")),
                 ]
             )
             .is_empty()

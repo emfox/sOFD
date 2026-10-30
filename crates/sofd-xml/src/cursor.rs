@@ -190,12 +190,7 @@ impl<'a> Cursor<'a> {
 
     /// Read the next event.
     pub fn next_event(&mut self) -> Result<Event> {
-        let before = self.reader.buffer_position() as usize;
-        let event = self.next_inner();
-        if event.is_ok() {
-            self.tag_start = before;
-        }
-        event
+        self.next_inner()
     }
 
     /// The event loop proper, split out so [`next_event`](Self::next_event) can
@@ -204,7 +199,13 @@ impl<'a> Cursor<'a> {
         loop {
             let pos = self.reader.buffer_position();
             let event = match self.reader.read_event_into(&mut self.buf) {
-                Ok(e) => e,
+                Ok(e) => {
+                    // Every token the reader accepts begins at `pos`, skipped
+                    // declarations included: recording here keeps the tag
+                    // start from pointing at a declaration in front of it.
+                    self.tag_start = pos as usize;
+                    e
+                }
                 Err(e) => {
                     let at = position_of(pos);
                     return Err(map_error(&e, at));
@@ -607,5 +608,25 @@ mod tests {
     fn an_empty_document_yields_eof_immediately() {
         let mut c = Cursor::new("");
         assert!(matches!(c.next_event().expect("e"), Event::Eof));
+    }
+}
+
+#[cfg(test)]
+mod tag_start_tests {
+    use super::*;
+    #[test]
+    fn the_tag_start_survives_a_declaration_in_front_of_it() {
+        let text = "<?xml version=\"1.0\"?>\n<OFD Version=\"1.0\"></OFD>";
+        let mut cursor = Cursor::new(text);
+        loop {
+            match cursor.next_event().expect("parse") {
+                Event::Start(node) if node.is("OFD") => {
+                    assert_eq!(&text[cursor.tag_start()..cursor.tag_start() + 4], "<OFD");
+                    break;
+                }
+                Event::Eof => panic!("the root tag never arrived"),
+                _ => {}
+            }
+        }
     }
 }

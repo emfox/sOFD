@@ -6654,7 +6654,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-xml"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "proptest",
  "quick-xml 0.42.0",

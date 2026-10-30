@@ -24,6 +24,8 @@ pub enum Object {
     /// A nested block of objects, the one container clause 14 lets recur.
     PageBlockObject(PageBlockObject),
     /// Something unrecognized, skipped at render time.
+    /// Anything the model does not model yet, kept verbatim as raw JSON so a
+    /// round trip never loses data. Deliberate fallback, not an accident.
     Unknown(serde_json::Value),
 }
 

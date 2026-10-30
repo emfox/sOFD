@@ -103,7 +103,7 @@ impl I18n {
     /// Render a message with arguments.
     pub fn text_with<'a, I>(&self, id: MessageId, args: I) -> String
     where
-        I: IntoIterator<Item = (&'a str, fluent::FluentValue<'a>)>,
+        I: IntoIterator<Item = (&'a str, crate::Value<'a>)>,
     {
         self.text_key_with(id.key(), args)
     }
@@ -118,7 +118,7 @@ impl I18n {
     /// Render a message by its raw key, with arguments.
     pub fn text_key_with<'a, I>(&self, key: &str, args: I) -> String
     where
-        I: IntoIterator<Item = (&'a str, fluent::FluentValue<'a>)>,
+        I: IntoIterator<Item = (&'a str, crate::Value<'a>)>,
     {
         let mut fa = FluentArgs::new();
         for (k, v) in args {

@@ -11,7 +11,9 @@ pub mod locale;
 pub mod messages;
 
 pub use bundle::{I18n, I18nBuilder};
-pub use fluent::FluentValue;
+/// A value passed into a message: text or a number. Own alias so callers
+/// never name the underlying engine crate in their signatures.
+pub type Value<'a> = fluent::FluentValue<'a>;
 pub use locale::{Locale, LocaleNegotiation};
 pub use messages::MessageId;
 

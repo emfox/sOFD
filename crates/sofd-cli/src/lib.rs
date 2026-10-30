@@ -17,7 +17,7 @@ use sofd::{
 use sofd_error::{FontError, FormatError, OfdError};
 use sofd_font::FontSource;
 use sofd_i18n::format::LocalizedFormat;
-use sofd_i18n::{FluentValue, I18n, Locale, MessageId};
+use sofd_i18n::{I18n, Locale, MessageId, Value};
 use sofd_io::FileSource;
 
 use crate::cli::{Cli, Command, FormatArg, PaperArg};
@@ -599,7 +599,7 @@ fn signature_detail_lines(detail: &SignatureDetails, i18n: &I18n) -> Vec<String>
     }
     rows.into_iter()
         .map(|(id, fields)| {
-            let args: Vec<(&str, FluentValue)> = fields
+            let args: Vec<(&str, Value)> = fields
                 .into_iter()
                 .map(|(key, value)| (key, value.into()))
                 .collect();

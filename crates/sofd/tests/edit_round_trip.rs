@@ -193,3 +193,14 @@ fn an_archive_that_lost_its_document_entry_is_refused() {
     let bytes = build_archive(&without).expect("the archive itself is well formed");
     assert!(Document::open_bytes(&bytes).is_err());
 }
+
+#[test]
+fn the_facade_rewrites_the_container_as_an_archival_archive() {
+    let bytes = baseline();
+    let mut document = Document::open_bytes(&bytes).expect("the archive must open");
+    let (rewritten, report) = document.archive().expect("the rewrite must succeed");
+    // The fixture carries nothing the profile forbids, so nothing is stripped:
+    // the rewrite declares the profile and the document survives the round trip.
+    assert!(report.declared_profile);
+    Document::open_bytes(&rewritten).expect("the rewritten archive must reopen");
+}

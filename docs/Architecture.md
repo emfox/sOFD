@@ -249,23 +249,25 @@ Features trim binary size per delivery form:
 ```toml
 [features]
 default  = ["render", "sign", "convert", "pdf"]
-render   = ["dep:sofd-render", "sofd-render/backend-raster"]
+render   = ["dep:sofd-render"]
 print    = ["dep:sofd-print"]
 sign     = ["dep:sofd-sign", "dep:sofd-crypto"]
 convert  = ["dep:sofd-convert", "dep:sofd-render"]
-pdf      = ["convert", "sofd-convert/pdf"]
+pdf      = ["convert", "sofd-convert/pdf"]  # nests inside convert: convert, plus the PDF writer
 edit     = ["dep:sofd-edit"]
 search   = ["dep:sofd-search"]
 archive  = ["dep:sofd-archive"]
 annot    = []
-async    = ["dep:rayon"]
+batch    = ["dep:rayon"]   # rendering strategy: rayon sweep in render_pages, not a capability
 ```
 
-`annot` is the one feature that trims nothing: annotations are read through the
-parser, which is never optional. It stays because it names a capability a
-delivery form may not want, and a caller that reaches for `annotations()`
-without it gets a compile error rather than a method that silently is not
-there. The reader turns it on; a slim build need not.
+`annot` only gates the `annotations()` accessor: annotations are read through
+the parser, which is never optional, so disabling it compiles the accessor out
+but changes no parsing. It stays because a caller that reaches for
+`annotations()` without it gets a compile error rather than a method that
+silently is not there. The reader turns it on; a slim build need not.
+`batch` is the other non-capability: it swaps the `render_pages` loop for a
+rayon sweep, a rendering strategy rather than something the document has.
 
 `office` and `ocr` are not features, and were removed rather than finished:
 both compiled and changed nothing, so enabling one asked for a capability and
