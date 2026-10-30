@@ -29,7 +29,7 @@ sofd-render = { path = "../sofd-render", version = "0.6" }
 sofd-testkit = { path = "../sofd-testkit" }
 # The memory benchmark rasterizes a page, which is where a page's bytes go.
 sofd = { path = "../sofd", version = "0.7" }
-sofd-convert = { path = "../sofd-convert", version = "0.7" }
+sofd-convert = { path = "../sofd-convert", version = "0.8" }
 
 [[bench]]
 name = "parse"

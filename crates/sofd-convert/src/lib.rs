@@ -61,6 +61,10 @@ pub struct ConversionStats {
     pub images_skipped: usize,
     /// Gradients emitted.
     pub gradients: usize,
+    /// Fills painted as a stand-in rather than as the document states: a PDF
+    /// tiling pattern flattened to its first colour, an SVG mesh with no
+    /// triangles left. Counted so a caller can say what the export simplified.
+    pub paints_approximated: usize,
 }
 
 impl ConversionStats {
@@ -78,6 +82,7 @@ impl ConversionStats {
         self.images += other.images;
         self.images_skipped += other.images_skipped;
         self.gradients += other.gradients;
+        self.paints_approximated += other.paints_approximated;
     }
 
     /// Whether nothing had to be dropped or skipped. A missing face counts

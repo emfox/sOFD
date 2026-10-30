@@ -416,6 +416,7 @@ impl PageSink for SvgSink<'_> {
         };
         match shape.fill {
             Some(PaintShape::Mesh(spec)) if mesh.is_none() => {
+                self.stats.paints_approximated += 1;
                 let _ = write!(attrs, " fill=\"{}\"", mesh_average(spec));
             }
             Some(_) if mesh.is_some() => attrs.push_str(" fill=\"none\""),

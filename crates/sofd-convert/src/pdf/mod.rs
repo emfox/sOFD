@@ -498,10 +498,11 @@ impl PageSink for PdfSink<'_> {
                         PaintRule::EvenOdd => " f*",
                     });
                 }
-                // A pattern would need a PDF tiling pattern built from the
-                // cell; the cell's first fill keeps the region visible until
-                // one is written.
+                // A tiling pattern is not written yet; the cell's first fill
+                // keeps the region visible, and the stand-in is counted rather
+                // than passed off as the document's own paint.
                 Some(PaintShape::Pattern(spec)) => {
+                    self.stats.paints_approximated += 1;
                     let _ = write!(setup, "{} rg", pattern_rgb(spec));
                     operator.push_str(" f");
                 }
@@ -1092,6 +1093,49 @@ mod tests {
         assert!(content.contains("/Pattern cs"));
         assert!(content.contains("scn"));
         assert!(content.contains("re f"));
+    }
+
+    #[test]
+    fn a_pattern_is_painted_as_its_first_colour_and_counted() {
+        // A tiling pattern needs a PDF tiling pattern built from the cell. Until
+        // one is written, the cell's first fill keeps the region visible, and
+        // the stand-in is counted so a caller can say the export simplified it.
+        let cell = sofd_display::PageDisplay {
+            index: 0,
+            page_box: Rect::new(0.0, 0.0, 4.0, 4.0),
+            ops: vec![sofd_display::DrawOp::Path {
+                path: rect(0.0, 0.0, 4.0, 4.0),
+                fill: Some(sofd_display::ops::Paint::Solid(Color::rgba(255, 0, 0, 255))),
+                stroke: None,
+                stroke_style: Default::default(),
+                rule: PaintRule::NonZero,
+            }],
+            content_bbox: Rect::EMPTY,
+        };
+        let p = page(vec![sofd_display::DrawOp::Path {
+            path: rect(0.0, 0.0, 20.0, 20.0),
+            fill: Some(sofd_display::ops::Paint::Pattern(Box::new(
+                sofd_display::PatternSpec {
+                    cell: Box::new(cell),
+                    width: 4.0,
+                    height: 4.0,
+                    step_x: 4.0,
+                    step_y: 4.0,
+                    reflect: sofd_display::Reflect::Normal,
+                },
+            ))),
+            stroke: None,
+            stroke_style: Default::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let (bytes, stats) = page_to_pdf_with_stats(&p, &PdfOptions::default()).expect("convert");
+        let content = content_of(&bytes);
+        assert!(
+            content.contains("1 0 0 rg"),
+            "the first colour fills: {content}"
+        );
+        assert_eq!(stats.paints_approximated, 1, "the stand-in is counted");
+        assert_eq!(stats.gradients, 0, "a pattern is not a gradient");
     }
 
     #[test]
