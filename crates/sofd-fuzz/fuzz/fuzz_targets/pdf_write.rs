@@ -1,14 +1,15 @@
 #![no_main]
 
 //! The PDF writer takes geometry from the document, so this target fuzzes the
-//! display list: a page's numbers must yield a document or an error. It keeps
+//! display list: a page's numbers must yield PDF bytes or an error. The target
+//! fuzzes one page, because a page is what this crate converts. It keeps
 //! no seed inputs, because any eight bytes reach the writer already.
 
 use libfuzzer_sys::fuzz_target;
 use sofd_common::Rect;
 use sofd_convert::PdfOptions;
 use sofd_display::ops::{Color, Paint, PaintRule, StrokeStyle};
-use sofd_display::{DisplayList, DrawOp, PageDisplay};
+use sofd_display::{DrawOp, PageDisplay};
 use sofd_geometry::Path;
 
 fn coordinate(raw: &u8) -> f64 {
@@ -37,9 +38,5 @@ fuzz_target!(|data: &[u8]| {
         }],
         content_bbox: Rect::EMPTY,
     };
-    let list = DisplayList {
-        page_count: 1,
-        pages: vec![page],
-    };
-    let _ = sofd_convert::document_to_pdf(&list, &PdfOptions::default());
+    let _ = sofd_convert::page_to_pdf(&page, &PdfOptions::default());
 });

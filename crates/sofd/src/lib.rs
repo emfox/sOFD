@@ -7,6 +7,8 @@
 
 mod compare;
 mod document;
+#[cfg(feature = "pdf")]
+mod export;
 
 pub use compare::{Comparison, PageChange, PageDiff};
 #[cfg(feature = "annot")]
@@ -22,6 +24,11 @@ pub use document::Seal;
 // without taking a direct dependency on the crate that reads the fonts.
 #[cfg(target_os = "android")]
 pub use sofd_font::cjk_face;
+// What a conversion reports about itself. `Document::to_pdf_with_stats_list`
+// returns one, so a caller that reads the counts must be able to name the type
+// without depending on the crate behind it.
+#[cfg(feature = "convert")]
+pub use sofd_convert::{ConversionStats, TextExport};
 #[cfg(feature = "render")]
 pub use sofd_render::RenderOptions;
 // The geometry a shell draws with, so a canvas backend can name it without

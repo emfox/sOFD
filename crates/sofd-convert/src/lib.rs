@@ -1,6 +1,12 @@
 //! sofd-convert
-//! Reads one display list and writes another format: SVG, PDF or PNG.
+//! Turns one page's op stream into another format: SVG, PDF or PNG.
 //! A new target format means one [`replay::PageSink`] implementation and nothing else.
+//!
+//! A page, not a document. Assembling pages into one file — the catalog, the
+//! page tree, the counts summed across them — belongs to whoever holds the
+//! document, and that is a layer above this one. What this crate offers that
+//! caller is the per-page sink, which writes one page into a document the
+//! caller owns.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -14,14 +20,12 @@ pub mod svg;
 #[cfg(feature = "pdf")]
 pub mod pdf;
 
+pub use png::{encode_png, page_to_png};
 pub use replay::{PageSink, PaintShape, PathShape, paint_shape, replay};
-pub use svg::{SvgOptions, SvgSink, page_to_svg, page_to_svg_with_stats, pages_to_svg};
+pub use svg::{SvgOptions, SvgSink, page_to_svg, page_to_svg_with_stats};
 
 #[cfg(feature = "pdf")]
-pub use pdf::{
-    PdfOptions, PdfSink, document_to_pdf, document_to_pdf_pages, document_to_pdf_pages_with_stats,
-    page_to_pdf, page_to_pdf_with_stats,
-};
+pub use pdf::{PdfOptions, PdfSink, page_to_pdf, page_to_pdf_with_stats};
 
 /// How glyph runs become target-format content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

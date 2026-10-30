@@ -212,7 +212,7 @@ CHECKS: tuple[Check, ...] = (
     Check(
         "golden",
         "rust",
-        (("cargo", "test", "-p", "sofd-convert", "--test", "golden"),),
+        (("cargo", "test", "-p", "sofd", "--test", "golden"),),
         needs=("cargo",),
     ),
     Check(

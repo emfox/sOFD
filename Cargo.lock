@@ -6230,8 +6230,10 @@ dependencies = [
 
 [[package]]
 name = "sofd"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
+ "image",
+ "lopdf",
  "rayon",
  "sofd-archive",
  "sofd-common",
@@ -6295,18 +6297,19 @@ dependencies = [
 
 [[package]]
 name = "sofd-convert"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "criterion",
  "image",
  "lopdf",
- "sofd",
  "sofd-common",
  "sofd-display",
  "sofd-error",
  "sofd-font",
  "sofd-geometry",
  "sofd-io",
+ "sofd-package",
+ "sofd-parser",
  "sofd-render",
  "sofd-testkit",
  "tracing",

@@ -8,6 +8,19 @@ release is written up is in
 
 ## [Unreleased]
 
+### Architecture
+
+- **`sofd-convert` converts one page, the facade assembles documents.** The
+  document-level exports (`to_pdf` over several pages, page-tree and catalog
+  assembly, summed counts) moved from `sofd-convert` up to `sofd` — the crate
+  that holds the `Document` — removing the dev-dependency that made the two
+  crates publish in a cycle. Page-level entry points (`page_to_pdf`,
+  `page_to_svg`, `page_to_png`) are unchanged; document-level tests moved to
+  `sofd/tests/export.rs` and the golden tests to `sofd/tests/golden.rs`.
+  **Breaking**: `sofd-convert` 0.7.0 drops `document_to_pdf*` and
+  `pages_to_svg`; `Document::to_pdf*` on the facade is unchanged. `sofd` 0.7.1
+  adds `Document::to_svg_pages`.
+
 ## [0.7.0] - 2026-10-30
 
 ### Engine

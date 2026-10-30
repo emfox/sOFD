@@ -266,19 +266,49 @@ impl Document {
 
     /// Convert the named pages to one PDF file, with the conversion's counts.
     /// Each page keeps its own physical box in the one document.
+    ///
+    /// The loop is here rather than in `sofd-convert` because a page is what
+    /// that crate converts: it writes one page into a document, and the tree
+    /// over the pages — order, parents, catalog — is this layer's to build.
     #[cfg(feature = "pdf")]
     pub fn to_pdf_pages_with_stats(
         &self,
         pages: &[usize],
     ) -> Result<(Vec<u8>, sofd_convert::ConversionStats)> {
-        sofd_convert::document_to_pdf_pages_with_stats(
-            &self.list,
-            pages,
-            &sofd_convert::PdfOptions {
-                fonts: Some(&self.fonts),
-                ..Default::default()
-            },
-        )
+        let options = sofd_convert::PdfOptions {
+            fonts: Some(&self.fonts),
+            ..Default::default()
+        };
+        let mut stats = sofd_convert::ConversionStats::default();
+        let mut doc = lopdf::Document::new();
+        let mut page_ids = Vec::with_capacity(pages.len());
+        for wanted in pages {
+            let page = self
+                .page(*wanted)
+                .ok_or_else(|| out_of_range(*wanted, self.page_count()))?;
+            let mut sink = sofd_convert::PdfSink::new(page.page_box, &options);
+            sofd_convert::replay(page, &mut sink)?;
+            stats.absorb(sink.stats());
+            page_ids.push(sink.emit_page(&mut doc)?);
+        }
+        Ok((crate::export::finish_document(&mut doc, page_ids)?, stats))
+    }
+
+    /// Convert every page to SVG, one standalone document per page, in order.
+    ///
+    /// Each page is a file of its own rather than one file of many pages: SVG
+    /// has no page tree, so "the document as SVG" is the pages it holds.
+    #[cfg(feature = "convert")]
+    pub fn to_svg_pages(&self) -> Result<Vec<String>> {
+        let options = sofd_convert::SvgOptions {
+            fonts: Some(&self.fonts),
+            ..Default::default()
+        };
+        self.list
+            .pages
+            .iter()
+            .map(|page| sofd_convert::page_to_svg(page, &options))
+            .collect()
     }
 
     /// Convert one page to SVG.

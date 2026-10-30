@@ -1,6 +1,6 @@
 [package]
 name = "sofd-convert"
-version = "0.6.0"
+version = "0.7.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -33,14 +33,13 @@ pdf     = ["dep:lopdf"]
 
 [dev-dependencies]
 criterion.workspace = true
-# A range rather than `0.7` because of the order the two crates publish in.
-# `sofd` depends on this crate, so `sofd-convert` has to be on the registry
-# before the `sofd` that names it — and cargo resolves every requirement in a
-# manifest it uploads, dev-dependencies included, so a `0.7` here asks for a
-# version that by construction cannot exist yet. The range covers it either way,
-# and a dev-dependency reaches nobody: it is not part of what a consumer gets.
-sofd = { path = "../sofd", version = ">=0.6, <0.8" }
 sofd-testkit = { path = "../sofd-testkit" }
+# The benchmark drives this crate as a real caller: it opens a package, parses
+# a page and converts it, without the facade in between. Those crates are here
+# only as path entries — dev-dependencies reach nobody, so publishing needs no
+# version numbers for them.
+sofd-parser = { path = "../sofd-parser" }
+sofd-package = { path = "../sofd-package" }
 
 [[bench]]
 name = "convert"

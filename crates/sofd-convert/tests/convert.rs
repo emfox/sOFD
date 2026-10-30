@@ -1,14 +1,16 @@
 //! The convert crate driven as a consumer rather than from inside.
 //! Every test uses the public surface and asserts only on what a caller can
 //! observe: the shape of the bytes, the reported stats, and the errors.
+//!
+//! One page at a time, because that is what this crate promises. A test about
+//! exporting a *document* — several pages in one file, a selection, the counts
+//! summed across them — is in `sofd/tests/export.rs`: assembling pages belongs
+//! to the layer that holds the document.
 
 use sofd_common::{Millimeter, Rect};
-use sofd_convert::{
-    ConversionStats, PdfOptions, SvgOptions, TextExport, document_to_pdf, document_to_pdf_pages,
-    document_to_pdf_pages_with_stats, page_to_pdf, page_to_svg, pages_to_svg,
-};
+use sofd_convert::{ConversionStats, PdfOptions, SvgOptions, TextExport, page_to_pdf, page_to_svg};
 use sofd_display::ops::{Color, Paint, PaintRule, StrokeStyle};
-use sofd_display::{DisplayList, DrawOp, PageDisplay};
+use sofd_display::{DrawOp, PageDisplay};
 use sofd_font::FontManager;
 use sofd_geometry::Path;
 use sofd_render::RenderOptions;
@@ -42,13 +44,6 @@ fn one_rect_page(index: usize) -> PageDisplay {
     }
 }
 
-fn display_list(pages: Vec<PageDisplay>) -> DisplayList {
-    DisplayList {
-        page_count: pages.len(),
-        pages,
-    }
-}
-
 #[test]
 fn an_svg_page_is_a_standalone_document_that_names_its_box() {
     let svg = page_to_svg(&blank_page(0), &SvgOptions::default()).expect("convert");
@@ -70,19 +65,6 @@ fn svg_output_carries_the_page_geometry_as_a_path() {
         "{svg}"
     );
     assert!(svg.contains("fill=\"#ff0000\""), "{svg}");
-}
-
-#[test]
-fn converting_a_display_list_yields_one_document_per_page() {
-    let list = display_list(vec![blank_page(0), one_rect_page(1)]);
-    let pages = pages_to_svg(&list, &SvgOptions::default()).expect("convert");
-    assert_eq!(pages.len(), 2);
-    for (index, svg) in pages.iter().enumerate() {
-        assert!(
-            svg.starts_with("<?xml version"),
-            "page {index} is not a document"
-        );
-    }
 }
 
 #[test]
@@ -119,143 +101,6 @@ fn pdf_output_starts_with_the_format_marker() {
     assert!(
         pdf.ends_with(b"%%EOF\n") || pdf.ends_with(b"%%EOF"),
         "PDF is not terminated"
-    );
-}
-
-#[test]
-fn a_multi_page_pdf_counts_every_page() {
-    let list = display_list(vec![blank_page(0), one_rect_page(1), blank_page(2)]);
-    let pdf = document_to_pdf(&list, &PdfOptions::default()).expect("convert");
-    let text = String::from_utf8_lossy(&pdf);
-    assert!(
-        text.contains("/Count 3"),
-        "page tree does not count three pages"
-    );
-}
-
-/// A blank page of a stated size, for the documents that mix them.
-fn page_of(index: usize, w: f64, h: f64) -> PageDisplay {
-    PageDisplay {
-        index,
-        page_box: Rect::new(0.0, 0.0, w, h),
-        ops: Vec::new(),
-        content_bbox: Rect::EMPTY,
-    }
-}
-
-/// The MediaBox of every page in the file, in the order written.
-fn media_boxes(pdf: &[u8]) -> Vec<(f64, f64)> {
-    let text = String::from_utf8_lossy(pdf);
-    let mut boxes = Vec::new();
-    for chunk in text.split("/MediaBox").skip(1) {
-        let Some(open) = chunk.find('[') else {
-            continue;
-        };
-        let Some(close) = chunk.find(']') else {
-            continue;
-        };
-        let nums: Vec<f64> = chunk[open + 1..close]
-            .split_whitespace()
-            .filter_map(|n| n.parse().ok())
-            .collect();
-        if nums.len() == 4 {
-            boxes.push((nums[2], nums[3]));
-        }
-    }
-    boxes
-}
-
-#[test]
-fn every_page_of_a_mixed_document_keeps_its_own_box() {
-    // A receipt's first page is short and its continuations are A4, so one
-    // page size for the whole file would either crop a continuation or leave
-    // a band of white under the first page.
-    let list = display_list(vec![page_of(0, 210.0, 140.0), page_of(1, 210.0, 297.0)]);
-    let pdf = document_to_pdf_pages(&list, &[0, 1], &PdfOptions::default()).expect("convert");
-    let boxes = media_boxes(&pdf);
-    assert_eq!(boxes.len(), 2, "one MediaBox per page: {boxes:?}");
-    let mm = |pt: f64| pt / (72.0 / 25.4);
-    assert!((mm(boxes[0].1) - 140.0).abs() < 0.01, "{:?}", boxes[0]);
-    assert!((mm(boxes[1].1) - 297.0).abs() < 0.01, "{:?}", boxes[1]);
-}
-
-#[test]
-fn the_counts_cover_every_page_the_file_holds() {
-    // The counts are the only sign a conversion lost a glyph, so a multi-page
-    // file reporting one page's worth would hide three quarters of the loss.
-    let list = display_list(vec![one_rect_page(0), one_rect_page(1), one_rect_page(2)]);
-    let (_, stats) = document_to_pdf_pages_with_stats(&list, &[0, 1, 2], &PdfOptions::default())
-        .expect("convert");
-    assert_eq!(stats.images, 0, "these pages hold none");
-    assert_eq!(
-        stats.dropped_runs + stats.live_text_runs + stats.outlined_glyphs,
-        0,
-        "no page has text, so nothing could be converted"
-    );
-}
-
-#[test]
-fn a_selected_subset_of_pages_becomes_a_pdf_of_just_those_pages() {
-    // A reader exports what it is looking at, which is a subset rather than a
-    // span: facing mode shows page 2 beside page 3 and skips nothing between
-    // them, but a search can leave gaps, so the selection is a list.
-    let list = display_list(vec![blank_page(0), one_rect_page(1), blank_page(2)]);
-    let pdf = document_to_pdf_pages(&list, &[0, 2], &PdfOptions::default()).expect("convert");
-    let text = String::from_utf8_lossy(&pdf);
-    assert!(
-        text.contains("/Count 2"),
-        "a two-page selection produced a tree that counts something else"
-    );
-}
-
-#[test]
-fn a_selection_may_name_the_same_page_twice() {
-    // Repeating a page is a legitimate ask — a reader may want one page in the
-    // export twice — and silently collapsing it would lose a page the caller
-    // asked for.
-    let list = display_list(vec![blank_page(0), one_rect_page(1)]);
-    let pdf = document_to_pdf_pages(&list, &[1, 1], &PdfOptions::default()).expect("convert");
-    assert!(
-        String::from_utf8_lossy(&pdf).contains("/Count 2"),
-        "a repeated page was collapsed"
-    );
-}
-
-#[test]
-fn a_page_that_is_not_in_the_display_list_is_an_error_not_a_short_pdf() {
-    // A windowed display list may hold fewer pages than the document has, so
-    // the selection can name a page that was never materialized. Failing
-    // loudly beats writing a PDF that quietly omits what the reader wanted.
-    let mut list = display_list(vec![blank_page(0), one_rect_page(1)]);
-    list.page_count = 9;
-    let err = document_to_pdf_pages(&list, &[0, 8], &PdfOptions::default())
-        .expect_err("a page outside the list must not convert");
-    assert!(
-        err.to_string().contains("out of range"),
-        "unhelpful error: {err}"
-    );
-}
-
-#[test]
-fn an_empty_selection_still_produces_a_readable_pdf() {
-    let list = display_list(vec![blank_page(0)]);
-    let pdf = document_to_pdf_pages(&list, &[], &PdfOptions::default()).expect("convert");
-    assert!(pdf.starts_with(b"%PDF-"));
-    assert!(
-        String::from_utf8_lossy(&pdf).contains("/Count 0"),
-        "an empty selection should count zero pages, not fall back to all of them"
-    );
-}
-
-#[test]
-fn an_empty_display_list_still_produces_a_valid_pdf() {
-    // Zero pages is a legitimate input, not a panic: the catalog and page tree
-    // are still written, and the result is readable by a PDF consumer.
-    let pdf = document_to_pdf(&display_list(Vec::new()), &PdfOptions::default()).expect("convert");
-    assert!(pdf.starts_with(b"%PDF-"));
-    assert!(
-        String::from_utf8_lossy(&pdf).contains("/Type /Catalog")
-            || String::from_utf8_lossy(&pdf).contains("/Type/Catalog")
     );
 }
 

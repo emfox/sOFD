@@ -167,7 +167,7 @@ jobs:
       # keeps a rendering regression readable on the run page rather than buried
       # in the suite. A reference that needs updating is a deliberate commit.
       - name: Golden images
-        run: cargo test -p sofd-convert --test golden
+        run: cargo test -p sofd --test golden
 
       # The reader's window is a real widget tree, so this drives it without a
       # display and without an X server: labels come from the catalogue and

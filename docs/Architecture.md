@@ -226,7 +226,7 @@ which is also the order `cargo publish` has to run in.
 | L2 | `sofd-render` | Raster backend: display list to pixels | extension |
 | L3 | `sofd-crypto` | SM2, SM3, SM4, X.509, PKCS#12 | surface |
 | L3 | `sofd-sign` | Electronic seals and verification per GB/T 38540 | surface |
-| L3 | `sofd-convert` | Format interconversion: PDF, SVG, PNG | surface |
+| L3 | `sofd-convert` | One page's display list to PDF, SVG or PNG; assembling pages is above | surface |
 | L3 | `sofd-edit` | Command-pattern editing with an undo stack | surface |
 | L3 | `sofd-search` | Full-text search and reverse glyph-to-Unicode lookup | surface |
 | L3 | `sofd-archive` | Archival compliance validation (OFD-A) | surface |

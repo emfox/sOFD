@@ -1,6 +1,10 @@
 //! PDF backend.
 //! Every transform is baked into the content stream, so the output is a flat
 //! sequence of absolute painting operators that any viewer can replay.
+//!
+//! One page in, one page out. [`PdfSink::emit_page`] hands a caller the page
+//! object it wrote, so a document-level export composes pages above this crate
+//! rather than here.
 
 use std::fmt::Write as _;
 
@@ -116,6 +120,10 @@ impl<'a> PdfSink<'a> {
     }
 
     /// Add this page's content and resources to a document.
+    ///
+    /// The one entry point a caller above this crate needs to assemble a
+    /// multi-page file: it hands back the page object, and the tree over those
+    /// objects is the caller's to build.
     pub fn emit_page(&mut self, doc: &mut Document) -> Result<ObjectId> {
         let mut resources = Dictionary::new();
         if !self.images.is_empty() {
@@ -663,65 +671,22 @@ pub fn page_to_pdf_with_stats(
     let stats = sink.stats.clone();
     let mut doc = Document::new();
     let page_id = sink.emit_page(&mut doc)?;
-    Ok((finish_document(&mut doc, vec![page_id])?, stats))
+    Ok((finish_one_page_document(&mut doc, page_id)?, stats))
 }
 
-/// Convert a whole display list into one multi-page PDF document.
-pub fn document_to_pdf(
-    list: &sofd_display::DisplayList,
-    options: &PdfOptions<'_>,
-) -> Result<Vec<u8>> {
-    let every: Vec<usize> = list.pages.iter().map(|page| page.index).collect();
-    document_to_pdf_pages(list, &every, options)
-}
-
-/// Convert the named pages into one PDF, in the order given. A reader exporting
-/// "the pages I am looking at" holds a subset, not a contiguous range: facing
-/// mode shows a pair and a search lands anywhere, so this takes a list.
-pub fn document_to_pdf_pages(
-    list: &sofd_display::DisplayList,
-    pages: &[usize],
-    options: &PdfOptions<'_>,
-) -> Result<Vec<u8>> {
-    Ok(document_to_pdf_pages_with_stats(list, pages, options)?.0)
-}
-
-/// The same conversion, with the counts summed over every page.
-pub fn document_to_pdf_pages_with_stats(
-    list: &sofd_display::DisplayList,
-    pages: &[usize],
-    options: &PdfOptions<'_>,
-) -> Result<(Vec<u8>, ConversionStats)> {
-    let mut stats = ConversionStats::default();
-    let mut doc = Document::new();
-    let mut page_ids = Vec::with_capacity(pages.len());
-    for wanted in pages {
-        let Some(page) = list.page(*wanted) else {
-            return Err(OfdError::Format(sofd_error::FormatError::PageOutOfRange {
-                index: *wanted,
-                total: list.page_count,
-            }));
-        };
-        let mut sink = PdfSink::new(page.page_box, options);
-        replay(page, &mut sink)?;
-        stats.absorb(&sink.stats);
-        page_ids.push(sink.emit_page(&mut doc)?);
-    }
-    Ok((finish_document(&mut doc, page_ids)?, stats))
-}
-
-/// Wire the catalog and page tree, then serialize.
-fn finish_document(doc: &mut Document, page_ids: Vec<ObjectId>) -> Result<Vec<u8>> {
-    let kids: Vec<Object> = page_ids.iter().copied().map(Object::Reference).collect();
+/// Wire a one-page catalog and page tree, then serialize.
+///
+/// A document above this crate assembles its own tree from
+/// [`PdfSink::emit_page`]; this is the same wiring with exactly one entry, kept
+/// so `page_to_pdf` needs no caller to help it.
+fn finish_one_page_document(doc: &mut Document, page_id: ObjectId) -> Result<Vec<u8>> {
     let mut pages = Dictionary::new();
     pages.set("Type", Object::Name(b"Pages".to_vec()));
-    pages.set("Kids", Object::Array(kids));
-    pages.set("Count", page_ids.len() as i64);
+    pages.set("Kids", Object::Array(vec![Object::Reference(page_id)]));
+    pages.set("Count", 1i64);
     let pages_id = doc.add_object(pages);
-    for id in &page_ids {
-        if let Ok(dict) = doc.get_dictionary_mut(*id) {
-            dict.set("Parent", Object::Reference(pages_id));
-        }
+    if let Ok(dict) = doc.get_dictionary_mut(page_id) {
+        dict.set("Parent", Object::Reference(pages_id));
     }
     let mut catalog = Dictionary::new();
     catalog.set("Type", Object::Name(b"Catalog".to_vec()));
@@ -731,7 +696,7 @@ fn finish_document(doc: &mut Document, page_ids: Vec<ObjectId>) -> Result<Vec<u8
 
     let mut out = Vec::new();
     doc.save_to(&mut out)
-        .map_err(|e| convert_error("document", e.to_string()))?;
+        .map_err(|e| convert_error("page", e.to_string()))?;
     Ok(out)
 }
 
@@ -1505,17 +1470,6 @@ mod tests {
         assert_eq!(states.len(), 1, "one alpha, one state");
         let content = content_of(&bytes);
         assert!(content.contains("/GS0 gs"));
-    }
-
-    #[test]
-    fn every_page_of_a_list_lands_in_the_document() {
-        let list = sofd_display::DisplayList {
-            page_count: 3,
-            pages: vec![page(Vec::new()), page(Vec::new()), page(Vec::new())],
-        };
-        let bytes = document_to_pdf(&list, &PdfOptions::default()).expect("convert");
-        let doc = Document::load_from(&bytes[..]).expect("parse");
-        assert_eq!(doc.get_pages().len(), 3);
     }
 
     #[test]

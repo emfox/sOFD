@@ -865,18 +865,6 @@ pub fn page_to_svg_with_stats(
     Ok(sink.finish())
 }
 
-/// Convert a whole display list, one SVG document per page.
-pub fn pages_to_svg(
-    list: &sofd_display::DisplayList,
-    options: &SvgOptions<'_>,
-) -> Result<Vec<String>> {
-    let mut out = Vec::with_capacity(list.pages.len());
-    for page in &list.pages {
-        out.push(page_to_svg(page, options)?);
-    }
-    Ok(out)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1531,16 +1519,5 @@ mod tests {
     #[test]
     fn text_content_is_escaped() {
         assert_eq!(escape_text("a&b<c>d"), "a&amp;b&lt;c&gt;d");
-    }
-
-    #[test]
-    fn every_page_of_a_list_becomes_a_document() {
-        let list = sofd_display::DisplayList {
-            page_count: 2,
-            pages: vec![page(Vec::new()), page(Vec::new())],
-        };
-        let docs = pages_to_svg(&list, &SvgOptions::default()).expect("convert");
-        assert_eq!(docs.len(), 2);
-        assert!(docs.iter().all(|d| d.contains("</svg>")));
     }
 }
