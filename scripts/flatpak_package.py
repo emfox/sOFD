@@ -106,6 +106,10 @@ ICON_SVG = """<?xml version="1.0" encoding="UTF-8"?>
 # takes it from a file.
 MANIFEST = {
     "app-id": APP_ID,
+    # Without this the build exports to `master` and `build-bundle` asks for
+    # `stable`, so the bundle step fails after a complete build with a refspec
+    # the repository never held.
+    "branch": BRANCH,
     "runtime": RUNTIME,
     "runtime-version": RUNTIME_VERSION,
     "sdk": SDK,
@@ -392,6 +396,10 @@ def selftest() -> int:
                    and MANIFEST["runtime-version"] == RUNTIME_VERSION
                    and MANIFEST["sdk"] == SDK))
     checks.append(("the app id is the one the manifest builds", MANIFEST["app-id"] == APP_ID))
+    # `build-bundle` names one refspec, and the build has to have written the
+    # same branch: the manifest's default is `master`, which is not this one.
+    checks.append(("the manifest builds the branch the bundle asks for",
+                   MANIFEST.get("branch") == BRANCH))
     checks.append(("the command is the binary the module installs",
                    MANIFEST["command"] == EXECUTABLE
                    and any(f"/app/bin/{EXECUTABLE}" in c
