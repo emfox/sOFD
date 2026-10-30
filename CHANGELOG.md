@@ -8,6 +8,8 @@ release is written up is in
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-30
+
 ### Engine
 
 - **The reader's state and its `egui` shell are separate crates**: `sofd-session` holds the open document, the page cache and every queue, and `sofd-egui` draws them, so a second shell — Tauri, Qt, a canvas of its own — drives the same decisions instead of reimplementing them. The binary is still `sofd-reader`.
@@ -19,6 +21,7 @@ release is written up is in
 
 ### Server
 
+- **A running server says whether it can answer**: `/healthz` reports the build and the store, so a container runtime can tell a serving instance from one that is still starting.
 - **The server ships as a container image** on the GitHub container registry, `ghcr.io/emfox/sofd-server`, tagged with the version and `latest`; the release job proves it serves and draws before it pushes.
 
 ### Reader
@@ -31,7 +34,8 @@ release is written up is in
 - **A page reaches the screen in half the time**, because it is no longer encoded to PNG and decoded again on the way.
 - **The part of a page a zoomed view gets is the part it asked for**, where any window away from the top-left corner came back blank.
 - **Scrolling a zoomed page stops redrawing it at every step**, because the reader keeps each part it has already drawn and hands it back while it still covers the view.
-- **A second reader window exists, on Tauri**: `sofd-tauri` draws the same document as geometry on a webview canvas, over the same session, the same message catalogue, the same shortcut table and the same glyphs, laid out in the same zones with the same tokens. It is cross-platform by its toolkit — WebKitGTK, WKWebView, WebView2, Android, iOS — and it is not yet in a release.
+- **The open dialog on a phone lists the documents the system can hand it**, because the filter it offers now matches the way Android matches a MIME type.
+- **A second reader window exists, on Tauri**: `sofd-tauri` draws the same document as geometry on a webview canvas, over the same session, the same message catalogue, the same shortcut table and the same glyphs, laid out in the same zones with the same tokens. It is cross-platform by its toolkit — WebKitGTK, WKWebView, WebView2, Android, iOS — and it is not one of the download artefacts yet.
 - **The width of a stroke now reaches a canvas**, which it did not: the walk kept the paint and dropped the style, so every rule, table line and seal on a page drew at one width.
 - **The application icon is drawn by the set it belongs to**, from `document-open-symbolic`'s own path data filled by the nonzero rule, written by a script with no image library behind it and checked for staleness.
 
@@ -344,7 +348,8 @@ A nine-page golden book is compared against another vendor's reader and a second
 - Office formats and OCR are planned, not built.
 - iOS is not in the release matrix, and the release artefacts are unsigned.
 
-[Unreleased]: https://github.com/emfox/sOFD/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/emfox/sOFD/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/emfox/sOFD/releases/tag/v0.7.0
 [0.6.0]: https://github.com/emfox/sOFD/releases/tag/v0.6.0
 [0.5.1]: https://github.com/emfox/sOFD/releases/tag/v0.5.1
 [0.5.0]: https://github.com/emfox/sOFD/releases/tag/v0.5.0
