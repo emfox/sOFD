@@ -22,7 +22,7 @@ tracing.workspace = true
 [dev-dependencies]
 # The round-trip test asserts on what a reader reports, not on the model the
 # command touched, so it opens the archive back through the facade.
-sofd = { path = "../sofd", features = ["render"], version = "0.7" }
+sofd = { path = "../sofd", features = ["render"], version = "0.8" }
 sofd-display = { path = "../sofd-display", version = "0.7" }
 # Fixture documents whose page files a test can replace.
 sofd-testkit = { path = "../sofd-testkit" }

@@ -1,10 +1,10 @@
 //! Browser bindings: open an OFD in a page and pull data out of it.
-//! The data shapes live in [`shapes`]; this module only crosses the JS
-//! boundary, so the shapes stay testable on the host.
+//! The data shapes come from `sofd-bindings`, so this module only crosses the
+//! JS boundary and the shapes stay testable on the host.
 
 #![warn(missing_docs)]
 
-pub mod shapes;
+pub use sofd_bindings as shapes;
 
 #[cfg(target_arch = "wasm32")]
 use std::sync::Once;
@@ -12,7 +12,7 @@ use std::sync::Once;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use sofd::{Document, RenderOptions, SearchOptions};
+use sofd::{Document, RenderOptions};
 
 use crate::shapes::DocumentInfo;
 
@@ -71,12 +71,8 @@ impl OfdDocument {
 
     /// Full-text search over every page.
     pub fn search(&self, needle: &str) -> Result<JsValue, JsError> {
-        let options = SearchOptions {
-            case_sensitive: false,
-            whole_word: false,
-            max_hits: None,
-        };
-        to_js(&shapes::search_hits(&self.inner, needle, options))
+        let hits = shapes::search_hits(&self.inner, needle, shapes::DEFAULT_SEARCH);
+        to_js(&hits)
     }
 
     /// Verify every signature; each entry says where it is and whether it holds.

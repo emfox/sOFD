@@ -18,11 +18,7 @@ fn open_document(signed: bool) -> Document {
 
 /// Search options that match the way the bindings call into the engine.
 fn search_options() -> SearchOptions {
-    SearchOptions {
-        case_sensitive: false,
-        whole_word: false,
-        max_hits: None,
-    }
+    sofd_bindings::DEFAULT_SEARCH
 }
 
 #[test]

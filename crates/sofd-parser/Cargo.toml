@@ -28,7 +28,7 @@ criterion.workspace = true
 sofd-render = { path = "../sofd-render", version = "0.7" }
 sofd-testkit = { path = "../sofd-testkit" }
 # The memory benchmark rasterizes a page, which is where a page's bytes go.
-sofd = { path = "../sofd", version = "0.7" }
+sofd = { path = "../sofd", version = "0.8" }
 sofd-convert = { path = "../sofd-convert", version = "0.9" }
 
 [[bench]]

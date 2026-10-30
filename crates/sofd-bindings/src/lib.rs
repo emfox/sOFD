@@ -1,6 +1,9 @@
-//! Plain data the bindings hand to JavaScript.
-//! No wasm types live here, so every shape is unit-testable on the host:
-//! the browser gets these objects, and `Intl` formats their numbers.
+//! The data each language binding hands across its own boundary.
+//!
+//! The wasm and C bindings answer the same questions about a document, so
+//! they answer them from here and only translate at the edge. Nothing in this
+//! crate knows about a JavaScript object or a C pointer, which keeps every
+//! shape testable on the host.
 
 use serde::Serialize;
 use sofd::{Document, SearchOptions, VerifyStatus};
@@ -27,7 +30,7 @@ pub struct DocumentInfo {
 impl DocumentInfo {
     /// Gather the declaration-level facts.
     pub fn of(doc: &mut Document) -> Self {
-        let page_box = doc.model().common_data.page_area.physical_box;
+        let page_box = doc.page_box();
         let embedded = doc
             .fonts()
             .registry()
@@ -55,6 +58,14 @@ pub struct SearchHitData {
     pub snippet: String,
 }
 
+/// The options a binding searches with unless its caller says otherwise:
+/// case-insensitive substrings, no cap on the hit count.
+pub const DEFAULT_SEARCH: SearchOptions = SearchOptions {
+    case_sensitive: false,
+    whole_word: false,
+    max_hits: None,
+};
+
 /// The outcome of verifying one signature.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SignatureData {
@@ -65,7 +76,7 @@ pub struct SignatureData {
     /// Whether nothing was proved, which `valid` being false does not say.
     pub unchecked: bool,
     /// Whether the proof holds but its certificate chains to no root the
-    /// caller named.
+    /// caller named. False beside `valid` means an untrusted signer.
     pub untrusted: bool,
 }
 

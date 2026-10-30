@@ -1,6 +1,6 @@
 //! C ABI bindings: open an OFD from a host application and pull data out.
-//! The data shapes live in [`data`]; this module only crosses the C boundary,
-//! so the gathering stays testable without touching pointers.
+//! The data shapes come from `sofd-bindings`; this module only crosses the C
+//! boundary, so the gathering stays testable without touching pointers.
 
 #![warn(missing_docs)]
 // The crate is the one place in the workspace where unsafe is allowed: every
@@ -8,7 +8,7 @@
 // pointer-based by nature, so the deref lint bends to the documented contract.
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-pub mod data;
+pub use sofd_bindings as data;
 
 use std::ffi::{CStr, CString, c_char};
 use std::os::raw::c_int;
@@ -281,7 +281,7 @@ pub extern "C" fn sofd_search(
             }
         }
     };
-    let data = data::search_hits(&doc.inner, needle);
+    let data = data::search_hits(&doc.inner, needle, data::DEFAULT_SEARCH);
     let cap = if hits.is_null() {
         0
     } else {

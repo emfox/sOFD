@@ -27,7 +27,7 @@ crate-type = ["rlib", "cdylib"]
 sofd-session = { path = "../sofd-session", version = "0.7" }
 # The facade re-exports the option and verdict types its own methods take, so
 # the reader names them through `sofd` and depends on nothing below.
-sofd = { path = "../sofd", version = "0.7", features = ["render", "search", "pdf", "print", "annot", "sign"] }
+sofd = { path = "../sofd", version = "0.8", features = ["render", "search", "pdf", "print", "annot", "sign"] }
 # The signature panel shows what the certificate says, and that detail type is
 # the signature crate's; the facade re-exports the verdicts but not the rest.
 sofd-sign = { path = "../sofd-sign", version = "0.7" }

@@ -27,7 +27,7 @@ pub struct DocumentInfo {
 impl DocumentInfo {
     /// Gather the declaration-level facts.
     pub fn of(doc: &mut Document) -> Self {
-        let page_box = doc.model().common_data.page_area.physical_box;
+        let page_box = doc.page_box();
         let embedded = doc
             .fonts()
             .registry()

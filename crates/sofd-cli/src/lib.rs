@@ -130,7 +130,7 @@ pub fn i18n_for(cli: &Cli) -> I18n {
 fn info(path: &Path, i18n: &I18n) -> Result<Report> {
     let mut doc = open(path)?;
     let fmt = LocalizedFormat::new(i18n.locale().clone());
-    let page_box = doc.model().common_data.page_area.physical_box;
+    let page_box = doc.page_box();
     let embedded = doc
         .fonts()
         .registry()

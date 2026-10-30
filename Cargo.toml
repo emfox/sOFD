@@ -38,6 +38,9 @@ members = [
     # L4 facade
     "crates/sofd",
 
+    # L4 data shapes the bindings share, so wasm and C answer alike
+    "crates/sofd-bindings",
+
     # L5 adapters: one per delivery form
     "crates/sofd-cli",
     "crates/sofd-wasm",

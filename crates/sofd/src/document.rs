@@ -2,6 +2,7 @@
 
 use std::collections::{BTreeSet, HashMap};
 
+use sofd_common::Rect;
 use sofd_display::{DisplayList, DrawOp, PageDisplay};
 use sofd_error::Result;
 use sofd_font::{FontId, FontManager};
@@ -98,6 +99,13 @@ impl Document {
     /// faces and want to register them under the ids the list already uses.
     pub fn fonts_mut(&mut self) -> &mut FontManager {
         &mut self.fonts
+    }
+
+    /// The box a page is drawn on, in millimetres, taken from the document's
+    /// own page area. Callers that only want the size use this rather than
+    /// reaching into the model for it.
+    pub fn page_box(&self) -> Rect {
+        self.parsed.document.common_data.page_area.physical_box
     }
 
     /// The parsed document model, for callers that need the raw structure.

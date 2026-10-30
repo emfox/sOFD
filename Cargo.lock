@@ -6230,7 +6230,7 @@ dependencies = [
 
 [[package]]
 name = "sofd"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "image",
  "lopdf",
@@ -6265,6 +6265,17 @@ dependencies = [
  "sofd-package",
  "sofd-xml",
  "tracing",
+]
+
+[[package]]
+name = "sofd-bindings"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "sofd",
+ "sofd-error",
+ "sofd-font",
+ "sofd-testkit",
 ]
 
 [[package]]
@@ -6403,6 +6414,7 @@ version = "0.5.2"
 dependencies = [
  "cbindgen",
  "sofd",
+ "sofd-bindings",
  "sofd-error",
  "sofd-font",
  "sofd-testkit",
@@ -6635,6 +6647,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "sofd",
+ "sofd-bindings",
  "sofd-error",
  "sofd-font",
  "sofd-testkit",
