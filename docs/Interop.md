@@ -307,3 +307,57 @@ fixture reports `Version: 1.0`, because that is what it now declares.
 the page has: 36 text runs spelling characters, an image, and ink. The annex A
 gate in `scripts/check_all.py` validates it beside our own fixtures, so it is
 held to the schema and to the renderer at once.
+
+### A document from a third producer
+
+One document from one producer is a shape; two is a pattern. A second
+third-party document is committed beside the first — a third producer, and a
+source that is neither this project nor the ofdrw set:
+[`compliance/fixtures/wps.ofd`](../compliance/fixtures/wps), written by
+**WPS Office** (professional) 10.1.0.5885 (`KSOProductBuildVer`
+`2052-10.1.0.5885`), four pages of a Chinese official-letter template: a red
+header line, an urgency marking and a classification number, then a notice
+body set in a fangsong face.
+
+It is `example.ofd`, the sample a third-party viewer ships
+([`jiayao-zhang/ofdbox-viewer`](https://github.com/jiayao-zhang/ofdbox-viewer));
+that repository declares no licence, so this copy rests on the same footing as
+the one above — the sample's own bytes under the corrections below, cited
+rather than relicensed.
+
+What makes it worth carrying is the first row of the table, which is not a
+correction of a slip but a dialect:
+
+| What the producer wrote | What annex A declares | Why it matters |
+| --- | --- | --- |
+| `xmlns:ofd="http://www.ofdspec.org"` | `http://www.ofdspec.org/2016` | 8 entries are in the un-versioned namespace, so nothing in the document is annex A until it is renamed |
+| `DocInfo` order: `DocID`, dates, `Title`, `Author` | `DocID`, `Title`, `Author`, then the dates | `CT_DocInfo` is a sequence |
+| `CreationDate`, `ModDate` | `xs:date`, so `2017-03-02` | the producer wrote `2017-3-2` |
+
+The namespace is the interesting one. WPS writes the domain without the year,
+and this engine reads the document anyway — it matches on local names, so a
+document in another namespace opens, which
+`gb_t_33190_7_1_the_document_namespace_is_the_ofd_namespace` asserts
+deliberately. The fixture cannot keep the un-versioned spelling, because the
+annex A gate would then have nothing to validate, so the eight entries are
+renamed to the year the standard declares. That is the one place in this file
+where a correction changes what a document says rather than how it says it, and
+it is recorded here for that reason.
+
+Nothing else is altered: the page content, the four font families it names and
+the `eGovDoc` payload under `CustomTags` are the sample's own bytes. All four
+pages render pixel for pixel the same before and after the corrections, which
+is what the two archives are compared on at 150 dpi.
+
+Three more habits are worth naming, because none of them is ours. The four
+families it lists — a Song and a display Song, a fangsong and a hei, all by
+their Chinese names — are named and not embedded, so the page draws from host
+faces instead. The heading's red is stated as `255 0 0` in a colour space
+declared by id in `PublicRes.xml`. And the page number's layer comes *first* in
+each page's stream, so the first run on page one is the footer rather than the
+heading.
+
+`a_document_a_third_producer_wrote_reaches_every_page` in
+`crates/sofd-parser/tests/third_party.rs` opens all four pages, asserts each
+carries text that spells characters, and reads the heading's fill through the
+declared space to check it is red.
