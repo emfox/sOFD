@@ -42,6 +42,7 @@ pub fn run() {
             commands::messages,
             commands::glyphs,
             commands::page,
+            commands::overlays,
             commands::act,
             commands::press,
             commands::viewport,

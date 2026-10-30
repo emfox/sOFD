@@ -16,7 +16,7 @@ use sofd_session::{
 };
 
 use crate::state::{self, Snapshot};
-use crate::wire::{self, PageGeometry};
+use crate::wire::{self, PageGeometry, WireMarks};
 use crate::{icons, text};
 
 /// The session, behind a lock the webview's threads share.
@@ -207,6 +207,21 @@ pub fn page(host: State<'_, Host>, index: usize) -> Result<PageGeometry, String>
         .vector_page(index, &sofd::RenderOptions::default())
         .map_err(|err| err.to_string())?;
     Ok(wire::geometry(index, &walked))
+}
+
+/// The overlays of one page: search hits, and the boundaries of annotations
+/// the document says are visible.
+#[tauri::command]
+pub fn overlays(host: State<'_, Host>, index: usize) -> WireMarks {
+    let app = host.app.lock().expect("the session lock is never poisoned");
+    let hits = app.hit_rects_on(index);
+    let boundaries: Vec<(sofd_common::Rect, bool)> = app
+        .annotations_on(index)
+        .into_iter()
+        .filter(|(annotation, _)| annotation.visible)
+        .filter_map(|(annotation, current)| Some((annotation.boundary?, current)))
+        .collect();
+    wire::marks(&hits, &boundaries)
 }
 
 /// What the reader did, named the way the front end names it.

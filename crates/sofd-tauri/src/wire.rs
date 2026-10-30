@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 
 use serde::Serialize;
+use sofd_common::Rect;
 use sofd_display::ops::{Color, LineCap, LineJoin, Paint, PaintRule, StrokeStyle};
 use sofd_display::{DrawOp, ImageCodec, PageDisplay};
 use sofd_render::{Shape, VectorPage};
@@ -144,6 +145,53 @@ pub struct WireStroke {
     pub join: &'static str,
     /// Miter length limit before a join is bevelled.
     pub miter_limit: f64,
+}
+
+/// One rectangle drawn over the page, in page millimetres.
+#[derive(Debug, Serialize)]
+pub struct WireRect {
+    /// Left edge.
+    pub x: f64,
+    /// Top edge.
+    pub y: f64,
+    /// Width.
+    pub w: f64,
+    /// Height.
+    pub h: f64,
+    /// Whether this is the one the reader is visiting, which draws stronger.
+    pub current: bool,
+    /// The sheet token that colours it, spelled as a custom property.
+    pub token: &'static str,
+}
+
+/// The rectangles a page carries above its content: search hits and the
+/// boundaries of annotations.
+#[derive(Debug, Serialize)]
+pub struct WireMarks {
+    /// Every hit on the page, in the order search found them.
+    pub hits: Vec<WireRect>,
+    /// The boundary of every visible annotation on the page.
+    pub marks: Vec<WireRect>,
+}
+
+/// The overlays of one page, ready to draw over its canvas.
+///
+/// The colour is a token's name rather than a value because both of these are
+/// drawn on white paper: the theme's surface tokens would vanish there, so the
+/// sheet holds the two that survive both columns and the window resolves them.
+pub fn marks(hits: &[(Rect, bool)], boundaries: &[(Rect, bool)]) -> WireMarks {
+    let rect = |(rect, current): &(Rect, bool), token: &'static str| WireRect {
+        x: rect.x,
+        y: rect.y,
+        w: rect.w,
+        h: rect.h,
+        current: *current,
+        token,
+    };
+    WireMarks {
+        hits: hits.iter().map(|hit| rect(hit, "--hit")).collect(),
+        marks: boundaries.iter().map(|mark| rect(mark, "--mark")).collect(),
+    }
 }
 
 /// What a page walk could not draw exactly, by kind, so one page reports each

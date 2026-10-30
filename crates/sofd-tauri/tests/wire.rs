@@ -6,8 +6,9 @@
 //! parses, a stroke width in millimetres, and a colour it can set.
 
 use sofd::{Document, RenderOptions};
+use sofd_common::Rect;
 use sofd_io::FileSource;
-use sofd_tauri::wire::{WirePaint, WireShape, geometry};
+use sofd_tauri::wire::{WirePaint, WireShape, geometry, marks};
 
 fn fixture(name: &str) -> Document {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -156,4 +157,24 @@ fn the_json_is_what_a_browser_reads() {
     assert!(ink["d"].as_str().is_some(), "the path data is there");
     assert!(ink["style"]["width"].as_f64().is_some(), "and its width");
     assert_eq!(ink["rule"], "nonzero");
+}
+
+/// A search hit and an annotation reach the canvas as a rectangle in page
+/// millimetres, named by the token that colours it. Both are drawn over the
+/// paper, so neither takes its colour from the theme's surface.
+#[test]
+fn an_overlay_carries_a_rectangle_and_the_token_that_colours_it() {
+    let hit = Rect::new(10.0, 20.0, 40.0, 5.0);
+    let boundary = Rect::new(30.0, 60.0, 20.0, 8.0);
+    let wire = marks(&[(hit, true)], &[(boundary, false)]);
+    assert_eq!(wire.hits.len(), 1);
+    assert_eq!(wire.hits[0].x, 10.0);
+    assert!(wire.hits[0].current);
+    assert_eq!(wire.hits[0].token, "--hit");
+    assert_eq!(wire.marks.len(), 1);
+    assert_eq!(wire.marks[0].y, 60.0);
+    assert!(!wire.marks[0].current);
+    assert_eq!(wire.marks[0].token, "--mark");
+    let json = serde_json::to_value(&wire).expect("overlays serialize");
+    assert_eq!(json["hits"][0]["token"], "--hit");
 }
