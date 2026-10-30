@@ -17,7 +17,7 @@ name = "sofd-server"
 path = "src/main.rs"
 
 [dependencies]
-sofd = { path = "../sofd", version = "0.8", features = ["render", "sign", "convert", "search", "pdf"] }
+sofd = { path = "../sofd", version = "0.9", features = ["render", "sign", "convert", "search", "pdf"] }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
 axum.workspace = true

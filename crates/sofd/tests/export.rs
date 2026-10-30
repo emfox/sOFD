@@ -226,3 +226,37 @@ fn a_page_past_the_end_fails_the_conversion() {
     let doc = document_of(1);
     assert!(doc.pdf_outcome(&[0, 3]).is_err());
 }
+
+/// A shell draws what an export draws: both take the path data from the same
+/// place, so a line that moves in an SVG moves on the canvas too.
+#[test]
+fn a_shell_gets_the_same_path_data_an_export_writes() {
+    let path = sofd_geometry::Path::build(|b| {
+        b.rect(10.0, 20.0, 30.0, 40.0);
+    });
+    let d = sofd::shell::path_data(&path);
+    assert_eq!(d, sofd_convert::svg::path_data(&path));
+    assert!(d.starts_with('M'), "got {d}");
+    assert!(d.ends_with('Z'), "a rectangle closes: {d}");
+}
+
+/// A shell that walks the vector page gets the same string per shape, and the
+/// shapes a canvas cannot take say so rather than inventing one.
+#[test]
+fn a_shape_carries_its_path_data_or_nothing() {
+    let path = sofd_geometry::Path::build(|b| {
+        b.rect(0.0, 0.0, 1.0, 1.0);
+    });
+    let ink = sofd_render::Shape::Path {
+        path: path.clone(),
+        fill: None,
+        stroke: None,
+        stroke_style: Default::default(),
+        rule: sofd_display::PaintRule::NonZero,
+    };
+    assert_eq!(
+        sofd::shell::shape_path_data(&ink).as_deref(),
+        Some(&*sofd::shell::path_data(&path))
+    );
+    assert!(sofd::shell::shape_path_data(&sofd_render::Shape::ClipReset).is_none());
+}

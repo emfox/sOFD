@@ -115,6 +115,48 @@ impl Icon {
         }
     }
 
+    /// The variant's name, spelled the way a webview names things: `Open`,
+    /// `Next`, `FitWidth`. It is the key a front end looks a glyph up by, so
+    /// every shell has to agree on it rather than each inventing one.
+    pub fn wire_name(self) -> &'static str {
+        match self {
+            Self::Open => "Open",
+            Self::Close => "Close",
+            Self::Search => "Search",
+            Self::Signatures => "Signatures",
+            Self::Annotations => "Annotations",
+            Self::Menu => "Menu",
+            Self::Previous => "Previous",
+            Self::Next => "Next",
+            Self::SinglePage => "SinglePage",
+            Self::FacingPages => "FacingPages",
+            Self::Continuous => "Continuous",
+            Self::FitWidth => "FitWidth",
+            Self::FitPage => "FitPage",
+            Self::Print => "Print",
+            Self::ExportPdf => "ExportPdf",
+            Self::ExportPng => "ExportPng",
+            Self::Valid => "Valid",
+            Self::Tampered => "Tampered",
+            Self::Unverified => "Unverified",
+            Self::Untrusted => "Untrusted",
+        }
+    }
+
+    /// The whole set with what a front end needs to draw it, on the square
+    /// every glyph is drawn on.
+    pub fn wire_set() -> (f32, Vec<WireGlyph>) {
+        let glyphs = Self::ALL
+            .into_iter()
+            .map(|icon| WireGlyph {
+                id: icon.wire_name(),
+                theme_name: icon.theme_name(),
+                paths: icon.paths(),
+            })
+            .collect();
+        (SIZE, glyphs)
+    }
+
     /// The themed paths this one is drawn from, in the order the theme's file
     /// lists them. Each is one `<path>` element's `d`, and nothing else.
     pub fn paths(self) -> &'static [&'static str] {
@@ -168,9 +210,57 @@ impl Icon {
     }
 }
 
+/// One glyph as a front end takes it: what it does, the theme's name for it,
+/// and its path data.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct WireGlyph {
+    /// The variant's name, which the front end uses as its key.
+    pub id: &'static str,
+    /// The theme's name, so a reviewer can compare it with the file.
+    pub theme_name: &'static str,
+    /// One `d` per path element, in the order the theme lists them.
+    pub paths: &'static [&'static str],
+}
+
 /// One glyph's paths, each with the strength the theme draws it at.
 #[derive(Debug, Default)]
 pub struct Drawing {
     /// Every subpath, with the share of the ink it takes.
     pub parts: Vec<(Subpath, f32)>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A front end keys its canvas by the wire name, so two glyphs sharing one
+    /// would leave one of them unaddressable.
+    #[test]
+    fn every_glyph_has_its_own_wire_name() {
+        let mut seen = std::collections::HashSet::new();
+        for icon in Icon::ALL {
+            assert!(
+                seen.insert(icon.wire_name()),
+                "{} is claimed twice",
+                icon.wire_name()
+            );
+        }
+        assert_eq!(seen.len(), Icon::ALL.len());
+    }
+
+    /// The set a shell hands over covers every glyph, on the theme's square.
+    #[test]
+    fn the_wire_set_covers_the_whole_icon_set() {
+        let (size, glyphs) = Icon::wire_set();
+        assert_eq!(size, SIZE);
+        assert_eq!(glyphs.len(), Icon::ALL.len());
+        for glyph in &glyphs {
+            assert!(!glyph.paths.is_empty(), "{} carries no path", glyph.id);
+            assert!(
+                glyph.theme_name.ends_with("-symbolic"),
+                "{} is not a theme name",
+                glyph.theme_name
+            );
+        }
+    }
 }

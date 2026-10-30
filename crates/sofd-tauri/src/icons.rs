@@ -33,42 +33,19 @@ pub struct GlyphSet {
 
 /// The set, as the front end takes it.
 pub fn glyphs() -> GlyphSet {
+    // The names come from `sofd-icons` so this shell and the egui one cannot
+    // drift: the front end keys its canvas by them.
+    let (size, icons) = Icon::wire_set();
     GlyphSet {
-        size: sofd_icons::SIZE,
-        glyphs: Icon::ALL
+        size,
+        glyphs: icons
             .into_iter()
-            .map(|icon| Glyph {
-                id: name(icon),
-                theme_name: icon.theme_name(),
-                paths: icon.paths(),
+            .map(|glyph| Glyph {
+                id: glyph.id,
+                theme_name: glyph.theme_name,
+                paths: glyph.paths,
             })
             .collect(),
-    }
-}
-
-/// The variant's name, spelled the way a webview names things.
-fn name(icon: Icon) -> &'static str {
-    match icon {
-        Icon::Open => "Open",
-        Icon::Close => "Close",
-        Icon::Search => "Search",
-        Icon::Signatures => "Signatures",
-        Icon::Annotations => "Annotations",
-        Icon::Menu => "Menu",
-        Icon::Previous => "Previous",
-        Icon::Next => "Next",
-        Icon::SinglePage => "SinglePage",
-        Icon::FacingPages => "FacingPages",
-        Icon::Continuous => "Continuous",
-        Icon::FitWidth => "FitWidth",
-        Icon::FitPage => "FitPage",
-        Icon::Print => "Print",
-        Icon::ExportPdf => "ExportPdf",
-        Icon::ExportPng => "ExportPng",
-        Icon::Valid => "Valid",
-        Icon::Tampered => "Tampered",
-        Icon::Unverified => "Unverified",
-        Icon::Untrusted => "Untrusted",
     }
 }
 

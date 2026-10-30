@@ -244,7 +244,7 @@ fn wire(shape: &Shape, degraded: &mut Degraded) -> Option<WireShape> {
             stroke_style,
             rule,
         } => Some(WireShape::Ink {
-            d: sofd_convert::svg::path_data(path),
+            d: sofd::shell::path_data(path),
             fill: paint(fill.as_ref(), degraded),
             stroke: paint(stroke.as_ref(), degraded),
             style: stroke_style_of(stroke_style),
@@ -254,7 +254,7 @@ fn wire(shape: &Shape, degraded: &mut Degraded) -> Option<WireShape> {
         // path. OFD states an outline for text as on or off rather than how
         // wide, so the default is what an outlined glyph means.
         Shape::Text { path, fill, stroke } => Some(WireShape::Ink {
-            d: sofd_convert::svg::path_data(path),
+            d: sofd::shell::path_data(path),
             fill: paint(fill.as_ref(), degraded),
             stroke: paint(stroke.as_ref(), degraded),
             style: stroke_style_of(&StrokeStyle::default()),
@@ -262,7 +262,7 @@ fn wire(shape: &Shape, degraded: &mut Degraded) -> Option<WireShape> {
         }),
         Shape::Image { image, to_page } => Some(image_shape(image, *to_page, degraded)),
         Shape::Clip { path, rule } => Some(WireShape::Clip {
-            d: sofd_convert::svg::path_data(path),
+            d: sofd::shell::path_data(path),
             rule: rule_of(*rule),
         }),
         Shape::ClipReset => Some(WireShape::ClipReset),

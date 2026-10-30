@@ -11,6 +11,7 @@ mod document;
 mod export;
 #[cfg(feature = "convert")]
 mod outcome;
+pub mod shell;
 
 pub use compare::{Comparison, PageChange, PageDiff};
 #[cfg(feature = "annot")]
