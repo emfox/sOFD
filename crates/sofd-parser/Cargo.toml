@@ -13,7 +13,7 @@ categories = ["parser-implementations"]
 [dependencies]
 sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
-sofd-model = { path = "../sofd-model", version = "0.5" }
+sofd-model = { path = "../sofd-model", version = "0.6" }
 sofd-xml = { path = "../sofd-xml", version = "0.5" }
 sofd-package = { path = "../sofd-package", version = "0.6" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }

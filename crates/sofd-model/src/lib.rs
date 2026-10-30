@@ -11,6 +11,7 @@ pub mod object;
 
 pub use color::{
     ColorRef, MeshPoint, MeshTriangle, PatternSpace, PatternSpec, ReflectMethod, Segment, Shading,
+    from_cmyk,
 };
 pub use document::{
     ColorSpace, ColorSpaceKind, ColorSpaceList, CommonData, CompositeGraphicUnit,

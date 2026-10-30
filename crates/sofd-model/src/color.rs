@@ -339,7 +339,10 @@ fn to_rgb_channels(channels: Vec<u8>) -> sofd_error::Result<(u8, u8, u8)> {
 }
 
 /// One CMYK channel to RGB: `255 - (channel * (255 - K) / 255 + K)`.
-fn from_cmyk(channel: u8, key: u8) -> u8 {
+///
+/// The format's only CMYK reduction, so a colour means the same thing whether
+/// it arrives as a `ColorRef` or through a declared space.
+pub fn from_cmyk(channel: u8, key: u8) -> u8 {
     let ink = u16::from(channel) * u16::from(255 - key) / 255 + u16::from(key);
     255 - ink.min(255) as u8
 }

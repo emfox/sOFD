@@ -8,7 +8,7 @@
 use sofd_display::Paint;
 use sofd_display::ops::{Color, GradientStop, MeshVertex};
 use sofd_error::Result;
-use sofd_model::color::{ColorRef, MeshPoint, Segment};
+use sofd_model::color::{ColorRef, MeshPoint, Segment, from_cmyk};
 
 use crate::flatten::ColorTable;
 
@@ -90,13 +90,6 @@ pub(crate) fn convert_by_kind(kind: sofd_model::ColorSpaceKind, channels: &[u8])
             _ => (0, 0, 0),
         },
     }
-}
-
-/// One CMYK channel to RGB, the same reduction `ColorRef` uses, so a colour
-/// means the same thing whether or not it names a CMYK space.
-pub(crate) fn from_cmyk(channel: u8, key: u8) -> u8 {
-    let ink = u16::from(channel) * u16::from(255 - key) / 255 + u16::from(key);
-    255 - ink.min(255) as u8
 }
 
 /// One vertex per mesh point, its colour resolved to RGB here so the backend
