@@ -341,8 +341,11 @@ impl DroppedFile {
 ///
 /// It reads the raster, because a page may hold nothing but a background.
 pub fn looks_blank(image: &Rgba) -> bool {
-    !image.bytes.is_empty()
-        && image.bytes.chunks_exact(4).all(|p| {
+    // `as_chunks` rather than `chunks_exact`: a pixel is four bytes by
+    // construction, so the remainder is empty and saying so is the point.
+    let (pixels, _) = image.bytes.as_chunks::<4>();
+    !pixels.is_empty()
+        && pixels.iter().all(|p| {
             p[0] >= 255 - BLANK_THRESHOLD
                 && p[1] >= 255 - BLANK_THRESHOLD
                 && p[2] >= 255 - BLANK_THRESHOLD

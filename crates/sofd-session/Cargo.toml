@@ -25,5 +25,12 @@ sofd-sign = { path = "../sofd-sign", version = "0.6" }
 image.workspace = true
 tracing.workspace = true
 
+# A phone has no console, so the one place this crate reports an outcome writes
+# through `log`, which the app's logger routes to logcat. The desktop path uses
+# `tracing` and would take the same line to a file, so the crate is only built
+# for the target that needs it.
+[target.'cfg(target_os = "android")'.dependencies]
+log.workspace = true
+
 [dev-dependencies]
 sofd-testkit = { path = "../sofd-testkit" }
