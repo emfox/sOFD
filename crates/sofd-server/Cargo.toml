@@ -1,6 +1,6 @@
 [package]
 name = "sofd-server"
-version = "0.7.0"
+version = "0.8.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -20,6 +20,7 @@ path = "src/main.rs"
 sofd = { path = "../sofd", version = "0.9", features = ["render", "sign", "convert", "search", "pdf"] }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
+sofd-bindings = { path = "../sofd-bindings", version = "0.2" }
 axum.workspace = true
 tokio.workspace = true
 tower-http = { version = "0.6", features = ["cors", "limit", "trace", "timeout"] }

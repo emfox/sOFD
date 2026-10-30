@@ -15,7 +15,7 @@ crate-type = ["cdylib", "rlib"]
 sofd = { path = "../sofd", version = "0.9", features = ["render", "sign", "convert", "search"] }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
-sofd-bindings = { path = "../sofd-bindings", version = "0.1" }
+sofd-bindings = { path = "../sofd-bindings", version = "0.2" }
 wasm-bindgen.workspace = true
 serde.workspace = true
 serde-wasm-bindgen = "0.6"

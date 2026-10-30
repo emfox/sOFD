@@ -17,7 +17,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 sofd = { path = "../sofd", version = "0.9", features = ["sign", "convert", "search", "pdf"] }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
-sofd-bindings = { path = "../sofd-bindings", version = "0.1" }
+sofd-bindings = { path = "../sofd-bindings", version = "0.2" }
 
 [build-dependencies]
 cbindgen = "0.29"

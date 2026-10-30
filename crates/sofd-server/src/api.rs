@@ -176,7 +176,11 @@ async fn png(
             dpi,
             ..Default::default()
         };
-        store::lock(&doc).to_png(page, &options)
+        // The merged outcome is the facade's: a page that lost a glyph still
+        // answers, and the counts say so without this route merging them.
+        store::lock(&doc)
+            .png_outcome(page, &options)
+            .map(|(bytes, _lost)| bytes)
     })
     .await??;
     Ok(png_response(bytes))

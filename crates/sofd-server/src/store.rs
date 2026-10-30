@@ -1,6 +1,8 @@
 //! The documents the service holds, and the copy each one keeps on disk.
 //! Parsed state cannot be serialised; the bytes it came from can, so those are
 //! what is persisted and the parsed value is rebuilt from them after a restart.
+//! A mutex rather than the reader's session model, since a session is a window's
+//! state and a service has no window; counts come from [`sofd::ConversionOutcome`].
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

@@ -5,13 +5,13 @@
 //! crate knows about a JavaScript object or a C pointer, which keeps every
 //! shape testable on the host.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sofd::{Document, SearchOptions, VerifyStatus};
 use sofd_error::OfdError;
 use sofd_font::FontSource;
 
 /// What an open document declares, at a glance.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DocumentInfo {
     /// Version string, such as `1.0`.
     pub version: String,
@@ -50,7 +50,7 @@ impl DocumentInfo {
 }
 
 /// One search match, trimmed for a result list.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SearchHitData {
     /// Zero-based page holding the match.
     pub page: usize,
@@ -67,7 +67,7 @@ pub const DEFAULT_SEARCH: SearchOptions = SearchOptions {
 };
 
 /// The outcome of verifying one signature.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignatureData {
     /// Archive path of the signature descriptor.
     pub location: String,
