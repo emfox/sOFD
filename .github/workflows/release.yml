@@ -257,10 +257,13 @@ jobs:
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      # Pillow reads the proof page back so the ink can be counted; the rest is
+      # the sandbox and the headers the reader links against.
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libfontconfig1-dev pkg-config flatpak flatpak-builder
+          python3 -m pip install --quiet Pillow
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
