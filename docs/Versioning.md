@@ -206,6 +206,20 @@ somebody retypes each release. `--since @last` asks the registry which tag is th
 newest it serves, which is what makes "changes since the last release"
 answerable without remembering a tag.
 
+The two rows are chosen by the change, and the crates' own versions follow the
+same reading — how much each one changed. `v0.7.0` is the worked example: it
+split `sofd-egui` in two and added `sofd-icons`, which is a feature a user sees,
+so the release is the highest line the crates inside reached, and inside it
+`sofd`, `sofd-session` and `sofd-server` are `0.7.0`, `sofd-render` and
+`sofd-convert` are `0.6.0` for a `Shape` field and a public path, and the crates
+that only had to name a new interval are `0.5.3`.
+
+A crate that is `publish = false` still has a version, and it still matters:
+`sofd-egui`'s is what `sOFD --version` prints. So the bump is written into every
+manifest rather than only the ones `release_plan.py` lists, and `Cargo.lock` is
+regenerated in the same commit so the interval and the resolved version cannot
+disagree in a tree that was merely committed and not built.
+
 `docs/Versioning.md` used to propose a letter in the tag (`v0.6.0z`) to separate
 the release from any crate's version. It was withdrawn: the letter had to be
 read by the workflow, the gate and every user, and it bought nothing the rule
