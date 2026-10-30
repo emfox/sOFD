@@ -523,9 +523,16 @@ jobs:
         with:
           components: llvm-tools-preview
 
-      # font-kit needs fontconfig headers to build its sys crate.
+      # font-kit needs fontconfig headers to build its sys crate. The workspace
+      # build this job measures includes the `tauri` shell, which links the
+      # platform's webview: without WebKitGTK the run dies in a dependency's
+      # build script rather than in anything the coverage would have described.
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev pkg-config \
+            libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev build-essential
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
