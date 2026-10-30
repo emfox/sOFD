@@ -1,6 +1,6 @@
 [package]
 name = "sofd-edit"
-version = "0.5.2"
+version = "0.5.3"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -22,7 +22,7 @@ tracing.workspace = true
 [dev-dependencies]
 # The round-trip test asserts on what a reader reports, not on the model the
 # command touched, so it opens the archive back through the facade.
-sofd = { path = "../sofd", features = ["render"], version = "0.6" }
+sofd = { path = "../sofd", features = ["render"], version = "0.7" }
 sofd-display = { path = "../sofd-display", version = "0.5" }
 # Fixture documents whose page files a test can replace.
 sofd-testkit = { path = "../sofd-testkit" }

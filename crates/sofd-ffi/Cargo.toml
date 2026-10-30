@@ -1,6 +1,6 @@
 [package]
 name = "sofd-ffi"
-version = "0.5.1"
+version = "0.5.2"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -14,7 +14,7 @@ publish = false
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-sofd = { path = "../sofd", version = "0.6", features = ["sign", "convert", "search", "pdf"] }
+sofd = { path = "../sofd", version = "0.7", features = ["sign", "convert", "search", "pdf"] }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
 

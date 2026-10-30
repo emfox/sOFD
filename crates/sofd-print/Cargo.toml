@@ -1,6 +1,6 @@
 [package]
 name = "sofd-print"
-version = "0.5.2"
+version = "0.5.3"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -17,7 +17,7 @@ sofd-common = { path = "../sofd-common", version = "0.5" }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-display = { path = "../sofd-display", version = "0.5" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
-sofd-render = { path = "../sofd-render", version = "0.5" }
+sofd-render = { path = "../sofd-render", version = "0.6" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
 tracing.workspace = true
 

@@ -1,6 +1,6 @@
 [package]
 name = "sofd-parser"
-version = "0.5.2"
+version = "0.5.3"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -25,11 +25,11 @@ tracing.workspace = true
 [dev-dependencies]
 proptest.workspace = true
 criterion.workspace = true
-sofd-render = { path = "../sofd-render", version = "0.5" }
+sofd-render = { path = "../sofd-render", version = "0.6" }
 sofd-testkit = { path = "../sofd-testkit" }
 # The memory benchmark rasterizes a page, which is where a page's bytes go.
-sofd = { path = "../sofd", version = "0.6" }
-sofd-convert = { path = "../sofd-convert", version = "0.5" }
+sofd = { path = "../sofd", version = "0.7" }
+sofd-convert = { path = "../sofd-convert", version = "0.6" }
 
 [[bench]]
 name = "parse"

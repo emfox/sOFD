@@ -6230,7 +6230,7 @@ dependencies = [
 
 [[package]]
 name = "sofd"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "rayon",
  "sofd-archive",
@@ -6267,7 +6267,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-cli"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -6295,7 +6295,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-convert"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "criterion",
  "image",
@@ -6345,7 +6345,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-edit"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "sofd",
  "sofd-common",
@@ -6359,7 +6359,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-egui"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "android-activity",
  "criterion",
@@ -6396,7 +6396,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-ffi"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "cbindgen",
  "sofd",
@@ -6407,7 +6407,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-font"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "font-kit",
  "serde",
@@ -6482,7 +6482,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-parser"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "criterion",
  "proptest",
@@ -6504,7 +6504,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-print"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "sofd-common",
  "sofd-display",
@@ -6517,7 +6517,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-render"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "image",
  "sofd-common",
@@ -6547,7 +6547,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-server"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "axum",
  "serde",
@@ -6566,7 +6566,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-session"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "image",
  "sofd",
@@ -6625,7 +6625,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-wasm"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "console_error_panic_hook",
  "serde",

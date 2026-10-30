@@ -1,6 +1,6 @@
 [package]
 name = "sofd-convert"
-version = "0.5.2"
+version = "0.6.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -19,7 +19,7 @@ sofd-display = { path = "../sofd-display", version = "0.5" }
 sofd-io = { path = "../sofd-io", version = "0.5" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
-sofd-render = { path = "../sofd-render", version = "0.5" }
+sofd-render = { path = "../sofd-render", version = "0.6" }
 image.workspace = true
 tracing.workspace = true
 lopdf = { workspace = true, optional = true }
@@ -33,7 +33,7 @@ pdf     = ["dep:lopdf"]
 
 [dev-dependencies]
 criterion.workspace = true
-sofd = { path = "../sofd", version = "0.6" }
+sofd = { path = "../sofd", version = "0.7" }
 sofd-testkit = { path = "../sofd-testkit" }
 
 [[bench]]
