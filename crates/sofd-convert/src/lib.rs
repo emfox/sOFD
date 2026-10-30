@@ -65,6 +65,10 @@ pub struct ConversionStats {
     /// tiling pattern flattened to its first colour, an SVG mesh with no
     /// triangles left. Counted so a caller can say what the export simplified.
     pub paints_approximated: usize,
+    /// Runs that carry only a stroke paint. The PDF keeps them as an unfilled
+    /// outline, which every viewer shows; SVG cannot, and counts them here so
+    /// an export that loses its outlined text says so.
+    pub stroke_only_glyph_runs: usize,
 }
 
 impl ConversionStats {
@@ -83,6 +87,7 @@ impl ConversionStats {
         self.images_skipped += other.images_skipped;
         self.gradients += other.gradients;
         self.paints_approximated += other.paints_approximated;
+        self.stroke_only_glyph_runs += other.stroke_only_glyph_runs;
     }
 
     /// Whether nothing had to be dropped or skipped. A missing face counts
@@ -93,6 +98,7 @@ impl ConversionStats {
             && self.images_skipped == 0
             && self.missing_glyph_runs == 0
             && self.missing_glyphs == 0
+            && self.stroke_only_glyph_runs == 0
             && self.missing_fonts.is_empty()
     }
 }

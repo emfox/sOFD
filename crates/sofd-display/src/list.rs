@@ -266,6 +266,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::BLACK)),
             stroke: None,
+            stroke_style: StrokeStyle::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox,

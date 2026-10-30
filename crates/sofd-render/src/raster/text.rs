@@ -16,6 +16,10 @@ pub(crate) enum TextOutcome {
     },
     /// The run's face could not be loaded, so the run was skipped.
     NoFace,
+    /// The run has no fill, only a stroke. Outlined text needs both to show,
+    /// and neither painter can synthesize the missing one, so the run is
+    /// skipped and counted rather than drawn as an invisible no-op.
+    StrokeOnly,
 }
 
 pub(crate) fn draw_text(
@@ -28,6 +32,9 @@ pub(crate) fn draw_text(
 ) -> Result<TextOutcome> {
     if run.glyphs.is_empty() {
         return Ok(TextOutcome::Drawn);
+    }
+    if run.fill.is_none() && run.stroke.is_some() {
+        return Ok(TextOutcome::StrokeOnly);
     }
     // A face that will not load costs its run, not the page, and is counted in
     // `skipped_font_runs`. The chain gets one more chance, told what the run
@@ -81,6 +88,14 @@ pub(crate) fn draw_text_inner(
         if let Some(paint) = &run.fill {
             let p = solid_paint(paint);
             pixmap.fill_path(&ts_path, &p, FillRule::Winding, Transform::identity(), None);
+        }
+        if let Some(paint) = &run.stroke {
+            let p = paint_for(paint, total).unwrap_or_else(|| solid_paint(paint));
+            let mut ts_stroke = to_ts_stroke(&run.stroke_style, state, options.dpi);
+            if is_hairline(&p, &ts_stroke) {
+                ts_stroke.width = hairline_width(&ts_stroke);
+            }
+            pixmap.stroke_path(&ts_path, &p, &ts_stroke, Transform::identity(), None);
         }
     }
     Ok(if missing > 0 {

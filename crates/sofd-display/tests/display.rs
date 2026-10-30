@@ -49,6 +49,7 @@ fn text_run(bbox: Rect) -> GlyphRun {
         glyph_angle: 0.0,
         fill: Some(Paint::Solid(sofd_display::ops::Color::BLACK)),
         stroke: None,
+        stroke_style: Default::default(),
         letter_spacing: 0.0,
         word_spacing: 0.0,
         bbox,

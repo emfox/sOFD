@@ -387,6 +387,7 @@ fn text_clip_runs(clip: &sofd_model::TextClip) -> Vec<GlyphRun> {
                 glyph_angle: 0.0,
                 fill: None,
                 stroke: None,
+                stroke_style: StrokeStyle::default(),
                 letter_spacing: 0.0,
                 word_spacing: 0.0,
                 bbox: Rect::new(0.0, 0.0, 0.0, 0.0),
@@ -619,6 +620,7 @@ fn flatten_text(
     } else {
         None
     };
+    let stroke_style = stroke_style_of(&t.base, param);
     let size = t.size.value();
     // HScale widens or narrows the glyphs without changing their advance.
     let h_scale = t.h_scale.unwrap_or(1.0);
@@ -652,6 +654,7 @@ fn flatten_text(
                     glyph_angle,
                     fill: fill.clone(),
                     stroke: stroke.clone(),
+                    stroke_style: stroke_style.clone(),
                     letter_spacing,
                     word_spacing: 0.0,
                     // Text codes address the object space, so the box lives

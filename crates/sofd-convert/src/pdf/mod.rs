@@ -306,9 +306,7 @@ impl<'a> PdfSink<'a> {
         let Some(face) = sofd_display::run_face(fonts, run) else {
             return Outlined::Dropped;
         };
-        let Some(fill) = &run.fill else {
-            return Outlined::Dropped;
-        };
+        let fill = run.fill.as_ref();
         let mut drawn = 0usize;
         let mut missing = 0usize;
         for (&gid, offset) in run.glyphs.iter().zip(run.glyph_offsets()) {
@@ -324,24 +322,32 @@ impl<'a> PdfSink<'a> {
             let glyph = run.glyph_matrix(offset);
             let total = self.to_pt(glyph);
             self.write_path(&outline, total);
-            let mut setup = match crate::replay::text_paint_shape(fill) {
-                PaintShape::Solid(c) => {
-                    let mut s = format!("{} rg", rgb(c));
-                    if c.a != 255 {
-                        s.push(' ');
-                        s.push_str(&self.alpha_state(c.a as f64 / 255.0));
-                    }
-                    s
+            let mut setup = String::new();
+            if let Some(fill) = fill {
+                setup.push_str(&glyph_colour(fill, self));
+            }
+            // The path is still current after `f` only for a stroke, so a run
+            // with both paints writes its outline once and paints it twice.
+            if let Some(stroke) = &run.stroke {
+                if fill.is_some() {
+                    setup.push(' ');
                 }
-                _ => "0 0 0 rg".to_string(),
-            };
-            setup.push_str(" f");
+                setup.push_str(&glyph_colour(stroke, self));
+                setup.push(' ');
+                setup.push_str(&stroke_state(&run.stroke_style));
+                setup.push_str(" S");
+            } else {
+                setup.push_str(" f");
+            }
             self.op(setup);
             drawn += 1;
         }
         if missing > 0 {
             self.stats.missing_glyph_runs += 1;
             self.stats.missing_glyphs += missing;
+        }
+        if fill.is_none() && run.stroke.is_some() && drawn > 0 {
+            self.stats.stroke_only_glyph_runs += 1;
         }
         if drawn > 0 {
             self.stats.outlined_glyphs += drawn;
@@ -674,11 +680,51 @@ pub fn page_to_pdf_with_stats(
     Ok((finish_one_page_document(&mut doc, page_id)?, stats))
 }
 
-/// Wire a one-page catalog and page tree, then serialize.
-///
-/// A document above this crate assembles its own tree from
-/// [`PdfSink::emit_page`]; this is the same wiring with exactly one entry, kept
-/// so `page_to_pdf` needs no caller to help it.
+/// The colour operator for `paint`, with an alpha state when it is
+/// translucent. A paint with no colour operator here falls back to black.
+fn glyph_colour(paint: &sofd_display::Paint, sink: &mut PdfSink<'_>) -> String {
+    match crate::replay::text_paint_shape(paint) {
+        PaintShape::Solid(c) => {
+            let mut s = format!("{} rg", rgb(c));
+            if c.a != 255 {
+                s.push(' ');
+                s.push_str(&sink.alpha_state(c.a as f64 / 255.0));
+            }
+            s
+        }
+        _ => "0 0 0 rg".to_string(),
+    }
+}
+
+/// `w` and `J`/`j`/`M` operands for an outlined run, in points.
+fn stroke_state(style: &StrokeStyle) -> String {
+    let cap = match style.cap {
+        LineCap::Butt => 0,
+        LineCap::Round => 1,
+        LineCap::Square => 2,
+    };
+    let join = match style.join {
+        LineJoin::Miter => 0,
+        LineJoin::Round => 1,
+        LineJoin::Bevel => 2,
+    };
+    let mut s = format!(
+        "{} w {cap} J {join} j {} M",
+        num(style.width.max(0.0) * PT_PER_MM),
+        num(style.miter_limit)
+    );
+    if !style.dash.is_empty() {
+        let pattern: Vec<String> = style.dash.iter().map(|d| num(*d * PT_PER_MM)).collect();
+        let _ = write!(
+            s,
+            " [{}] {} d",
+            pattern.join(" "),
+            num(style.dash_offset * PT_PER_MM)
+        );
+    }
+    s
+}
+
 fn finish_one_page_document(doc: &mut Document, page_id: ObjectId) -> Result<Vec<u8>> {
     let mut pages = Dictionary::new();
     pages.set("Type", Object::Name(b"Pages".to_vec()));
@@ -1397,6 +1443,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::BLACK)),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 8.0, 10.0),
@@ -1434,6 +1481,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: None,
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::EMPTY,
@@ -1466,6 +1514,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::BLACK)),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 6.0, 3.0),
@@ -1481,6 +1530,93 @@ mod tests {
         assert_eq!(stats.outlined_glyphs, 1, "the drawable glyph still landed");
         assert_eq!(stats.dropped_runs, 0, "the run did reach the output");
         assert!(!stats.is_lossless(), "a short run is not a lossless page");
+    }
+
+    /// Outlined text in PDF is a path like any other, so a stroked run writes
+    /// its colour and its width and is stroked rather than filled.
+    #[test]
+    fn an_outlined_run_writes_its_stroke_state() {
+        let mut manager = FontManager::new();
+        manager.registry_mut().register_embedded(
+            "tests/data/Orbitron-Bold.ttf",
+            "Orbitron",
+            std::sync::Arc::new(font_bytes()),
+        );
+        let run = GlyphRun {
+            font: FontId(0),
+            size: Millimeter(5.0),
+            glyphs: vec![65],
+            advances: vec![5.0],
+            text: Some("A".into()),
+            cluster_map: None,
+            codes_are_glyphs: false,
+            transform: Affine::IDENTITY,
+            glyph_angle: 0.0,
+            fill: Some(Paint::Solid(Color::BLACK)),
+            stroke: Some(Paint::Solid(Color::rgba(255, 0, 0, 255))),
+            stroke_style: StrokeStyle {
+                width: 1.0,
+                ..StrokeStyle::default()
+            },
+            letter_spacing: 0.0,
+            word_spacing: 0.0,
+            bbox: Rect::new(0.0, 0.0, 5.0, 5.0),
+        };
+        let options = PdfOptions {
+            text: TextExport::Outline,
+            fonts: Some(&manager),
+        };
+        let p = page(vec![sofd_display::DrawOp::Text(run)]);
+        let (bytes, stats) = page_to_pdf_with_stats(&p, &options).expect("convert");
+        let content = content_of(&bytes);
+        assert!(content.contains("1 0 0 rg"), "stroke colour, got {content}");
+        // One millimetre is 72/25.4 points, and the width goes with it.
+        assert!(content.contains("2.8346 w"), "stroke width, got {content}");
+        assert!(
+            content.contains(" S"),
+            "the glyph is stroked, got {content}"
+        );
+        assert_eq!(stats.stroke_only_glyph_runs, 0);
+    }
+
+    /// A stroke-only run keeps its outline: nothing fills it, but every viewer
+    /// strokes it, so the text is still on the page.
+    #[test]
+    fn a_stroke_only_run_is_still_drawn() {
+        let mut manager = FontManager::new();
+        manager.registry_mut().register_embedded(
+            "tests/data/Orbitron-Bold.ttf",
+            "Orbitron",
+            std::sync::Arc::new(font_bytes()),
+        );
+        let run = GlyphRun {
+            font: FontId(0),
+            size: Millimeter(5.0),
+            glyphs: vec![65],
+            advances: vec![5.0],
+            text: None,
+            cluster_map: None,
+            codes_are_glyphs: false,
+            transform: Affine::IDENTITY,
+            glyph_angle: 0.0,
+            fill: None,
+            stroke: Some(Paint::Solid(Color::BLACK)),
+            stroke_style: StrokeStyle::default(),
+            letter_spacing: 0.0,
+            word_spacing: 0.0,
+            bbox: Rect::new(0.0, 0.0, 5.0, 5.0),
+        };
+        let options = PdfOptions {
+            text: TextExport::Outline,
+            fonts: Some(&manager),
+        };
+        let mut sink = PdfSink::new(Rect::A4_PORTRAIT, &options);
+        replay(&page(vec![sofd_display::DrawOp::Text(run)]), &mut sink).expect("replay");
+        let stats = sink.stats();
+        assert_eq!(stats.outlined_glyphs, 1);
+        assert_eq!(stats.dropped_runs, 0);
+        assert_eq!(stats.stroke_only_glyph_runs, 1);
+        assert!(!stats.is_lossless());
     }
 
     #[test]

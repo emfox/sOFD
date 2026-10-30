@@ -6297,7 +6297,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-convert"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "criterion",
  "image",
@@ -6520,7 +6520,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-render"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "image",
  "sofd-common",

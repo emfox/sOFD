@@ -509,17 +509,15 @@ impl SvgSink<'_> {
         let Some(face) = sofd_display::run_face(fonts, run) else {
             return false;
         };
-        let Some(fill) = &run.fill else {
+        // Either paint alone is enough: filling needs a fill, stroking needs an
+        // outline to stroke along, and a run with both gets one path and two
+        // attributes. Only a run with neither has nothing to say.
+        if run.fill.is_none() && run.stroke.is_none() {
             return false;
-        };
-        let mut offset = 0.0;
+        }
         let mut drawn = 0usize;
         let mut missing = 0usize;
-        for (i, &gid) in run.glyphs.iter().enumerate() {
-            if i > 0 {
-                offset += run.advances.get(i - 1).copied().unwrap_or(0.0);
-            }
-            offset += run.letter_spacing;
+        for (&gid, offset) in run.glyphs.iter().zip(run.glyph_offsets()) {
             let Some((outline, _source)) = fonts.outline_for_code(&face, gid, run.codes_are_glyphs)
             else {
                 if fonts.is_missing_code(&face, gid, run.codes_are_glyphs) {
@@ -531,13 +529,33 @@ impl SvgSink<'_> {
             // run's own matrix scales, turns and places them from there.
             let glyph = run.glyph_matrix(offset);
             let path = outline.transformed(&glyph);
-            let fill = text_paint_shape(fill);
-            let reference = self.paint_ref(fill);
-            let mut attrs = format!("d=\"{}\" fill=\"{reference}\"", path_data(&path));
-            if let PaintShape::Solid(c) = fill
-                && c.a != 255
-            {
-                let _ = write!(attrs, " fill-opacity=\"{}\"", opacity(c));
+            let mut attrs = format!("d=\"{}\"", path_data(&path));
+            match &run.fill {
+                Some(paint) => {
+                    let shape = text_paint_shape(paint);
+                    let reference = self.paint_ref(shape);
+                    let _ = write!(attrs, " fill=\"{reference}\"");
+                    if let PaintShape::Solid(c) = shape
+                        && c.a != 255
+                    {
+                        let _ = write!(attrs, " fill-opacity=\"{}\"", opacity(c));
+                    }
+                }
+                None => attrs.push_str(" fill=\"none\""),
+            }
+            match &run.stroke {
+                Some(sofd_display::Paint::Solid(c)) => {
+                    let _ = write!(attrs, " stroke=\"{}\"", hex(c));
+                    if c.a != 255 {
+                        let _ = write!(attrs, " stroke-opacity=\"{}\"", opacity(c));
+                    }
+                    attrs.push_str(&stroke_attrs(&run.stroke_style));
+                }
+                Some(_) => {
+                    attrs.push_str(" stroke=\"#000000\"");
+                    attrs.push_str(&stroke_attrs(&run.stroke_style));
+                }
+                None => attrs.push_str(" stroke=\"none\""),
             }
             self.line(format!("<path {attrs}/>"));
             drawn += 1;
@@ -545,6 +563,9 @@ impl SvgSink<'_> {
         if missing > 0 {
             self.stats.missing_glyph_runs += 1;
             self.stats.missing_glyphs += missing;
+        }
+        if run.fill.is_none() && run.stroke.is_some() {
+            self.stats.stroke_only_glyph_runs += 1;
         }
         if drawn > 0 {
             self.stats.outlined_glyphs += drawn;
@@ -1024,6 +1045,83 @@ mod tests {
         assert!(svg.contains("stroke=\"none\""));
     }
 
+    /// Outlined text keeps both paints: the same path is filled and stroked,
+    /// which is what SVG already knows how to show.
+    #[test]
+    fn an_outlined_run_carries_its_fill_and_its_stroke() {
+        let mut manager = FontManager::new();
+        manager.registry_mut().register_embedded(
+            "tests/data/Orbitron-Bold.ttf",
+            "Orbitron",
+            std::sync::Arc::new(font_bytes()),
+        );
+        let style = StrokeStyle {
+            width: 0.5,
+            dash: vec![2.0, 1.0],
+            ..StrokeStyle::default()
+        };
+        let mut run = outlined_run();
+        run.stroke = Some(Paint::Solid(Color::rgba(255, 0, 0, 255)));
+        run.stroke_style = style;
+        let options = SvgOptions {
+            text: TextExport::Outline,
+            fonts: Some(&manager),
+        };
+        let mut sink = SvgSink::new(Rect::A4_PORTRAIT, &options);
+        replay(&page(vec![DrawOp::Text(run)]), &mut sink).expect("replay");
+        let (svg, stats) = sink.finish();
+        assert!(svg.contains("stroke=\"#ff0000\""), "got {svg}");
+        assert!(svg.contains("stroke-width=\"0.5\""), "got {svg}");
+        assert!(svg.contains("stroke-dasharray=\"2 1\""), "got {svg}");
+        assert!(svg.contains("fill=\"#000000\""), "the fill is still there");
+        assert_eq!(stats.stroke_only_glyph_runs, 0);
+    }
+
+    /// A stroke with no fill is still outlined text, not a dropped run.
+    #[test]
+    fn an_outlined_run_with_only_a_stroke_is_written() {
+        let mut manager = FontManager::new();
+        manager.registry_mut().register_embedded(
+            "tests/data/Orbitron-Bold.ttf",
+            "Orbitron",
+            std::sync::Arc::new(font_bytes()),
+        );
+        let mut run = outlined_run();
+        run.fill = None;
+        run.stroke = Some(Paint::Solid(Color::BLACK));
+        let options = SvgOptions {
+            text: TextExport::Outline,
+            fonts: Some(&manager),
+        };
+        let mut sink = SvgSink::new(Rect::A4_PORTRAIT, &options);
+        replay(&page(vec![DrawOp::Text(run)]), &mut sink).expect("replay");
+        let (svg, stats) = sink.finish();
+        assert!(svg.contains("fill=\"none\""), "got {svg}");
+        assert!(svg.contains("stroke=\"#000000\""), "got {svg}");
+        assert!(!stats.is_lossless(), "a counted loss is still a loss");
+    }
+
+    /// A run built for the outline tests, filled in black.
+    fn outlined_run() -> GlyphRun {
+        GlyphRun {
+            font: FontId(0),
+            size: Millimeter(5.0),
+            glyphs: vec![65],
+            advances: vec![5.0],
+            text: Some("A".into()),
+            cluster_map: None,
+            codes_are_glyphs: false,
+            transform: Affine::IDENTITY,
+            glyph_angle: 0.0,
+            fill: Some(Paint::Solid(Color::BLACK)),
+            stroke: None,
+            stroke_style: Default::default(),
+            letter_spacing: 0.0,
+            word_spacing: 0.0,
+            bbox: Rect::EMPTY,
+        }
+    }
+
     #[test]
     fn the_even_odd_rule_reaches_the_fill_rule_attribute() {
         let p = page(vec![DrawOp::Path {
@@ -1114,6 +1212,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: None,
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::EMPTY,
@@ -1320,6 +1419,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::BLACK)),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 7.0, 3.5),
@@ -1347,6 +1447,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: None,
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 3.0, 3.0),
@@ -1372,6 +1473,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: None,
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::EMPTY,
@@ -1405,6 +1507,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::BLACK)),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 6.0, 3.0),
@@ -1436,6 +1539,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: None,
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::EMPTY,

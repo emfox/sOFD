@@ -63,6 +63,10 @@ pub struct RasterOutput {
     /// but does not carry the character, and no substitute did either. These
     /// are the marks the page is silently short of.
     pub missing_glyphs: usize,
+    /// Runs whose only paint was a stroke. Filling needs a fill and stroking
+    /// needs an outline to stroke along, so such a run draws nothing here and
+    /// is counted instead of vanishing quietly.
+    pub stroke_only_runs: usize,
     /// Faces the document asked for and this build could not supply, one entry
     /// per face rather than per run. Empty is the only value that means the
     /// page is complete.
@@ -77,6 +81,7 @@ impl RasterOutput {
             && self.skipped_font_runs == 0
             && self.skipped_image_ops == 0
             && self.missing_glyphs == 0
+            && self.stroke_only_runs == 0
             && self.missing_fonts.is_empty()
     }
 }
@@ -154,6 +159,7 @@ pub fn render_page(
     let mut skipped_font_runs = 0usize;
     let mut skipped_image_ops = 0usize;
     let mut missing_glyphs = 0usize;
+    let mut stroke_only_runs = 0usize;
 
     for op in &page.ops {
         match op {
@@ -257,6 +263,7 @@ pub fn render_page(
                         skipped_font_runs += 1;
                         missing_glyphs += run.len();
                     }
+                    TextOutcome::StrokeOnly => stroke_only_runs += 1,
                 }
             }
             DrawOp::Image { image, dst } => {
@@ -275,6 +282,7 @@ pub fn render_page(
         skipped_font_runs,
         skipped_image_ops,
         missing_glyphs,
+        stroke_only_runs,
         missing_fonts: fonts.unresolved(),
         pixmap,
     })
@@ -696,6 +704,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::rgba(0, 0, 0, 255))),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 5.0, 6.0),
@@ -740,6 +749,7 @@ mod tests {
             glyph_angle: 90.0,
             fill: Some(Paint::Solid(Color::rgba(0, 0, 0, 255))),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 5.0, 6.0),
@@ -783,6 +793,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::rgba(0, 0, 0, 255))),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 10.0, 6.0),
@@ -810,6 +821,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::rgba(0, 0, 0, 255))),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(2.0, 6.0, 10.0, 6.0),
@@ -836,6 +848,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: Some(Paint::Solid(Color::BLACK)),
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 3.0, 3.0),
@@ -844,6 +857,79 @@ mod tests {
         let out = render_page(&page, &manager, &RenderOptions::default()).expect("render");
         assert_eq!(out.skipped_font_runs, 1);
         assert_eq!(out.missing_glyph_runs, 0);
+    }
+
+    /// A run that is filled and stroked keeps both paints: the stroke is
+    /// painted over the fill, so the outline widens the mark rather than
+    /// replacing it.
+    #[test]
+    fn a_filled_run_keeps_its_stroke_and_a_stroke_only_run_is_counted() {
+        let manager = manager_with_font();
+        let mut filled = run_of_codes(&[65u16]);
+        filled.fill = Some(Paint::Solid(Color::BLACK));
+        let page = page_with(vec![DrawOp::Text(filled)]);
+        let plain = render(&page, &manager);
+
+        let mut outlined = run_of_codes(&[65u16]);
+        outlined.fill = Some(Paint::Solid(Color::BLACK));
+        outlined.stroke = Some(Paint::Solid(Color::rgba(255, 0, 0, 255)));
+        outlined.stroke_style = StrokeStyle {
+            width: 0.4,
+            ..StrokeStyle::default()
+        };
+        let page = page_with(vec![DrawOp::Text(outlined)]);
+        let stroked = render(&page, &manager);
+
+        assert_eq!(stroked.stroke_only_runs, 0);
+        assert_eq!(stroked.missing_glyph_runs, 0);
+        let ink = |out: &RasterOutput| {
+            out.pixmap()
+                .data()
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .filter(|p| p[3] > 0 && (p[0] < 250 || p[1] < 250 || p[2] < 250))
+                .count()
+        };
+        assert!(
+            ink(&stroked) > ink(&plain),
+            "the stroke should add mark around the fill"
+        );
+    }
+
+    /// Nothing can be painted from a stroke alone here, so the run is counted
+    /// rather than dropped in silence.
+    #[test]
+    fn a_stroke_only_run_is_counted_rather_than_drawn() {
+        let manager = manager_with_font();
+        let mut run = run_of_codes(&[65u16]);
+        run.fill = None;
+        run.stroke = Some(Paint::Solid(Color::BLACK));
+        let page = page_with(vec![DrawOp::Text(run)]);
+        let out = render(&page, &manager);
+        assert_eq!(out.stroke_only_runs, 1);
+        assert!(!out.is_complete());
+    }
+
+    /// A run of the glyphs a test wants, placed plainly.
+    fn run_of_codes(codes: &[u16]) -> sofd_display::GlyphRun {
+        sofd_display::GlyphRun {
+            font: FontId(0),
+            size: sofd_common::Millimeter::new(8.0),
+            glyphs: codes.to_vec(),
+            advances: vec![5.0; codes.len()],
+            text: None,
+            cluster_map: None,
+            codes_are_glyphs: false,
+            transform: Affine::translate(2.0, 14.0),
+            glyph_angle: 0.0,
+            fill: Some(Paint::Solid(Color::BLACK)),
+            stroke: None,
+            stroke_style: Default::default(),
+            letter_spacing: 0.0,
+            word_spacing: 0.0,
+            bbox: Rect::new(2.0, 6.0, 10.0, 8.0),
+        }
     }
 
     #[test]

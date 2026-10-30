@@ -190,6 +190,7 @@ mod tests {
             glyph_angle: 0.0,
             fill: None,
             stroke: None,
+            stroke_style: Default::default(),
             letter_spacing: 0.0,
             word_spacing: 0.0,
             bbox: Rect::new(0.0, 0.0, 3.0, 3.0),

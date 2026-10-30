@@ -38,6 +38,9 @@ pub struct GlyphRun {
     pub fill: Option<crate::ops::Paint>,
     /// Stroke paint, used for outlined glyphs.
     pub stroke: Option<crate::ops::Paint>,
+    /// Width, dash and joins for `stroke`, in millimetres.
+    #[serde(default)]
+    pub stroke_style: crate::ops::StrokeStyle,
     /// Extra spacing between characters, in millimetres.
     pub letter_spacing: f64,
     /// Extra spacing between words, in millimetres.

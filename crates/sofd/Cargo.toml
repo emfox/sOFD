@@ -21,13 +21,13 @@ sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
 sofd-display = { path = "../sofd-display", version = "0.7" }
 sofd-parser = { path = "../sofd-parser", version = "0.5" }
-sofd-render = { path = "../sofd-render", version = "0.6", optional = true }
+sofd-render = { path = "../sofd-render", version = "0.7", optional = true }
 sofd-crypto = { path = "../sofd-crypto", version = "0.7", optional = true }
 sofd-sign = { path = "../sofd-sign", version = "0.7", optional = true }
 # `default-features = false` because the facade turns PDF on through
 # `sofd-convert/pdf`, not through this crate's defaults; a default here would
 # bring a second path to the same dependency.
-sofd-convert = { path = "../sofd-convert", version = "0.8", optional = true, default-features = false }
+sofd-convert = { path = "../sofd-convert", version = "0.9", optional = true, default-features = false }
 sofd-edit = { path = "../sofd-edit", version = "0.5", optional = true }
 sofd-search = { path = "../sofd-search", version = "0.6", optional = true }
 sofd-archive = { path = "../sofd-archive", version = "0.5", optional = true }
