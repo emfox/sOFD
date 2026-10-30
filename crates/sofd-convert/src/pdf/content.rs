@@ -69,19 +69,17 @@ fn image_dict(image: &PendingImage, colorspace: &[u8]) -> Dictionary {
 /// itself and would otherwise multiply the alpha in twice. A fully opaque
 /// image yields no plane at all, so the common case writes no mask.
 fn split_alpha(rgba: &[u8]) -> (Vec<u8>, Option<Vec<u8>>) {
-    let opaque = rgba.chunks_exact(4).all(|px| px[3] == u8::MAX);
+    let pixels = rgba.as_chunks::<4>().0;
+    let opaque = pixels.iter().all(|px| px[3] == u8::MAX);
     if opaque {
         return (
-            rgba.chunks_exact(4)
-                .flat_map(|px| &px[..3])
-                .copied()
-                .collect(),
+            pixels.iter().flat_map(|px| &px[..3]).copied().collect(),
             None,
         );
     }
-    let mut rgb = Vec::with_capacity(rgba.len() / 4 * 3);
-    let mut alpha = Vec::with_capacity(rgba.len() / 4);
-    for px in rgba.chunks_exact(4) {
+    let mut rgb = Vec::with_capacity(pixels.len() * 3);
+    let mut alpha = Vec::with_capacity(pixels.len());
+    for px in pixels {
         rgb.extend_from_slice(&px[..3]);
         alpha.push(px[3]);
     }
