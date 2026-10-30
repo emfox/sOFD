@@ -7,10 +7,10 @@ use sofd_i18n::{I18n, MessageId};
 
 use crate::message::ReaderMessage;
 
+use crate::action::{self, ZOOM_STEP};
 use crate::export_worker::{ExportFormat, ExportQueue, ExportRequest};
 use crate::print_worker::{PrintQueue, PrintRequest};
 use crate::render_worker::RenderQueue;
-use crate::shortcuts::{self, ZOOM_STEP};
 use crate::viewer::{self, DroppedFile, Layout, PageCache};
 
 pub use appearance::{TextSize, ThemeChoice};
@@ -768,8 +768,8 @@ impl App {
     /// Act on a keyboard shortcut. Paging goes through the same methods the
     /// toolbar buttons call, so a key and a click cannot drift apart, and it
     /// is all testable without a keyboard.
-    pub fn apply(&mut self, action: shortcuts::Action) {
-        use shortcuts::Action;
+    pub fn apply(&mut self, action: action::Action) {
+        use action::Action;
         match action {
             Action::NextPage => self.next_page(),
             Action::PreviousPage => self.previous_page(),

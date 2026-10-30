@@ -7,7 +7,7 @@
 
 use eframe::egui;
 
-use sofd_reader::{App, window};
+use sofd_egui::{App, window};
 
 fn main() {
     let path = std::env::args().nth(1);

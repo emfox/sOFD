@@ -6,10 +6,10 @@ use std::path::PathBuf;
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
+use sofd_egui::viewer::Layout;
+use sofd_egui::window;
+use sofd_egui::{App, Canvas, Fit, ReaderMessage, TextSize, ThemeChoice};
 use sofd_i18n::{I18n, Locale, MessageId};
-use sofd_reader::viewer::Layout;
-use sofd_reader::window;
-use sofd_reader::{App, Canvas, Fit, ReaderMessage, TextSize, ThemeChoice};
 
 /// The real minimal document from the conformance fixtures.
 fn minimal() -> PathBuf {
@@ -39,7 +39,7 @@ fn label(key: MessageId) -> String {
 /// The label for one of the reader's own messages, drawn from the reader's
 /// catalogue rather than the engine's.
 fn reader_label(message: ReaderMessage) -> String {
-    sofd_reader::message::bundle_for(Locale::en_us()).text_key(message.key())
+    sofd_egui::message::bundle_for(Locale::en_us()).text_key(message.key())
 }
 
 /// Open the main menu at the end of the header bar. Settings, language and the
@@ -164,10 +164,7 @@ fn the_layout_choices_are_offered_and_one_is_selected() {
     // Clicking one moves the selection, which the state machine then remembers.
     harness.get_by_label(&facing).click();
     harness.run();
-    assert_eq!(
-        harness.state().layout(),
-        sofd_reader::viewer::Layout::Facing
-    );
+    assert_eq!(harness.state().layout(), sofd_egui::viewer::Layout::Facing);
 }
 
 #[test]
@@ -377,7 +374,7 @@ fn a_page_at_one_hundred_percent_is_its_size_at_ninety_six_dpi() {
         .next()
         .map(|node| node.rect().width())
         .expect("the page is drawn");
-    let expected = 210.0 * sofd_reader::viewer::POINTS_PER_MM;
+    let expected = 210.0 * sofd_egui::viewer::POINTS_PER_MM;
     assert!(
         (drawn - expected).abs() < 1.0,
         "A4 at 100% is {expected:.1} points wide, drawn {drawn:.1}"
@@ -608,7 +605,7 @@ fn asking_to_export_asks_the_host_where_to_write_it() {
     harness.run();
     assert_eq!(
         harness.state().wants_export(),
-        Some(sofd_reader::ExportFormat::Pdf),
+        Some(sofd_egui::ExportFormat::Pdf),
         "the state holds the request until the host answers"
     );
 }
@@ -623,7 +620,7 @@ fn a_finished_export_is_announced_in_the_status_bar() {
     let bytes = sofd_testkit::multipage_archive(2);
     app.open_bytes(&bytes, Some("many.ofd"))
         .expect("the fixture opens");
-    app.export_to(sofd_reader::ExportFormat::Pdf, vec![0], out.clone());
+    app.export_to(sofd_egui::ExportFormat::Pdf, vec![0], out.clone());
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
     while std::time::Instant::now() < deadline {
         app.poll();
@@ -862,15 +859,11 @@ fn the_settings_offer_three_text_sizes_and_the_scale_moves_every_style() {
     for size in TextSize::ALL {
         harness.get_by_label(&harness.state().text_size_name(size));
     }
-    let normal = harness
-        .state()
-        .style_points(sofd_reader::theme::Style::Body);
+    let normal = harness.state().style_points(sofd_egui::theme::Style::Body);
     let larger = harness.state().text_size_name(TextSize::Larger);
     harness.get_by_label(&larger).click();
     harness.run();
-    let scaled = harness
-        .state()
-        .style_points(sofd_reader::theme::Style::Body);
+    let scaled = harness.state().style_points(sofd_egui::theme::Style::Body);
     assert!(scaled > normal, "{scaled} is not larger than {normal}");
 }
 

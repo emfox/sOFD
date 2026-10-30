@@ -57,10 +57,10 @@ resource pipeline, and §5.4 says how.
 | Layer | File | May know about | May not |
 | --- | --- | --- | --- |
 | Engine | `sofd`, `sofd-render` | documents, pixels | the reader |
-| State | `crates/sofd-reader/src/app.rs` | the engine, i18n | `egui`, widgets, pixels |
-| Worker | `crates/sofd-reader/src/render_worker.rs` | the engine, channels | `App`, `egui` |
-| Cache | `crates/sofd-reader/src/viewer.rs` | the engine, `ColorImage` | `App`, layout |
-| Window | `crates/sofd-reader/src/window.rs` | `App`, `egui` | the engine internals |
+| State | `crates/sofd-egui/src/app.rs` | the engine, i18n | `egui`, widgets, pixels |
+| Worker | `crates/sofd-egui/src/render_worker.rs` | the engine, channels | `App`, `egui` |
+| Cache | `crates/sofd-egui/src/viewer.rs` | the engine, `ColorImage` | `App`, layout |
+| Window | `crates/sofd-egui/src/window.rs` | `App`, `egui` | the engine internals |
 
 `main.rs` opens no file and parses nothing. It receives bytes or a path, hands
 them to `App`, and paints whatever comes back. If a widget needs a value `App`
@@ -540,7 +540,7 @@ the guideline puts each of them.
 ### 5.4 Icons
 
 A control that names itself is a label; a control that stands for an action is an
-icon. The window has one set, in `crates/sofd-reader/src/icons/`.
+icon. The window has one set, in `crates/sofd-egui/src/icons/`.
 
 The set is **the desktop's own drawing**, not a redrawing of it. Every glyph is
 the Adwaita symbolic icon of the same name, stored as that file's `d` attributes

@@ -40,8 +40,9 @@ members = [
     "crates/sofd-ffi",
     "crates/sofd-server",
 
-    # L5 adapters: the native desktop reader
-    "crates/sofd-reader",
+    # L5 adapters: the shells, and the session state they share
+    "crates/sofd-session",
+    "crates/sofd-egui",
 
     # Testing support: fixtures shared by the suites, never released
     "crates/sofd-testkit",

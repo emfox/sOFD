@@ -2,8 +2,8 @@
 //! colour or a point size is written. A zone names a token or a style, never a
 //! number, so a theme switch cannot leave one panel behind.
 
-pub use crate::typography::{BASE_POINTS, SCALE, Style};
 use eframe::egui::{self, Color32, FontFamily, FontId, TextStyle, Theme};
+pub use sofd_session::typography::{BASE_POINTS, SCALE, Style};
 
 /// A colour role. Every painted colour in the window is one of these.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

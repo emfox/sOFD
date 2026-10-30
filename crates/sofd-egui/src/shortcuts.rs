@@ -4,9 +4,9 @@
 
 use eframe::egui::{Key, Modifiers};
 
-pub use crate::action::{Action, ZOOM_STEP, escape_target};
+pub use sofd_session::action::{Action, ZOOM_STEP, escape_target};
 
-use crate::action::needs_document;
+use sofd_session::action::needs_document;
 
 /// Resolve one key press, or `None` if it means nothing to the reader. The
 /// flag gates shortcuts that act on a page, so a key does nothing rather than

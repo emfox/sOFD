@@ -35,7 +35,7 @@ fn write_to_logcat(level: log::Level, message: &str) {
         return;
     };
     let _ = vm.attach_current_thread(|env| -> Result<(), jni::errors::Error> {
-        let tag = env.new_string("sofd_reader")?;
+        let tag = env.new_string("sofd_egui")?;
         let text = env.new_string(message)?;
         let method = match level {
             log::Level::Error => jni_str!("e"),
@@ -322,7 +322,7 @@ fn call_request(
             &[jni::NativeMethod::from_raw_parts(
                 jni_str!("deliver"),
                 jni_str!("(Ljava/lang/String;)V"),
-                Java_org_sofd_reader_PickFragment_deliver as *const () as *mut std::ffi::c_void,
+                Java_org_sofd_egui_PickFragment_deliver as *const () as *mut std::ffi::c_void,
             )],
         )?;
     }
@@ -346,7 +346,7 @@ static FRAME: std::sync::OnceLock<egui::Context> = std::sync::OnceLock::new();
 /// Called from `PickFragment.onActivityResult`, with the URI the reader chose
 /// or with null when it closed the picker.
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_org_sofd_reader_PickFragment_deliver<'local>(
+pub extern "system" fn Java_org_sofd_egui_PickFragment_deliver<'local>(
     mut env: jni::EnvUnowned<'local>,
     _class: JClass<'local>,
     uri: JString<'local>,

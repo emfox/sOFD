@@ -1,6 +1,6 @@
 [package]
-name = "sofd-reader"
-description = "Native desktop reader for OFD documents"
+name = "sofd-egui"
+description = "The egui shell of the OFD reader: desktop, browser and Android"
 version = "0.6.0"
 edition.workspace = true
 rust-version.workspace = true
@@ -14,7 +14,7 @@ name = "sofd-reader"
 path = "src/main.rs"
 
 [lib]
-name = "sofd_reader"
+name = "sofd_egui"
 path = "src/lib.rs"
 # A shared library as well as an rlib: Android loads the reader through
 # `System.loadLibrary` rather than starting it as a program, and a feature that
@@ -22,6 +22,9 @@ path = "src/lib.rs"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+# The session holds the document, the page cache and every queue; this crate
+# draws what it reports and reads the input that drives it.
+sofd-session = { path = "../sofd-session", version = "0.6" }
 # The facade re-exports the option and verdict types its own methods take, so
 # the reader names them through `sofd` and depends on nothing below.
 sofd = { path = "../sofd", version = "0.6", features = ["render", "search", "pdf", "print", "annot", "sign"] }

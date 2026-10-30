@@ -141,7 +141,7 @@ jobs:
       - name: Android target
         run: |
           rustup target add aarch64-linux-android
-          cargo clippy -p sofd-reader --target aarch64-linux-android \
+          cargo clippy -p sofd-egui --target aarch64-linux-android \
             --message-format=short -- -D warnings
 
       # The layout of a real invoice is pinned against the producer's own
@@ -169,7 +169,7 @@ jobs:
       - name: Reader window, driven headlessly
         run: |
           unset DISPLAY WAYLAND_DISPLAY
-          cargo test -p sofd-reader --test window
+          cargo test -p sofd-egui --test window
 
       - name: Message catalogues
         run: python3 scripts/check_i18n.py --strict

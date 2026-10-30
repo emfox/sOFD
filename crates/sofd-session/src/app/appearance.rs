@@ -3,7 +3,7 @@
 //! without a window, and so no zone can style itself behind the others' backs.
 
 use crate::message::ReaderMessage;
-use crate::theme::{BASE_POINTS, Style};
+use crate::typography::{BASE_POINTS, Style};
 
 use super::App;
 

@@ -31,7 +31,7 @@ fn build(builder: I18nBuilder) -> I18n {
 }
 
 /// What the reader says. Each variant maps to one Fluent key in this crate's
-/// own `locales/` catalogue, which [`crate::window`] loads as a resource.
+/// own `locales/` catalogue, which the shell loads as a resource.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReaderMessage {
     /// Open a document

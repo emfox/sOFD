@@ -4,8 +4,8 @@
 
 use std::path::PathBuf;
 
-use sofd_reader::viewer::{DroppedFile, Layout, MAX_DPI, MIN_DPI, PageCache};
-use sofd_reader::{App, Canvas};
+use sofd_egui::viewer::{DroppedFile, Layout, MAX_DPI, MIN_DPI, PageCache};
+use sofd_egui::{App, Canvas};
 
 /// The real minimal document from the conformance fixtures.
 fn minimal() -> PathBuf {
@@ -177,15 +177,15 @@ fn the_resolution_is_clamped_to_a_sane_range() {
 fn a_large_cache_evicts_the_oldest_page() {
     let mut cache = PageCache::new(2);
     for page in 0..3 {
-        let rendered = sofd_reader::RenderedPage {
-            pixels: sofd_reader::Rgba {
+        let rendered = sofd_egui::RenderedPage {
+            pixels: sofd_egui::Rgba {
                 width: 1,
                 height: 1,
                 bytes: vec![255, 255, 255, 255],
             },
             size_mm: (210.0, 297.0),
             window: None,
-            short: sofd_reader::Short::default(),
+            short: sofd_egui::Short::default(),
         };
         cache.insert(page, 96.0, rendered);
     }
@@ -390,14 +390,14 @@ fn a_page_never_rasterizes_past_the_texture_limit() {
     // A4 at the reader's highest zoom would be 3,480 px wide, which no driver
     // will hold, so the resolution has to fall back to what actually fits.
     let a4 = (210.0, 297.0);
-    let capped = sofd_reader::viewer::dpi_that_fits(a4);
+    let capped = sofd_egui::viewer::dpi_that_fits(a4);
     assert!(
         capped < MAX_DPI,
         "A4 must be capped below the requested ceiling, got {capped}"
     );
     let side = f64::from(capped) / 25.4 * 297.0;
     assert!(
-        side <= f64::from(sofd_reader::viewer::MAX_TEXTURE_SIDE),
+        side <= f64::from(sofd_egui::viewer::MAX_TEXTURE_SIDE),
         "the long side is {side:.0} px, past the limit"
     );
 }
@@ -409,7 +409,7 @@ fn a_rendered_page_is_small_enough_to_upload() {
     wait_for_page(&mut app, 0);
     let rendered = app.cached(0).expect("and lands in the cache");
     let (w, h) = (rendered.pixels.size()[0], rendered.pixels.size()[1]);
-    let limit = sofd_reader::viewer::MAX_TEXTURE_SIDE as usize;
+    let limit = sofd_egui::viewer::MAX_TEXTURE_SIDE as usize;
     assert!(
         w <= limit && h <= limit,
         "rasterized {w}x{h}, limit {limit}"
@@ -421,7 +421,7 @@ fn a_small_page_may_use_the_full_zoom_range() {
     // Nothing is capped for a page small enough to fit at the top zoom.
     let postage_stamp = (20.0, 20.0);
     assert_eq!(
-        sofd_reader::viewer::dpi_that_fits(postage_stamp),
+        sofd_egui::viewer::dpi_that_fits(postage_stamp),
         MAX_DPI,
         "a small page is not penalised for the limit"
     );
@@ -706,7 +706,7 @@ fn opening_the_signature_panel_verifies_and_remembers() {
     );
     assert_eq!(
         app.signatures()[0].verdict,
-        sofd_reader::Verdict::Valid,
+        sofd_egui::Verdict::Valid,
         "and the proof verifies against the document"
     );
     assert!(app.error().is_none(), "a good signature is not an error");
@@ -721,8 +721,8 @@ fn a_verdict_is_worded_in_the_readers_language() {
     assert!(!verdict.is_empty(), "the verdict is localized");
     // A tampered signature must not read the same as a good one: the panel
     // exists to tell them apart.
-    let broken = sofd_reader::SignatureReport {
-        verdict: sofd_reader::Verdict::Tampered,
+    let broken = sofd_egui::SignatureReport {
+        verdict: sofd_egui::Verdict::Tampered,
         ..report.clone()
     };
     assert_ne!(
@@ -787,7 +787,7 @@ fn a_signature_that_cannot_be_proved_is_shown_rather_than_hidden() {
     assert_eq!(app.signature_count(), 1, "it declares a signature");
     assert_eq!(
         app.signatures()[0].verdict,
-        sofd_reader::Verdict::Unverified,
+        sofd_egui::Verdict::Unverified,
         "an unprovable signature is reported, not silently dropped"
     );
     assert!(
@@ -832,7 +832,7 @@ fn scratch(name: &str) -> PathBuf {
 #[test]
 fn an_export_covers_the_pages_on_screen() {
     let mut app = open_pages(6);
-    app.set_layout(sofd_reader::viewer::Layout::Facing);
+    app.set_layout(sofd_egui::viewer::Layout::Facing);
     app.go_to(2);
     assert_eq!(app.export_pages(), vec![2, 3], "a spread is both pages");
 }
@@ -842,7 +842,7 @@ fn asking_to_export_before_a_document_is_open_does_nothing() {
     // The menu disables the button, but the state must also refuse: a widget
     // that is reachable should not be able to start a job with no document.
     let mut app = App::new();
-    app.request_export(sofd_reader::ExportFormat::Pdf);
+    app.request_export(sofd_egui::ExportFormat::Pdf);
     assert!(app.wants_export().is_none());
     assert!(app.take_export_request().is_none());
 }
@@ -850,9 +850,9 @@ fn asking_to_export_before_a_document_is_open_does_nothing() {
 #[test]
 fn the_export_request_is_handed_out_once() {
     let mut app = open();
-    app.request_export(sofd_reader::ExportFormat::Pdf);
+    app.request_export(sofd_egui::ExportFormat::Pdf);
     let (format, pages) = app.take_export_request().expect("a request was made");
-    assert_eq!(format, sofd_reader::ExportFormat::Pdf);
+    assert_eq!(format, sofd_egui::ExportFormat::Pdf);
     assert_eq!(pages, vec![0]);
     assert!(
         app.take_export_request().is_none(),
@@ -865,11 +865,11 @@ fn a_pdf_export_writes_the_file_the_pages_were_asked_for() {
     let dir = scratch("pdf");
     let out = dir.join("out.pdf");
     let mut app = open_pages(5);
-    app.set_layout(sofd_reader::viewer::Layout::Facing);
+    app.set_layout(sofd_egui::viewer::Layout::Facing);
     app.go_to(2);
-    app.request_export(sofd_reader::ExportFormat::Pdf);
+    app.request_export(sofd_egui::ExportFormat::Pdf);
     let (_, pages) = app.take_export_request().expect("a request was made");
-    app.export_to(sofd_reader::ExportFormat::Pdf, pages, out.clone());
+    app.export_to(sofd_egui::ExportFormat::Pdf, pages, out.clone());
     assert!(
         wait_for_export(&mut app),
         "the export worker never answered"
@@ -894,11 +894,11 @@ fn a_pdf_export_writes_the_file_the_pages_were_asked_for() {
 fn a_png_export_writes_one_file_per_page() {
     let dir = scratch("png");
     let mut app = open_pages(3);
-    app.set_layout(sofd_reader::viewer::Layout::Facing);
+    app.set_layout(sofd_egui::viewer::Layout::Facing);
     app.go_to(0);
-    app.request_export(sofd_reader::ExportFormat::Png);
+    app.request_export(sofd_egui::ExportFormat::Png);
     let (_, pages) = app.take_export_request().expect("a request was made");
-    app.export_to(sofd_reader::ExportFormat::Png, pages, dir.clone());
+    app.export_to(sofd_egui::ExportFormat::Png, pages, dir.clone());
     assert!(
         wait_for_export(&mut app),
         "the export worker never answered"
@@ -932,7 +932,7 @@ fn an_export_of_no_pages_never_starts() {
     let dir = scratch("empty");
     let mut app = open();
     app.export_to(
-        sofd_reader::ExportFormat::Pdf,
+        sofd_egui::ExportFormat::Pdf,
         Vec::new(),
         dir.join("out.pdf"),
     );
@@ -949,13 +949,9 @@ fn an_export_that_cannot_be_written_says_so_and_writes_nothing() {
     let blocker = dir.join("blocker");
     std::fs::write(&blocker, b"not a directory").expect("the blocker is writable");
     let mut app = open_pages(2);
-    app.request_export(sofd_reader::ExportFormat::Pdf);
+    app.request_export(sofd_egui::ExportFormat::Pdf);
     let (_, pages) = app.take_export_request().expect("a request was made");
-    app.export_to(
-        sofd_reader::ExportFormat::Pdf,
-        pages,
-        blocker.join("out.pdf"),
-    );
+    app.export_to(sofd_egui::ExportFormat::Pdf, pages, blocker.join("out.pdf"));
     assert!(
         wait_for_export(&mut app),
         "the export worker never answered"
@@ -972,9 +968,9 @@ fn closing_the_document_forgets_the_export_report() {
     let dir = scratch("close");
     let out = dir.join("out.pdf");
     let mut app = open_pages(2);
-    app.request_export(sofd_reader::ExportFormat::Pdf);
+    app.request_export(sofd_egui::ExportFormat::Pdf);
     let (_, pages) = app.take_export_request().expect("a request was made");
-    app.export_to(sofd_reader::ExportFormat::Pdf, pages, out);
+    app.export_to(sofd_egui::ExportFormat::Pdf, pages, out);
     assert!(
         wait_for_export(&mut app),
         "the export worker never answered"
@@ -997,9 +993,9 @@ fn a_dropped_document_still_names_its_export_files() {
     let mut app = App::new();
     let bytes = sofd_testkit::multipage_archive(2);
     app.open_bytes(&bytes, None).expect("the fixture opens");
-    app.request_export(sofd_reader::ExportFormat::Png);
+    app.request_export(sofd_egui::ExportFormat::Png);
     let (_, pages) = app.take_export_request().expect("a request was made");
-    app.export_to(sofd_reader::ExportFormat::Png, pages, dir.clone());
+    app.export_to(sofd_egui::ExportFormat::Png, pages, dir.clone());
     assert!(
         wait_for_export(&mut app),
         "the export worker never answered"
@@ -1025,7 +1021,7 @@ fn a_dropped_document_still_names_its_export_files() {
 mod keyboard {
     use super::{App, open_pages};
     use eframe::egui::{Key, Modifiers};
-    use sofd_reader::shortcuts::{self, Action};
+    use sofd_egui::shortcuts::{self, Action};
 
     /// No modifier at all.
     fn plain() -> Modifiers {
@@ -1167,7 +1163,7 @@ mod keyboard {
     fn paging_by_key_steps_by_the_layouts_stride() {
         // Facing mode advances a spread, so the key must not land mid-spread.
         let mut app = open_pages(8);
-        app.set_layout(sofd_reader::viewer::Layout::Facing);
+        app.set_layout(sofd_egui::viewer::Layout::Facing);
         app.go_to(2);
         app.apply(Action::NextPage);
         assert_eq!(app.current_page(), 4, "a key advances a whole spread");
@@ -1181,7 +1177,7 @@ mod keyboard {
         }
         assert_eq!(
             app.dpi(),
-            sofd_reader::viewer::MAX_DPI,
+            sofd_egui::viewer::MAX_DPI,
             "zooming in forever must stop"
         );
         for _ in 0..200 {
@@ -1189,11 +1185,11 @@ mod keyboard {
         }
         assert_eq!(
             app.dpi(),
-            sofd_reader::viewer::MIN_DPI,
+            sofd_egui::viewer::MIN_DPI,
             "zooming out forever must stop"
         );
         app.apply(Action::ZoomReset);
-        assert_eq!(app.dpi(), sofd_reader::viewer::DEFAULT_DPI);
+        assert_eq!(app.dpi(), sofd_egui::viewer::DEFAULT_DPI);
     }
 
     #[test]
@@ -1290,7 +1286,7 @@ fn stepping_through_marks_opens_the_panel() {
     // key that walks the marks opens the list as well.
     let mut app = open_annotated(3, 2);
     assert!(!app.annotations_open());
-    app.apply(sofd_reader::shortcuts::Action::NextAnnotation);
+    app.apply(sofd_egui::shortcuts::Action::NextAnnotation);
     assert!(app.annotations_open());
     assert_eq!(app.annotation_index(), Some(0));
 }
@@ -1346,7 +1342,7 @@ fn a_print_job_covers_the_pages_on_screen() {
     // Printing what the reader is looking at is the whole point of the menu
     // entry: a spread prints as two pages, not as the whole document.
     let mut app = open_pages(6);
-    app.set_layout(sofd_reader::viewer::Layout::Facing);
+    app.set_layout(sofd_egui::viewer::Layout::Facing);
     app.go_to(2);
     assert_eq!(app.print_pages(), vec![2, 3], "a spread is both pages");
 }
@@ -1379,7 +1375,7 @@ fn the_print_request_is_handed_out_once() {
 #[test]
 fn printing_the_pages_on_screen_produces_rasters_for_each_of_them() {
     let mut app = open_pages(4);
-    app.set_layout(sofd_reader::viewer::Layout::Facing);
+    app.set_layout(sofd_egui::viewer::Layout::Facing);
     app.go_to(0);
     let pages = app.print_pages();
     let settings = app.print_settings();
@@ -1429,7 +1425,7 @@ fn closing_the_document_forgets_the_print_report() {
 #[test]
 fn the_status_bar_names_the_pages_the_sheets_and_the_paper() {
     let mut app = open_pages(2);
-    app.set_layout(sofd_reader::viewer::Layout::Facing);
+    app.set_layout(sofd_egui::viewer::Layout::Facing);
     app.go_to(0);
     app.print_to(app.print_pages(), app.print_settings());
     assert!(wait_for_print(&mut app), "the print worker never answered");
@@ -1451,9 +1447,9 @@ fn the_paper_names_come_from_the_catalogue() {
     // A paper size is a word like any other, so it is translated rather than
     // hardcoded in the reader's source. The reader owns its catalogue, so the
     // bundle it builds is what holds these keys.
+    use sofd_egui::ReaderMessage;
     use sofd_i18n::{FluentValue, Locale};
-    use sofd_reader::ReaderMessage;
-    let english = sofd_reader::message::bundle_for(Locale::en_us());
+    let english = sofd_egui::message::bundle_for(Locale::en_us());
     assert_eq!(english.text_key(ReaderMessage::PaperA4.key()), "A4");
     assert!(
         !english

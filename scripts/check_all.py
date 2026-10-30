@@ -218,7 +218,7 @@ CHECKS: tuple[Check, ...] = (
     Check(
         "reader-window",
         "rust",
-        (("cargo", "test", "-p", "sofd-reader", "--test", "window"),),
+        (("cargo", "test", "-p", "sofd-egui", "--test", "window"),),
         needs=("cargo",),
         unset=("DISPLAY", "WAYLAND_DISPLAY"),
     ),

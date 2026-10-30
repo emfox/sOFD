@@ -2,7 +2,7 @@
 //! It is a development aid, not a shipped view.
 
 use eframe::egui;
-use sofd_reader::icons::{self, Icon};
+use sofd_egui::icons::{self, Icon};
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {

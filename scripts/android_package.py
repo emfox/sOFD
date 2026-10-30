@@ -39,7 +39,7 @@ TARGET_SDK = 34
 # beside the desktop executables rather than in a directory of its own.
 ARCHIVE_NAME = "sofd-reader-android.apk"
 # The name `System.loadLibrary` looks for, which is the crate's library name.
-LIBRARY = "sofd_reader"
+LIBRARY = "sofd_egui"
 # A `NativeActivity` that is asked to handle a configuration change itself is
 # not recreated for it. Recreation is what a reader cannot survive: the activity
 # it holds is destroyed, and with it the EGL surface the frame is drawn on, so a
@@ -95,7 +95,7 @@ CATCH_ALL = True
 # The reader crate's manifest. The `versionCode` is the reader's version, not a
 # workspace-wide one: there is no workspace-wide one any more, and the archive
 # holds the reader and nothing else.
-READER_TOML = Path(__file__).resolve().parent.parent / "crates" / "sofd-reader" / "Cargo.toml"
+READER_TOML = Path(__file__).resolve().parent.parent / "crates" / "sofd-egui" / "Cargo.toml"
 # The one Java class in the project. A `NativeActivity` has no
 # `onActivityResult` to override, so the answer the system picker sends back is
 # received by a fragment attached to the activity that already exists. It is

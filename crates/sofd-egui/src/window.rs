@@ -2,16 +2,16 @@
 //! Everything here obeys `docs/Ui-spec.md`: panels in a fixed order, the canvas
 //! state asked of `App`, and no string drawn that the catalogue did not give.
 
-use crate::message::ReaderMessage;
 use eframe::egui::{self, TextureOptions, Ui};
 use sofd_i18n::MessageId;
+use sofd_session::message::ReaderMessage;
 
-use crate::app::{App, Canvas, Fit, TextSize, ThemeChoice, Verdict};
-use crate::export_worker::ExportFormat;
 use crate::icons::{self, Icon};
 use crate::shortcuts;
 use crate::theme::{self, Style, Token};
-use crate::viewer::{DroppedFile, Layout, MAX_ZOOM, MIN_ZOOM, POINTS_PER_MM};
+use sofd_session::app::{App, Canvas, Fit, TextSize, ThemeChoice, Verdict};
+use sofd_session::export_worker::ExportFormat;
+use sofd_session::viewer::{DroppedFile, Layout, MAX_ZOOM, MIN_ZOOM, POINTS_PER_MM};
 
 /// The zoom range the slider offers, in percent.
 const MIN_PERCENT: f32 = MIN_ZOOM * 100.0;

@@ -9,7 +9,9 @@
 
 ```
 +--------------------------------------------------------------------+
-| L5 adapters   sofd-cli / -wasm / -ffi / -server / -reader      |
+| L5 adapters   sofd-cli / -wasm / -ffi / -server / -egui            |
+|               sofd-session is here too: the state a shell          |
+|               drives, not a delivery form of its own               |
 |               The only layer aware of a concrete delivery form     |
 +--------------------------------------------------------------------+
 | L4 facade     sofd                                        |
@@ -233,7 +235,8 @@ which is also the order `cargo publish` has to run in.
 | L5 | `sofd-cli` | Command line tool `sofd` | surface |
 | L5 | `sofd-wasm` | Browser WebAssembly bindings | withheld |
 | L5 | `sofd-ffi` | C ABI shared library for OA and ERP integration | withheld |
-| L5 | `sofd-reader` | Desktop reader (egui/eframe) | withheld |
+| L5 | `sofd-egui` | The reader's `egui`/`eframe` shell: desktop, browser, Android | withheld |
+| L5 | `sofd-session` | The state one open document is read in, driven by any shell | withheld |
 | L5 | `sofd-server` | HTTP service for batch conversion and verification | withheld |
 | — | `sofd-testkit` | Fixtures shared by the test suites, a dev-dependency only | withheld |
 
@@ -325,7 +328,7 @@ crates/sofd-i18n/locales/        # engine messages, keyed MessageId
 │   └── error.ftl       error messages
 └── zh-CN/          <- same structure
 
-crates/sofd-reader/locales/      # reader interface, keyed ReaderMessage
+crates/sofd-egui/locales/      # reader interface, keyed ReaderMessage
 ├── en-US/reader.ftl
 └── zh-CN/reader.ftl
 ```

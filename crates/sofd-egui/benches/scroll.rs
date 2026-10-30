@@ -5,8 +5,8 @@
 //! worth the memory.
 
 use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
-use sofd_reader::viewer::{WINDOW_MARGIN, window_for};
-use sofd_reader::{PageCache, RenderedPage, Short};
+use sofd_egui::viewer::{WINDOW_MARGIN, window_for};
+use sofd_egui::{PageCache, RenderedPage, Short};
 
 /// The resolutions a windowed read happens at. 96 dpi fits an A4 whole, so
 /// these are the zooms that ask for a part; 2048 is the weakest card's limit
@@ -25,7 +25,7 @@ const SCREEN_PT: (f64, f64) = (1200.0, 800.0);
 /// accounting honest.
 fn shot(side: usize, window: sofd_common::Rect) -> RenderedPage {
     RenderedPage {
-        pixels: sofd_reader::Rgba {
+        pixels: sofd_egui::Rgba {
             width: side as u32,
             height: side as u32,
             bytes: vec![255; side * side * 4],

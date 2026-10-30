@@ -1,0 +1,29 @@
+[package]
+name = "sofd-session"
+description = "The state one open OFD document is read in, for any shell to drive"
+version = "0.6.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Ships inside an application, not as a dependency of one.
+publish = false
+
+[dependencies]
+sofd = { path = "../sofd", version = "0.6", features = ["render", "search", "pdf", "print", "annot", "sign"] }
+# A search hit carries a page-space rectangle, and `Rect` is defined here.
+sofd-common = { path = "../sofd-common", version = "0.5" }
+sofd-i18n = { path = "../sofd-i18n", version = "0.5" }
+sofd-error = { path = "../sofd-error", version = "0.5" }
+# The session plans print jobs through the facade and names their settings.
+sofd-print = { path = "../sofd-print", version = "0.5" }
+# The certificate detail the signature panel shows; the facade re-exports the
+# verdicts but not the structure behind them.
+sofd-sign = { path = "../sofd-sign", version = "0.6" }
+# Placing a seal over a page composes two rasters, which is a decode and a
+# blend rather than a draw: `image` is the one crate that does both.
+image.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+sofd-testkit = { path = "../sofd-testkit" }

@@ -4756,6 +4756,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "sofd-egui"
+version = "0.6.0"
+dependencies = [
+ "android-activity",
+ "criterion",
+ "eframe",
+ "egui",
+ "egui_kittest",
+ "font-kit",
+ "image",
+ "jni",
+ "log",
+ "rfd",
+ "sofd",
+ "sofd-common",
+ "sofd-error",
+ "sofd-i18n",
+ "sofd-print",
+ "sofd-session",
+ "sofd-sign",
+ "sofd-testkit",
+ "tracing",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "winit",
+]
+
+[[package]]
 name = "sofd-error"
 version = "0.5.2"
 dependencies = [
@@ -4880,34 +4909,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sofd-reader"
-version = "0.6.0"
-dependencies = [
- "android-activity",
- "criterion",
- "eframe",
- "egui",
- "egui_kittest",
- "font-kit",
- "image",
- "jni",
- "log",
- "rfd",
- "sofd",
- "sofd-common",
- "sofd-error",
- "sofd-i18n",
- "sofd-print",
- "sofd-sign",
- "sofd-testkit",
- "tracing",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "winit",
-]
-
-[[package]]
 name = "sofd-render"
 version = "0.5.2"
 dependencies = [
@@ -4954,6 +4955,21 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "sofd-session"
+version = "0.6.0"
+dependencies = [
+ "image",
+ "sofd",
+ "sofd-common",
+ "sofd-error",
+ "sofd-i18n",
+ "sofd-print",
+ "sofd-sign",
+ "sofd-testkit",
+ "tracing",
 ]
 
 [[package]]

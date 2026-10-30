@@ -35,8 +35,8 @@ I18N_SRC = ROOT / "crates" / "sofd-i18n" / "src"
 # The reader owns its own catalogue, kept beside the crate that shows the
 # strings rather than inside the engine. It is checked the same way, against
 # the key list in its own message module.
-READER_LOCALES_DIR = ROOT / "crates" / "sofd-reader" / "locales"
-READER_MESSAGE_RS = ROOT / "crates" / "sofd-reader" / "src" / "message.rs"
+READER_LOCALES_DIR = ROOT / "crates" / "sofd-session" / "locales"
+READER_MESSAGE_RS = ROOT / "crates" / "sofd-session" / "src" / "message.rs"
 
 # Baseline locale; every other locale is compared against it
 BASE_LOCALE = "en-US"

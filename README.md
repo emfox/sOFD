@@ -63,7 +63,7 @@ somewhere, `cargo run` away:
 | C ABI | [`c_abi.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-ffi/examples/c_abi.rs) | the same calls a C host makes, against the generated [header](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-ffi/include/sofd.h) |
 | Browser | [`browser.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-wasm/examples/browser.rs) | the JS boundary from the Rust side: raster, SVG, search |
 | HTTP | [`http_service.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-server/examples/http_service.rs) | the router, the store and a graceful shutdown, mounted in your own process |
-| Desktop | [`desktop_viewer.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-reader/examples/desktop_viewer.rs) | the reader's interface drawn into an `egui::Ui`, with no window and no display |
+| Desktop | [`desktop_viewer.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-egui/examples/desktop_viewer.rs) | the reader's interface drawn into an `egui::Ui`, with no window and no display |
 
 `cargo build --workspace --examples` builds four of them; the browser one needs
 `--target wasm32-unknown-unknown`, and CI builds it there.
@@ -172,15 +172,15 @@ parser is the part handling untrusted input.
 
 ## Module map
 
-Twenty-seven crates in five layers. An arrow points from a crate to what it
+Twenty-eight crates in five layers. An arrow points from a crate to what it
 depends on; boxes below the facade are pulled in only when a feature names them.
 
 ```
   ┌──────────────────────────────────────────────────────────────────────┐
   │  delivery forms: applications, not dependencies                      │
   │                                                                      │
-  │    reader        cli        wasm        ffi        server            │
-  │    egui/eframe   binary     browser     C ABI      HTTP              │
+  │    reader          cli       wasm       ffi       server          │
+  │    egui on session binary    browser    C ABI     HTTP             │
   └──────────────────────────────────────────────────────────────────────┘
                                   │
                                   ▼
@@ -311,7 +311,7 @@ python3 scripts/check_readme.py          # the counts both READMEs state
 The i18n check compares the catalogues: same file set, same key set, consistent
 placeholders, and the `all_keys()` list in Rust matching the keys in the FTL
 files. The publish check holds the two sets — twenty-one crates that publish and
-six that do not — to the whole workspace, so a new crate cannot slip in
+seven that do not — to the whole workspace, so a new crate cannot slip in
 without saying where it goes, and `scripts/publish_order.py` holds the published
 set to being closed under its own dependencies. The README check reads every
 count out of the English README and the same sentence out of the Chinese one, so

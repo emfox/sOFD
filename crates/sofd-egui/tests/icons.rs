@@ -4,7 +4,7 @@
 
 use eframe::egui::epaint::{ClippedShape, Mesh, Primitive, Tessellator};
 use eframe::egui::{self, Rect};
-use sofd_reader::icons::{self, Icon};
+use sofd_egui::icons::{self, Icon};
 
 /// The edge a glyph is drawn at in these checks.
 const BOX: f32 = 64.0;

@@ -87,9 +87,9 @@ jobs:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
         run: |
           if [ -n "${{ matrix.target }}" ]; then
-            cargo build --release -p sofd-reader --target "${{ matrix.target }}"
+            cargo build --release -p sofd-egui --target "${{ matrix.target }}"
           else
-            cargo build --release -p sofd-reader
+            cargo build --release -p sofd-egui
           fi
 
       - name: Collect the executable
@@ -157,7 +157,7 @@ jobs:
       # reproducible. The size it saves is not worth an unavailable artefact.
       - name: Build the reader for the browser
         run: |
-          wasm-pack build crates/sofd-reader --target web --release --no-opt \
+          wasm-pack build crates/sofd-egui --target web --release --no-opt \
             --out-dir pkg
 
       # The page and the module it loads ship together: one without the other
@@ -168,7 +168,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           python3 scripts/release_package.py web \
             --version "$VERSION" --out dist \
-            --page crates/sofd-reader/web --pkg crates/sofd-reader/pkg
+            --page crates/sofd-egui/web --pkg crates/sofd-egui/pkg
 
       - name: Hand the page to the packing job
         uses: actions/upload-artifact@v4
@@ -216,13 +216,13 @@ jobs:
           # A cdylib rather than the binary: the activity loads the symbol
           # table through System.loadLibrary, and only a library exports one.
           CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$TOOLCHAIN/aarch64-linux-android24-clang" \
-            cargo build --release --lib -p sofd-reader --target aarch64-linux-android
+            cargo build --release --lib -p sofd-egui --target aarch64-linux-android
 
       - name: Assemble the package
         run: |
           python3 scripts/android_package.py \
             --sdk "$ANDROID_HOME" \
-            --lib target/aarch64-linux-android/release/libsofd_reader.so \
+            --lib target/aarch64-linux-android/release/libsofd_egui.so \
             --out dist
 
       - name: Name the package for the release
@@ -275,7 +275,7 @@ jobs:
             org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
 
       - name: Build the reader
-        run: cargo build --release -p sofd-reader
+        run: cargo build --release -p sofd-egui
 
       - name: Build the app and bundle it
         run: |
@@ -412,7 +412,7 @@ jobs:
           shared-key: release-uos
 
       - name: Build the reader
-        run: cargo build --release -p sofd-reader
+        run: cargo build --release -p sofd-egui
 
       # The package is the only thing published, and it must be one a glibc
       # 2.28 system can run; the check fails here rather than at the user.

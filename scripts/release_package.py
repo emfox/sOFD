@@ -172,8 +172,8 @@ def web(version: str, out: Path, page: Path, pkg: Path) -> Path:
     """The reader page and the bindings it loads, which only work together."""
     expect = {
         "page": page / "index.html",
-        "bindings": pkg / "sofd_reader.js",
-        "module": pkg / "sofd_reader_bg.wasm",
+        "bindings": pkg / "sofd_egui.js",
+        "module": pkg / "sofd_egui_bg.wasm",
     }
     require(list(expect.values()), "web")
     name = product("web", version)
@@ -242,8 +242,8 @@ def check_layout(tmp: Path) -> list[tuple[str, bool]]:
     for name in ("sofd-reader-linux", "sofd-reader-macos", "sofd-reader-windows.exe"):
         (dist / name).write_bytes(b"reader")
     (page / "index.html").write_text("<html></html>")
-    (pkg / "sofd_reader.js").write_text("export {}")
-    (pkg / "sofd_reader_bg.wasm").write_bytes(b"\0asm")
+    (pkg / "sofd_egui.js").write_text("export {}")
+    (pkg / "sofd_egui_bg.wasm").write_bytes(b"\0asm")
     (pkg / "README.md").write_text("generated")
     for name in FFI_LIBRARIES + ("sofd.h",):
         (lib / name).write_bytes(b"ffi")
@@ -283,7 +283,7 @@ def check_layout(tmp: Path) -> list[tuple[str, bool]]:
     checks.append((
         "web puts the page and the bindings in one tree",
         "sofd-1.2.3-web/site/index.html" in names
-        and "sofd-1.2.3-web/site/pkg/sofd_reader_bg.wasm" in names,
+        and "sofd-1.2.3-web/site/pkg/sofd_egui_bg.wasm" in names,
     ))
     checks.append(("web leaves generated docs out", not any(n.endswith(".md") for n in names)))
 

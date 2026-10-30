@@ -5,7 +5,7 @@
 // Through `eframe` rather than directly: it pins the version the glue is
 // generated with, so the two can never disagree.
 use eframe::wasm_bindgen::{self, JsValue, prelude::*};
-use sofd_reader::App;
+use sofd_egui::App;
 
 use crate::Reader;
 
@@ -35,7 +35,7 @@ impl ReaderHandle {
                 canvas,
                 eframe::WebOptions::default(),
                 Box::new(|cc| {
-                    sofd_reader::fonts::install_cjk_fallback(&cc.egui_ctx);
+                    sofd_egui::fonts::install_cjk_fallback(&cc.egui_ctx);
                     Ok(Box::new(Reader::with_app(App::new())))
                 }),
             )

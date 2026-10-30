@@ -8,16 +8,16 @@
 
 #[cfg(not(target_os = "android"))]
 use eframe::egui::{self, Ui};
+#[cfg(not(target_os = "android"))]
+use sofd_egui::App;
+#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
+use sofd_egui::ExportFormat;
+#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
+use sofd_egui::ReaderMessage;
+#[cfg(not(target_os = "android"))]
+use sofd_egui::window;
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 use sofd_i18n::MessageId;
-#[cfg(not(target_os = "android"))]
-use sofd_reader::App;
-#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
-use sofd_reader::ExportFormat;
-#[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
-use sofd_reader::ReaderMessage;
-#[cfg(not(target_os = "android"))]
-use sofd_reader::window;
 
 #[cfg(target_arch = "wasm32")]
 mod web;
@@ -207,7 +207,7 @@ fn run(options: eframe::NativeOptions) -> eframe::Result {
         Box::new(|cc| {
             // egui ships latin and cyrillic only, so the Chinese interface
             // needs a CJK face before the first frame draws.
-            sofd_reader::fonts::install_cjk_fallback(&cc.egui_ctx);
+            sofd_egui::fonts::install_cjk_fallback(&cc.egui_ctx);
             Ok(Box::new(Reader::with_app(App::new())))
         }),
     )

@@ -93,7 +93,7 @@ fn the_desktop_build_keeps_the_session_it_runs_in() {
 /// drawn is asserted against, and the other is kept out of the way.
 #[test]
 fn the_system_without_a_dialog_is_told_what_it_can_do() {
-    let hint = sofd_reader::App::new().drop_hint();
+    let hint = sofd_egui::App::new().drop_hint();
     assert!(!hint.is_empty());
     #[cfg(target_os = "android")]
     {
