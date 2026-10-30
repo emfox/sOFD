@@ -30,7 +30,7 @@ ignore = [
     # declare its signals on Linux. It is a build-time macro that generates code
     # and is not compiled into the reader, and no safe upgrade exists: glib 0.19
     # and gtk 0.19 dropped it, tauri 2.12 still names gtk 0.18, so the fix is a
-    # tauri release rather than anything here. Tracked as #14.
+    # tauri release rather than anything here. Tracked as #17.
     "RUSTSEC-2024-0370",
 ]
 
