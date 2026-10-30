@@ -64,8 +64,9 @@ somewhere, `cargo run` away:
 | Browser | [`browser.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-wasm/examples/browser.rs) | the JS boundary from the Rust side: raster, SVG, search |
 | HTTP | [`http_service.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-server/examples/http_service.rs) | the router, the store and a graceful shutdown, mounted in your own process |
 | Desktop | [`desktop_viewer.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-egui/examples/desktop_viewer.rs) | the reader's interface drawn into an `egui::Ui`, with no window and no display |
+| Canvas | [`canvas_shell.rs`](https://github.com/emfox/sOFD/blob/HEAD/crates/sofd-cli/examples/canvas_shell.rs) | a page walked as geometry in millimetres, which is what the Tauri shell draws |
 
-`cargo build --workspace --examples` builds four of them; the browser one needs
+`cargo build --workspace --examples` builds all six; the browser one needs
 `--target wasm32-unknown-unknown`, and CI builds it there.
 
 ## Getting the artefacts
@@ -179,8 +180,9 @@ depends on; boxes below the facade are pulled in only when a feature names them.
   ┌──────────────────────────────────────────────────────────────────────┐
   │  delivery forms: applications, not dependencies                      │
   │                                                                      │
-  │    reader          cli       wasm       ffi       server          │
-  │    egui on session binary    browser    C ABI     HTTP             │
+  │    reader: egui    cli       wasm       ffi       server              │
+  │    or tauri        binary    browser    C ABI     HTTP                │
+  │    over one session                                                  │
   └──────────────────────────────────────────────────────────────────────┘
                                   │
                                   ▼

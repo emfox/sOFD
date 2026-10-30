@@ -11,6 +11,7 @@ release is written up is in
 ### Engine
 
 - **The reader's state and its `egui` shell are separate crates**: `sofd-session` holds the open document, the page cache and every queue, and `sofd-egui` draws them, so a second shell — Tauri, Qt, a canvas of its own — drives the same decisions instead of reimplementing them. The binary is still `sofd-reader`.
+- **The glyph set is a crate of its own**, `sofd-icons`, with no toolkit and no dependency, so a second shell reads the theme's path data rather than a copy of it.
 - **A key press maps to intent without the toolkit**: `sofd_session::action::interpret` takes the reader's own key names and modifiers, and `sofd-egui` translates `egui`'s codes into them, so which key does what is written down once and tested with no window attached.
 - **A page can be drawn from geometry instead of a bitmap**: `Document::vector_page` hands a shell the outlines in page millimetres, so a zoom is a transform rather than another render. `canvas_shell` is the worked example, and a document from another producer is now committed and checked against annex A.
 - **A third producer's document is read**: `compliance/fixtures/wps.ofd` is four pages of a Chinese official letter WPS Office wrote, so the committed fixtures now hold two producers other than this project rather than one — and the annex A gate validates all of them.
@@ -30,6 +31,9 @@ release is written up is in
 - **A page reaches the screen in half the time**, because it is no longer encoded to PNG and decoded again on the way.
 - **The part of a page a zoomed view gets is the part it asked for**, where any window away from the top-left corner came back blank.
 - **Scrolling a zoomed page stops redrawing it at every step**, because the reader keeps each part it has already drawn and hands it back while it still covers the view.
+- **A second reader window exists, on Tauri**: `sofd-tauri` draws the same document as geometry on a webview canvas, over the same session, the same message catalogue, the same shortcut table and the same glyphs, laid out in the same zones with the same tokens. It is cross-platform by its toolkit — WebKitGTK, WKWebView, WebView2, Android, iOS — and it is not yet in a release.
+- **The width of a stroke now reaches a canvas**, which it did not: the walk kept the paint and dropped the style, so every rule, table line and seal on a page drew at one width.
+- **The application icon is drawn by the set it belongs to**, from `document-open-symbolic`'s own path data filled by the nonzero rule, written by a script with no image library behind it and checked for staleness.
 
 ## [0.6.0] - 2026-10-27
 

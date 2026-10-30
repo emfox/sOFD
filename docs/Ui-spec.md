@@ -52,15 +52,26 @@ goes. The symbolic icon set a primary menu button is supposed to carry is the
 desktop's own artwork, filled by the window's toolkit rather than by a GTK
 resource pipeline, and §5.4 says how.
 
+Nothing in this document names `egui`. The window has two shells — `sofd-egui`
+and `sofd-tauri` — and both are held to the same clauses: §8 says what a shell
+owes this contract and how the second one meets it.
+
 ## 1. Layers
 
 | Layer | File | May know about | May not |
 | --- | --- | --- | --- |
 | Engine | `sofd`, `sofd-render` | documents, pixels | the reader |
-| State | `crates/sofd-egui/src/app.rs` | the engine, i18n | `egui`, widgets, pixels |
+| State | `crates/sofd-session/src/app.rs` | the engine, i18n | `egui`, widgets, pixels, a webview |
 | Worker | `crates/sofd-egui/src/render_worker.rs` | the engine, channels | `App`, `egui` |
 | Cache | `crates/sofd-egui/src/viewer.rs` | the engine, `ColorImage` | `App`, layout |
 | Window | `crates/sofd-egui/src/window.rs` | `App`, `egui` | the engine internals |
+| Host | `crates/sofd-tauri/src/commands.rs` | `App`, the page as geometry | layout, colours, wording |
+| View | `crates/sofd-tauri/ui/` | what a command answers | the engine, and the state behind it |
+
+A shell is a Window row and a View row, or one file that is both. The Host row
+is new with the second shell: something has to turn a `VectorPage` into what a
+canvas understands without deciding how it looks, and `sofd-tauri` keeps that in
+`wire.rs`, apart from both the state and the sheet.
 
 `main.rs` opens no file and parses nothing. It receives bytes or a path, hands
 them to `App`, and paints whatever comes back. If a widget needs a value `App`
@@ -540,7 +551,8 @@ the guideline puts each of them.
 ### 5.4 Icons
 
 A control that names itself is a label; a control that stands for an action is an
-icon. The window has one set, in `crates/sofd-egui/src/icons/`.
+icon. The window has one set, in `crates/sofd-icons/`, and every shell reads it
+there rather than keeping a copy: the path data is artwork, not drawing code.
 
 The set is **the desktop's own drawing**, not a redrawing of it. Every glyph is
 the Adwaita symbolic icon of the same name, stored as that file's `d` attributes
@@ -574,7 +586,9 @@ Three details follow from carrying the file rather than redrawing it:
   are an outline with a hole in it. So the fill is done by casting a scan line
   per slice of the grid and keeping the runs where the winding number is not
   zero. That is the same rule an SVG renderer applies, and it is why the close
-  button shows two crossing bars rather than a filled square.
+  button shows two crossing bars rather than a filled square. The Tauri shell
+  draws the same paths with `Path2D` and `fill()`, which applies nonzero by
+  default, so both shells reach the same picture by the set's own rule.
 - **Two tones are one fill.** Where the theme fades a path (`fill-opacity="0.349"`,
   the page behind the page), the run is drawn at that share of the token's alpha
   instead of a second colour, so a theme switch still recolours all of it.
@@ -593,10 +607,11 @@ inner frames nearly touch at twenty points, so the button drew as an empty box.
 `tests/icons.rs` draws every variant and asserts that each becomes a filled
 drawing, that none escapes its 16-unit box, that every one is large enough to be
 a control, and that no two are the same drawing — the last is what catches a
-glyph that was pasted into the wrong arm of the table. Where the theme is
-installed, a further check reads it and compares each path with the file it
-claims to come from, which is what catches a hand-copied path that is subtly
-wrong rather than missing.
+glyph that was pasted into the wrong arm of the table. `crates/sofd-icons` holds
+a shorter version of the same rules for the data alone, needing no toolkit.
+Where the theme is installed, a further check reads it and compares each path
+with the file it claims to come from, which is what catches a hand-copied path
+that is subtly wrong rather than missing.
 
 A glyph carries no words, and a control needs a name, so `Glyph` — the struct
 that pairs an `Icon` with its wording — sets the accessible name from the same
@@ -663,3 +678,50 @@ come with: its position in the stack above, its step in the frame flow, its
 disabled-state rule, its strings in both catalogues, its tooltips, and a test for
 whatever `App` method it drives. A zone that paints a colour or a size of its own
 is not admitted: it names a token or it does not ship.
+
+## 8. A second shell
+
+The window has two shells over one state. `sofd-egui` draws with `egui` and
+ships as the reader binary; `sofd-tauri` draws with a webview and the page as
+geometry, so the same document reaches a screen through a toolkit this project
+does not own. The contract is deliberately not rewritten for the second: every
+clause above is about what a reader sees, and the shells are held to the same
+ones.
+
+| What §2–§5 requires | How a shell meets it |
+| --- | --- |
+| Z1–Z4, the same controls in the same order, nothing added and nothing dropped | the zone stack, read as a list of controls rather than as a picture |
+| Tokens, not literals | the palette as a sheet with one block per theme; no colour in a drawing call |
+| The same glyphs | `sofd-icons`, the one place the `d` strings live |
+| A zoom is a transform | the page as `Path` in millimetres, scaled at draw time |
+| One catalogue | the session's message ids, the same `.ftl` files |
+
+Three things the `egui` shell holds in a widget must be decided somewhere both
+can see when a shell has no widgets:
+
+- **Which action every name is.** `sofd_session::action` already answers it, and
+  a shell passes names, not closures. A button and a keyboard shortcut are the
+  same call to the same table, which is why `press` and `act` in `sofd-tauri` are
+  one function each and tested without a window.
+- **What a stroke is.** A canvas sets a width, a dash pattern, a cap and a join
+  per stroke, and a backend that took only the paint would draw a table rule and
+  a seal at one width. `Shape::Path` therefore carries `stroke_style`, and
+  `canvas_shell` reports the widest so a walk can be checked for having it.
+- **What a paint is, where it cannot be one.** A vector page can name a fill a
+  canvas has no verb for. The shell names it in a `degraded` list rather than
+  drawing an approximation, so a page that lost something says so instead of
+  looking finished.
+
+Zoom, fit and the page itself are the session's arithmetic in both shells:
+`fit` and the zoom steps are computed once, so the two cannot disagree about
+what 133% means. What a shell owns is where a pixel goes and what a control
+looks like, and that is the whole of the difference between them.
+
+### 8.1 Checking one by eye
+
+No test proves a window looks like another window, so the second shell has a
+screenshot: `scripts/tauri_shot.sh <out.png> [document]` starts it on a virtual
+display, waits for the page, and takes one. A headless machine needs
+`WEBKIT_DISABLE_COMPOSITING_MODE=1` there — without it the window appears, the
+sheet applies, and nothing paints, which looks exactly like a broken front end
+and is not one.
