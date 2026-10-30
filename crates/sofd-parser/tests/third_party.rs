@@ -345,3 +345,56 @@ fn a_document_another_producer_wrote_survives_to_the_page() {
     );
     assert!(!page.is_blank(), "the page carries ink");
 }
+
+#[test]
+fn a_document_a_third_producer_wrote_reaches_every_page() {
+    // WPS writes its own namespace and names four families it does not embed.
+    // It also puts the page number's layer ahead of the body, so the first run
+    // in the stream is the footer rather than the heading.
+    let mut fixture = committed_fixture("wps.ofd");
+    let document = fixture.parse();
+    assert_eq!(document.document.pages.len(), 4, "four pages, as written");
+
+    let mut heading = None;
+    for index in 0..4 {
+        let page = fixture
+            .0
+            .page_display(&document, index)
+            .unwrap_or_else(|err| panic!("page {index} flattens: {err}"));
+        assert!(!page.is_blank(), "page {index} carries ink");
+        let runs: Vec<_> = page
+            .ops
+            .iter()
+            .filter_map(|op| match op {
+                DrawOp::Text(run) => Some(run),
+                _ => None,
+            })
+            .collect();
+        assert!(!runs.is_empty(), "page {index} places text");
+        assert!(
+            runs.iter().all(|run| !run.codes_are_glyphs),
+            "every run on page {index} spells characters"
+        );
+        if index == 0 {
+            heading = runs
+                .iter()
+                .find(|run| run.plain_text().starts_with('Ｘ'))
+                .map(|run| (*run).clone());
+        }
+    }
+
+    // The heading is the red one, and its colour is stated as `255 0 0` in a
+    // declared RGB space, so reading it exercises the colour-space path.
+    let heading = heading.expect("the heading is placed");
+    assert_eq!(heading.plain_text(), "ＸＸＸ");
+    match heading.fill.as_ref() {
+        Some(sofd_display::ops::Paint::Solid(colour)) => {
+            assert_eq!(
+                (colour.r, colour.g, colour.b),
+                (255, 0, 0),
+                "the heading is red through the space it names"
+            );
+        }
+        other => panic!("the heading is filled solid, got {other:?}"),
+    }
+}
