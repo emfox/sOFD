@@ -380,6 +380,9 @@ async function drawPage(frame, index, snapshot) {
   // A page's own background is white in every theme, because the document's
   // background is what it is rather than what the reader prefers.
   drawShapes(ctx, geometry, scale);
+  // Over the content and inside the same transform, so a mark is placed by the
+  // page's own millimetres rather than by a rectangle scaled twice.
+  drawMarks(ctx, await call("overlays", { index }));
   ctx.restore();
   frame.dataset.drawn = "true";
 }
@@ -437,6 +440,29 @@ function drawShapes(ctx, geometry, scale) {
   }
 }
 
+/// The rectangles drawn over the page: the hits search found and the boundary
+/// of each annotation. Weight says which one the reader is visiting, and the
+/// colour comes from the token the session named, so a theme switch recolours
+/// them without asking the engine for the page again.
+function drawMarks(ctx, overlays) {
+  if (!overlays) return;
+  for (const mark of overlays.hits) {
+    const colour = css(mark.token);
+    ctx.globalAlpha = mark.current ? 0.2 : 0.1;
+    ctx.fillStyle = colour;
+    ctx.fillRect(mark.x, mark.y, mark.w, mark.h);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = mark.current ? 2 : 1;
+    ctx.strokeRect(mark.x, mark.y, mark.w, mark.h);
+  }
+  for (const mark of overlays.marks) {
+    ctx.strokeStyle = css(mark.token);
+    ctx.lineWidth = mark.current ? 2 : 1;
+    ctx.strokeRect(mark.x, mark.y, mark.w, mark.h);
+  }
+}
+
 /// A bitmap, placed through the matrix the engine computed for it.
 function drawImage(ctx, shape) {
   if (!shape.src) return;
@@ -451,9 +477,14 @@ function drawImage(ctx, shape) {
   image.src = shape.src;
 }
 
-/// A paint, as something a canvas can set.
+/// A paint, as something a canvas can set. The colour the engine sends is a
+/// token's name rather than a value, so the sheet decides what it looks like:
+/// that is what lets a theme or a high-contrast mode recolour a document
+/// without asking the engine for the page again.
 function paint(ctx, source) {
-  if (source.type === "solid") return source.css;
+  if (source.type === "solid") {
+    return token(source.css) || source.css;
+  }
   const gradient =
     source.type === "linear"
       ? ctx.createLinearGradient(source.x0, source.y0, source.x1, source.y1)
@@ -465,8 +496,24 @@ function paint(ctx, source) {
           source.y1,
           source.r1,
         );
-  for (const stop of source.stops) gradient.addColorStop(stop.offset, stop.css);
+  for (const stop of source.stops) {
+    gradient.addColorStop(stop.offset, token(stop.css) || stop.css);
+  }
   return gradient;
+}
+
+/// A token's value from the sheet, or empty when the name is not one.
+function token(name) {
+  if (!name.startsWith("--")) return "";
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+}
+
+/// A token, resolved, falling back to the name so a missing one draws nothing
+/// rather than throwing on every mark of a page.
+function css(name) {
+  return token(name) || name;
 }
 
 /// 2, Z4: the document and the position on the left, the last error winning

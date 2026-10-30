@@ -63,9 +63,15 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      # font-kit needs fontconfig headers to build its sys crate.
+      # font-kit needs fontconfig headers to build its sys crate. The `tauri`
+      # shell links the platform's webview, which on Linux is WebKitGTK, and
+      # the workspace build below compiles it along with everything else.
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev pkg-config \
+            libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev build-essential
 
       # `rust-version` in the workspace manifest is a claim until something
       # builds under it. The version is read from the manifest rather than
@@ -117,7 +123,7 @@ jobs:
       - name: Build every target and feature
         run: cargo build --workspace --all-targets --all-features
 
-      # The five worked examples are the starting point a third party copies,
+      # The six worked examples are the starting point a third party copies,
       # so an example that stops compiling is a broken front door. They are
       # named rather than left to `--all-targets`, because the browser one only
       # exists on wasm32 and the host build proves nothing about it.
@@ -127,11 +133,12 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo build -p sofd-wasm --example browser --target wasm32-unknown-unknown
 
-      # Compiling proves an example typechecks and nothing else. The four that
+      # Compiling proves an example typechecks and nothing else. The five that
       # need no browser are run against a document this step writes, and what
       # landed on disk is checked: a PNG per page, a PDF that ends, a frame that
-      # reports the page count, a service that converts. The browser example
-      # stays build-only above, because running it needs a browser and a page.
+      # reports the page count, a service that converts, a page walked as
+      # geometry. The browser example stays build-only above, because running it
+      # needs a browser and a page.
       - name: Run the worked examples
         run: python3 scripts/run_examples.py
 

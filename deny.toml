@@ -26,6 +26,12 @@ ignore = [
     "RUSTSEC-2026-0370",
     "RUSTSEC-2026-0371",
     "RUSTSEC-2026-0372",
+    # proc-macro-error reaches the build through glib-macros, which tauri uses to
+    # declare its signals on Linux. It is a build-time macro that generates code
+    # and is not compiled into the reader, and no safe upgrade exists: glib 0.19
+    # and gtk 0.19 dropped it, tauri 2.12 still names gtk 0.18, so the fix is a
+    # tauri release rather than anything here. Tracked as #14.
+    "RUSTSEC-2024-0370",
 ]
 
 [bans]
@@ -74,6 +80,10 @@ allow = [
     "OpenSSL",
     "OFL-1.1",
     "Ubuntu-font-1.0",
+    # The exception clause of Apache-2.0 as LLVM grants it, which is Apache-2.0
+    # with a no-lawsuit promise lifted. It arrives with target-lexicon, a build
+    # dependency of system-deps, itself build-time for the tauri and gtk crates.
+    "Apache-2.0 WITH LLVM-exception",
 ]
 
 [sources]
