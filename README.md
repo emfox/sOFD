@@ -27,10 +27,9 @@ fixed-layout electronic documents](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo
 Parsing and rendering are written from scratch; the one C library in the tree is
 fontconfig, reached through `font-kit` by the reader on Linux.
 
-The current release is `0.5.1`, the first one on crates.io: all twenty-one crates
-are there, so `cargo add sofd` works as well as `cargo install sofd-cli`. It also
-stops the archival rewrite from mistaking a `<` inside a comment for a tag. What
-it offers is in the
+The current release is `0.7.0`, and every crate that publishes is on crates.io,
+so `cargo add sofd` works as well as `cargo install sofd-cli`. What it offers is
+in the
 [`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md); concrete work still to do is in
 the [issue tracker](https://github.com/emfox/sOFD/issues), and the direction it
 serves is in [`docs/Roadmap.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Roadmap.md).
@@ -94,17 +93,19 @@ python3 scripts/release_checksums.py verify .
 sha256sum -c SHA256SUMS          # or without this project at all
 ```
 
-All twenty-one crates are on crates.io at `0.5.1`. Only some of them are
+All twenty-two publishing crates are on crates.io, each at its own version.
+Only some of them are
 interfaces: add `sofd` and you are done, and the crates it depends on come along
 because cargo requires them, not because you were meant to name them. Which is
 which is in
 [Architecture.md § 3](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md#3-crate-inventory),
 and `python3 scripts/publish_order.py` prints the dependency closure — from
-`sofd` that is all twenty-one, while `sofd-crypto` alone needs three.
+`sofd` that is most of them, while `sofd-crypto` alone needs three.
 
-Each crate carries its own version, and at `0.5.1` they happen to agree. A
-release that changes three crates bumps those three and leaves the rest where
-they are, so the number to pin is the one `cargo add` writes for the crate you
+Each crate carries its own version, and a release ships whatever they state: at
+`0.7.0` the facade is on `0.7.0`, `sofd-render` on `0.6.0` and `sofd-font` on
+`0.5.3`. A release that changes three crates bumps those three and leaves the
+rest where they are, so the number to pin is the one `cargo add` writes for the crate you
 actually named; a dependency's version is the interval its manifest states.
 What that costs and why it is worth it is in
 [Versioning.md](https://github.com/emfox/sOFD/blob/HEAD/docs/Versioning.md).
@@ -173,7 +174,7 @@ parser is the part handling untrusted input.
 
 ## Module map
 
-Twenty-eight crates in five layers. An arrow points from a crate to what it
+30 crates in five layers. An arrow points from a crate to what it
 depends on; boxes below the facade are pulled in only when a feature names them.
 
 ```
@@ -312,8 +313,8 @@ python3 scripts/check_readme.py          # the counts both READMEs state
 
 The i18n check compares the catalogues: same file set, same key set, consistent
 placeholders, and the `all_keys()` list in Rust matching the keys in the FTL
-files. The publish check holds the two sets — twenty-one crates that publish and
-seven that do not — to the whole workspace, so a new crate cannot slip in
+files. The publish check holds the two sets — twenty-two crates that publish and
+eight that do not — to the whole workspace, so a new crate cannot slip in
 without saying where it goes, and `scripts/publish_order.py` holds the published
 set to being closed under its own dependencies. The README check reads every
 count out of the English README and the same sentence out of the Chinese one, so

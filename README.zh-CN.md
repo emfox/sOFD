@@ -27,9 +27,8 @@ sOFD 是 [GB/T 33190-2016《电子文件存储与交换格式 版式文档》](h
 的 Rust 实现。从解析到渲染全部自研，仓库里唯一的 C 库是 fontconfig——
 由 reader 在 Linux 上经 `font-kit` 调用。
 
-当前发布版本为 `0.5.1`，也是第一个发到 crates.io 的版本：全部 21 个 crate 都在上面，
-所以 `cargo add sofd` 与 `cargo install sofd-cli` 都能用。本版本还让归档重写不再把
-注释里的 `<` 当成标签。本版本提供了什么见
+当前发布版本为 `0.7.0`，所有会发布的 crate 都在 crates.io 上，
+所以 `cargo add sofd` 与 `cargo install sofd-cli` 都能用。本版本提供了什么见
 [`CHANGELOG`](https://github.com/emfox/sOFD/blob/HEAD/CHANGELOG.md)，尚待完成的具体工作见
 [issue 列表](https://github.com/emfox/sOFD/issues)，
 它服务于哪些大方向见 [`docs/Roadmap.md`](https://github.com/emfox/sOFD/blob/HEAD/docs/Roadmap.md)。
@@ -89,14 +88,15 @@ python3 scripts/release_checksums.py verify .
 sha256sum -c SHA256SUMS          # 或者完全不依赖本项目
 ```
 
-全部 21 个 crate 都已以 `0.5.1` 发布到 crates.io。但其中只有一部分是接口：加上
+全部 22 个会对外发布的 crate 都在 crates.io 上，各自以自己的版本号。但其中只有一部分是接口：加上
 `sofd` 就够用，它依赖的那些 crate 是被 cargo 一起带过来的，并不是让你逐个点名。
 哪些是哪一类，见
 [Architecture.md 第 3 节](https://github.com/emfox/sOFD/blob/HEAD/docs/Architecture.md#3-crate-inventory)；
 `python3 scripts/publish_order.py` 会打印依赖闭包——从 `sofd` 出发
-是全部 21 个，而单独发布 `sofd-crypto` 只需要 3 个。
+是其中大部分，而单独发布 `sofd-crypto` 只需要 3 个。
 
-每个 crate 维护自己的版本号，`0.5.1` 时它们恰好一致。一次只改三个 crate 的发布，
+每个 crate 维护自己的版本号，发布时装的是各自声明的版本：`0.7.0` 这一版里
+门面是 `0.7.0`，`sofd-render` 是 `0.6.0`，`sofd-font` 是 `0.5.3`。一次只改三个 crate 的发布，
 就只提升那三个，其余原地不动；所以该固定的是你实际点名的那个 crate 的版本——
 `cargo add` 写进去的就是它，而依赖的版本是它清单里声明的区间。代价与理由见
 [Versioning.md](https://github.com/emfox/sOFD/blob/HEAD/docs/Versioning.md)。
@@ -154,7 +154,7 @@ OFD 和 PDF 都是版式文档，区别在于 OFD 是开放的 ZIP + XML 容器�
 
 ## 模块关系
 
-28 个 crate，五个层次。箭头由使用者指向被依赖者；门面之下的方框，
+30 个 crate，五个层次。箭头由使用者指向被依赖者；门面之下的方框，
 只有 feature 指名时才会被引入。
 
 ```
@@ -285,7 +285,7 @@ python3 scripts/check_readme.py          # 两版 README 各自声明的数字
 ```
 
 i18n 检查比对各语言目录：文件集合、键集合、占位符一致，且 Rust 中的
-`all_keys()` 列表与 FTL 文件中的键一致。发布检查把 21 个发布、7 个不发布的
+`all_keys()` 列表与 FTL 文件中的键一致。发布检查把 22 个发布、8 个不发布的
 两档清单与整个 workspace 对齐，新增 crate 若未声明去向就会失败。
 README 检查逐条比对两版：英文版里的每一处计数，与中文版中同一句话写下的
 数字必须相等。两版因此不可能各说各的数字——以 `README.md` 为准，
