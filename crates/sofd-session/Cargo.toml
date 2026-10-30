@@ -19,7 +19,7 @@ sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-print = { path = "../sofd-print", version = "0.5" }
 # The certificate detail the signature panel shows; the facade re-exports the
 # verdicts but not the structure behind them.
-sofd-sign = { path = "../sofd-sign", version = "0.6" }
+sofd-sign = { path = "../sofd-sign", version = "0.7" }
 # Placing a seal over a page composes two rasters, which is a decode and a
 # blend rather than a draw: `image` is the one crate that does both.
 image.workspace = true

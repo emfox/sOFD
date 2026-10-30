@@ -6,6 +6,9 @@
 #![warn(missing_docs)]
 
 pub mod details;
+pub mod seal;
+
+pub use seal::{SealPicture, sealed_picture};
 
 use sofd_crypto::{Certificate, TimeStampToken, TrustAnchors, sm2_verify, sm3, validate_path};
 use sofd_error::{OfdError, SignatureError};
@@ -407,7 +410,7 @@ pub struct SealPlacement {
     /// `SES_Seal` whose picture is an image or, more often, a whole OFD
     /// document. An invoice has no `Seal` element to point at, so looking for
     /// one is how a reader ends up drawing nothing.
-    pub sealed: Option<sofd_crypto::SealPicture>,
+    pub sealed: Option<SealPicture>,
 }
 
 /// The three lines an invoice seal prints, read from the certificate. Notice
@@ -468,7 +471,7 @@ impl Signature {
     /// descriptor has not seen it yet; reading the envelope is what makes an
     /// invoice show its seal at all, since they keep everything out of the
     /// descriptor.
-    pub fn sealed_picture(&self, package: &mut Package) -> Option<sofd_crypto::SealPicture> {
+    pub fn sealed_picture(&self, package: &mut Package) -> Option<SealPicture> {
         // Read the envelope whatever the descriptor already said: the seal is
         // inside it, not beside it, so the descriptor being complete is no
         // reason to stop short of the file that holds the picture.
@@ -476,7 +479,7 @@ impl Signature {
         signature.read_check_value(package).ok()?;
         let loc = signature.signed_value_ref.as_deref()?;
         let bytes = package.read_optional(loc).ok()??;
-        sofd_crypto::sealed_picture(&bytes)
+        seal::sealed_picture(&bytes)
     }
 
     /// The text the certificate names, when it names an invoice seal. This is

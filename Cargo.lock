@@ -6317,7 +6317,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-crypto"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "cipher",
  "der",
@@ -6585,7 +6585,7 @@ dependencies = [
 
 [[package]]
 name = "sofd-sign"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "serde",
  "sofd-common",

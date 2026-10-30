@@ -514,7 +514,7 @@ pub struct Seal {
     /// `SES_Signature.toSign.eseal`, and its picture is usually an entire OFD
     /// document with the seal drawn as text, so a reader draws that document
     /// rather than laying a seal out from a specification.
-    pub sealed: Option<sofd_crypto::SealPicture>,
+    pub sealed: Option<sofd_sign::SealPicture>,
 }
 
 /// An annotation resolved onto the page it belongs to.

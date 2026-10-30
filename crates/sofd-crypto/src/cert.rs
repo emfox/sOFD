@@ -2,6 +2,7 @@
 //! certification path needs, which GM/T 0015-2023 5.2.4 makes mandatory reading
 //! for a verifying application.
 
+use crate::der::{Tlv, tlv};
 use sofd_error::{CryptoError, OfdError};
 use x509_parser::extensions::ParsedExtension;
 use x509_parser::prelude::{FromDer, X509Certificate};
@@ -282,35 +283,6 @@ fn tbs_range(der: &[u8], start: usize) -> Option<std::ops::Range<usize>> {
     (tbs.total <= outer.content_len).then_some(outer.content_at..end)
 }
 
-/// A TLV's content position and length, and its total encoded length.
-struct Tlv {
-    content_at: usize,
-    content_len: usize,
-    total: usize,
-}
-
-/// Read a TLV header at `at`, checking only that the encoding is definite.
-fn tlv(der: &[u8], at: usize) -> Option<Tlv> {
-    if *der.get(at)? & 0x1F == 0x1F {
-        return None;
-    }
-    let (content_at, content_len) = match *der.get(at + 1)? {
-        l if l < 0x80 => (at + 2, l as usize),
-        0x81 => (at + 3, usize::from(*der.get(at + 2)?)),
-        0x82 => {
-            let hi = usize::from(*der.get(at + 2)?);
-            let lo = usize::from(*der.get(at + 3)?);
-            (at + 4, hi << 8 | lo)
-        }
-        _ => return None,
-    };
-    Some(Tlv {
-        content_at,
-        content_len,
-        total: content_at + content_len - at,
-    })
-}
-
 /// Split a `SignedValue` into the certificate and the signature it carries.
 ///
 /// GB/T 35275 makes the signed value a SEQUENCE of the value, the signer's
@@ -385,96 +357,6 @@ pub fn signed_value_digest(der: &[u8]) -> Option<Vec<u8>> {
 /// says by naming it.
 pub fn signed_value_covers(der: &[u8], path: &str) -> bool {
     der.windows(path.len()).any(|w| w == path.as_bytes())
-}
-
-/// What a sealed signature says the seal looks like. GB/T 38540 6.1.2.5 makes
-/// it a picture: a type, the bytes and the size. The type is usually `ofd`, a
-/// whole document holding the seal as text and paths, and sometimes `png`.
-/// Either way the bytes are the seal and nothing is left to lay out.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SealPicture {
-    /// `ofd`, `png`, `gif`, `svg` and so on, as the seal states it.
-    pub kind: String,
-    /// The seal itself: an OFD or image file, byte for byte.
-    pub data: Vec<u8>,
-    /// Width to draw it at, in millimetres.
-    pub width: u32,
-    /// Height to draw it at, in millimetres.
-    pub height: u32,
-}
-
-/// The seal a signed value carries, when it carries one. The path is fixed by
-/// the standard rather than searched for: `SES_Signature.toSign.eseal` is a
-/// `SES_Seal`, whose first element is its info and whose fourth is the picture.
-/// Searching for a `PK` header instead finds one document's seal and the next
-/// document's embedded object.
-pub fn sealed_picture(der: &[u8]) -> Option<SealPicture> {
-    // SES_Signature: SEQUENCE { toSign, cert, signAlgID, signedValue }
-    let outer = tlv(der, 0)?;
-    let to_sign = tlv(der, outer.content_at)?;
-    // TBS_Sign: SEQUENCE { version, eseal, timeInfo, data, ... }
-    let eseal = nth_tlv(der, to_sign.content_at, to_sign.content_len, 1)?;
-    // SESeal: SEQUENCE { eSealInfo, cert, signAlgID, signedValue }
-    let info = tlv(der, eseal.content_at)?;
-    // SES_SealInfo: SEQUENCE { header, esID, property, picture, extDatas }
-    let picture = nth_tlv(der, info.content_at, info.content_len, 3)?;
-    let mut kind = None;
-    let mut data = None;
-    let mut size = Vec::new();
-    let end = picture.content_at + picture.content_len;
-    let mut at = picture.content_at;
-    while at < end {
-        let item = tlv(der, at)?;
-        let body = der.get(item.content_at..item.content_at + item.content_len)?;
-        match (der[at], kind.as_ref(), data.as_ref()) {
-            // The type comes first, the bytes second; what follows is the width
-            // and then the height, both plain integers in millimetres.
-            (0x16, None, _) => kind = Some(String::from_utf8_lossy(body).into_owned()),
-            (0x04, Some(_), None) => data = Some(body.to_vec()),
-            (0x02, Some(_), Some(_)) => size.push(be_integer(body)),
-            _ => {}
-        }
-        at = item.content_at + item.content_len;
-    }
-    let (kind, data) = (kind?, data?);
-    let (width, height) = match size.as_slice() {
-        [w, h, ..] => (*w, *h),
-        // A seal that states no size is drawn at the size the annot gives it,
-        // which the caller knows and this does not.
-        _ => (0, 0),
-    };
-    if data.is_empty() {
-        return None;
-    }
-    Some(SealPicture {
-        kind,
-        data,
-        width,
-        height,
-    })
-}
-
-/// The `nth` element (from zero) of a constructed value's contents.
-fn nth_tlv(der: &[u8], start: usize, len: usize, nth: usize) -> Option<Tlv> {
-    let end = start + len;
-    let mut at = start;
-    let mut seen = 0;
-    while at < end {
-        let item = tlv(der, at)?;
-        if seen == nth {
-            return Some(item);
-        }
-        seen += 1;
-        at = item.content_at + item.content_len;
-    }
-    None
-}
-
-/// A non-negative INTEGER as DER writes it.
-fn be_integer(body: &[u8]) -> u32 {
-    body.iter().fold(0u32, |acc, &byte| {
-        acc.saturating_mul(256).saturating_add(u32::from(byte))
-    })
 }
 
 /// The body of the last child of a SEQUENCE, which 35275 makes the signature.

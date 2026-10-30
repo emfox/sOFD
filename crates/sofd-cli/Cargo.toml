@@ -31,7 +31,7 @@ sofd-print = { path = "../sofd-print", version = "0.5" }
 # Named because `verify` reports the detail type the signature pass returns,
 # and re-exporting it through the facade would put it in the facade's surface
 # for the sake of one caller.
-sofd-sign = { path = "../sofd-sign", version = "0.6" }
+sofd-sign = { path = "../sofd-sign", version = "0.7" }
 clap = { version = "4", features = ["derive"] }
 anyhow.workspace = true
 tracing.workspace = true
