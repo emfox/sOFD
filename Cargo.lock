@@ -6569,6 +6569,7 @@ name = "sofd-session"
 version = "0.7.0"
 dependencies = [
  "image",
+ "log",
  "sofd",
  "sofd-common",
  "sofd-error",
