@@ -259,6 +259,7 @@ search   = ["dep:sofd-search"]
 archive  = ["dep:sofd-archive"]
 annot    = []
 batch    = ["dep:rayon"]   # rendering strategy: rayon sweep in render_pages, not a capability
+async    = ["batch"]       # the name `batch` shipped under, kept so a caller's list still builds
 ```
 
 `annot` only gates the `annotations()` accessor: annotations are read through

@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+readme = "README.md"
 description = "Plain data shapes shared by the language bindings"
 keywords = ["ofd", "bindings", "ffi", "wasm"]
 categories = ["api-bindings"]

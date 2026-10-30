@@ -74,8 +74,10 @@ archive  = ["dep:sofd-archive"]
 # the `annotations()` accessor, so a slim build compiles it out.
 annot    = []
 # `batch` is a rendering strategy, not a document capability: it turns the
-# page loop in `render_pages` into a rayon parallel sweep.
+# page loop in `render_pages` into a rayon parallel sweep. `async` is the name
+# it shipped under, kept as an alias so no caller's feature list breaks.
 batch    = ["dep:rayon"]
+async    = ["batch"]
 
 [package.metadata.cargo-semver-checks.lints]
 workspace = true
