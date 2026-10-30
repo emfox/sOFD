@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Res xmlns:ofd="http://www.ofdspec.org/2016" BaseLoc="Res">
+  <ofd:Fonts>
+    <ofd:Font ID="4" FontName="方正书宋_GBK" FamilyName="方正书宋_GBK"/>
+    <ofd:Font ID="9" FontName="仿宋_GB2312" FamilyName="仿宋_GB2312"/>
+    <ofd:Font ID="11" FontName="黑体" FamilyName="黑体"/>
+    <ofd:Font ID="13" FontName="方正小标宋简体" FamilyName="方正小标宋简体"/>
+  </ofd:Fonts>
+  <ofd:ColorSpaces>
+    <ofd:ColorSpace ID="5" Type="RGB"/>
+  </ofd:ColorSpaces>
+</ofd:Res>

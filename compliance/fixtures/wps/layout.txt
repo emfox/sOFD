@@ -1,0 +1,13 @@
+# Archive layout for the wps fixture.
+# Taken from a document WPS Office 专业版 10.1.0.5885 wrote. Later commits
+# change three things to the shape annex A declares; nothing else is touched.
+# <path inside the .ofd>                <source file>
+OFD.xml                                 OFD.xml
+Doc_0/Document.xml                      Document.xml
+Doc_0/PublicRes.xml                     PublicRes.xml
+Doc_0/CustomTags.xml                    CustomTags.xml
+Doc_0/CustomTag/CustomTag.xml           CustomTag.xml
+Doc_0/Pages/Page_0/Content.xml          Content_0.xml
+Doc_0/Pages/Page_1/Content.xml          Content_1.xml
+Doc_0/Pages/Page_2/Content.xml          Content_2.xml
+Doc_0/Pages/Page_3/Content.xml          Content_3.xml

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Page xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:Area>
+    <ofd:PhysicalBox>0.00 0.00 210.00 297.00</ofd:PhysicalBox>
+  </ofd:Area>
+  <ofd:Content>
+    <ofd:Layer ID="152">
+      <ofd:TextObject ID="153" Boundary="32.50 265.13 7.83 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.84" Y="4.48">—</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="154" Boundary="39.75 265.13 5.33 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.74" Y="4.48">4</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="155" Boundary="44.14 265.13 7.83 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.84" Y="4.48">—</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="156" Boundary="27.49 37.02 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.55" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">在当地参加升学考试的措施办法。各地教育行政部门要履行监管</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="157" Boundary="27.65 47.61 69.73 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">职责，会同公安部门加强对</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="158" Boundary="97.50 47.61 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-2.52" Y="4.78">“</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="159" Boundary="100.15 47.61 25.01 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56 5.56 5.56">高考移民</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="160" Boundary="122.28 47.61 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.48" Y="4.78">”</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="161" Boundary="128.17 47.61 58.61 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.15" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82">的综合治理，防范和打</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="162" Boundary="27.65 57.93 41.68 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56">击违法违规跨省</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="163" Boundary="67.48 57.93 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.54" Y="4.78">(</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="164" Boundary="69.98 57.93 19.46 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.13" Y="4.78" DeltaX="5.56 5.56">区、市</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="165" Boundary="85.81 57.93 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.71" Y="4.78">)</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="166" Boundary="88.91 57.93 97.51 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.52" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56">获取高考资格的行为，确保高校考试招</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="167" Boundary="27.77 68.24 36.12 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.27" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56">生公平有序。</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="168" Boundary="138.28 84.38 19.46 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.62" Y="4.78" DeltaX="5.56 5.56">教育部</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="169" Boundary="128.70 94.70 10.87 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.41" Y="4.78" DeltaX="2.65 2.65">201</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="170" Boundary="137.22 94.70 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.36" Y="4.78">7</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="171" Boundary="141.00 94.70 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.55" Y="4.78">年</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="172" Boundary="148.49 94.70 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.20" Y="4.78">3</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="173" Boundary="152.32 94.70 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.34" Y="4.78">月</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="174" Boundary="159.27 94.70 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.27" Y="4.78">1</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="175" Boundary="164.19 94.70 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.42" Y="4.78">日</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="176" Boundary="35.47 243.33 17.34 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.51" Y="4.32" DeltaX="4.76 5.03">抄送：</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="177" Boundary="49.97 243.33 9.81 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.56" Y="4.32" DeltaX="2.38 2.38">XXX</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="178" Boundary="57.47 243.33 7.55 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.21" Y="4.32">。</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="179" Boundary="35.16 253.91 17.34 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.56" Y="4.32" DeltaX="4.76 5.03">教育部</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="180" Boundary="137.74 253.91 9.81 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.37" Y="4.32" DeltaX="2.38 2.38">201</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="181" Boundary="144.92 253.91 5.04 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.33" Y="4.32">7</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="182" Boundary="147.13 253.91 7.55 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.51" Y="4.32">年</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="183" Boundary="152.49 253.91 5.04 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.17" Y="4.32">3</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="184" Boundary="154.73 253.91 7.55 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.32" Y="4.32">月</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="185" Boundary="159.55 253.91 5.04 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.26" Y="4.32">1</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="186" Boundary="162.56 253.91 7.55 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.37" Y="4.32">日</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="187" Boundary="167.27 253.91 12.31 5.04" Font="9" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.05" Y="4.32" DeltaX="4.76">印发</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:PathObject ID="188" Boundary="28.20 240.36 156.00 0.26" LineWidth="0.26" Join="Bevel">
+        <ofd:StrokeColor Value="44 44 44" ColorSpace="5"/>
+        <ofd:AbbreviatedData>M -0.00 -0.00 L 156.00 -0.00 </ofd:AbbreviatedData>
+      </ofd:PathObject>
+      <ofd:PathObject ID="189" Boundary="28.20 251.12 156.00 0.26" LineWidth="0.26" Join="Bevel">
+        <ofd:StrokeColor Value="44 44 44" ColorSpace="5"/>
+        <ofd:AbbreviatedData>M -0.00 -0.00 L 156.00 -0.00 </ofd:AbbreviatedData>
+      </ofd:PathObject>
+      <ofd:PathObject ID="190" Boundary="28.20 262.03 156.00 0.26" LineWidth="0.26" Join="Bevel">
+        <ofd:StrokeColor Value="44 44 44" ColorSpace="5"/>
+        <ofd:AbbreviatedData>M -0.00 -0.00 L 156.00 -0.00 </ofd:AbbreviatedData>
+      </ofd:PathObject>
+    </ofd:Layer>
+  </ofd:Content>
+</ofd:Page>

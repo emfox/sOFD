@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ofd:OFD xmlns:ofd="http://www.ofdspec.org/2016" DocType="OFD" Version="1.0">
+  <ofd:DocBody>
+    <ofd:DocInfo>
+      <ofd:DocID>3201bc71ff2b11e6ac90053d6c90043d</ofd:DocID>
+      <ofd:Title>No:0000001</ofd:Title>
+      <ofd:Author>root</ofd:Author>
+      <ofd:CreationDate>2017-03-02</ofd:CreationDate>
+      <ofd:ModDate>2017-03-02</ofd:ModDate>
+      <ofd:Creator>WPS Office 专业版</ofd:Creator>
+      <ofd:CustomDatas>
+        <ofd:CustomData Name="KSOProductBuildVer">2052-10.1.0.5885</ofd:CustomData>
+        <ofd:CustomData Name="公文模板版本">20160129</ofd:CustomData>
+      </ofd:CustomDatas>
+    </ofd:DocInfo>
+    <ofd:DocRoot>Doc_0/Document.xml</ofd:DocRoot>
+  </ofd:DocBody>
+</ofd:OFD>
+

@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<od:电子公文 xmlns:od="http://www.nits.org.cn/eGovDoc/2013">
+  <od:公文体 公文标识="1.2.156.10.000019705-000-2017-8-0001-K">
+    <od:版头>
+      <od:份号>
+        <od:ObjectRef PageRef="1">8</od:ObjectRef>
+      </od:份号>
+      <od:紧急程度>
+        <od:ObjectRef PageRef="1">10</od:ObjectRef>
+      </od:紧急程度>
+      <od:发文机关标志>
+        <od:发文机关名称>
+          <od:ObjectRef PageRef="1">12</od:ObjectRef>
+          <od:ObjectRef PageRef="1">14</od:ObjectRef>
+        </od:发文机关名称>
+        <od:后缀标志>
+          <od:ObjectRef PageRef="1">15</od:ObjectRef>
+        </od:后缀标志>
+      </od:发文机关标志>
+      <od:发文字号>
+        <od:发文机关代字>
+          <od:ObjectRef PageRef="1">16</od:ObjectRef>
+        </od:发文机关代字>
+        <od:年份>
+          <od:ObjectRef PageRef="1">18</od:ObjectRef>
+          <od:ObjectRef PageRef="1">19</od:ObjectRef>
+        </od:年份>
+        <od:发文顺序号>
+          <od:ObjectRef PageRef="1">21</od:ObjectRef>
+        </od:发文顺序号>
+      </od:发文字号>
+    </od:版头>
+    <od:主体>
+      <od:标题>
+        <od:ObjectRef PageRef="1">23</od:ObjectRef>
+        <od:ObjectRef PageRef="1">24</od:ObjectRef>
+        <od:ObjectRef PageRef="1">25</od:ObjectRef>
+      </od:标题>
+      <od:主送机关>
+        <od:ObjectRef PageRef="1">27</od:ObjectRef>
+        <od:ObjectRef PageRef="1">28</od:ObjectRef>
+        <od:ObjectRef PageRef="1">29</od:ObjectRef>
+        <od:ObjectRef PageRef="1">30</od:ObjectRef>
+        <od:ObjectRef PageRef="1">31</od:ObjectRef>
+        <od:ObjectRef PageRef="1">32</od:ObjectRef>
+        <od:ObjectRef PageRef="1">33</od:ObjectRef>
+        <od:ObjectRef PageRef="1">34</od:ObjectRef>
+        <od:ObjectRef PageRef="1">35</od:ObjectRef>
+        <od:ObjectRef PageRef="1">36</od:ObjectRef>
+        <od:ObjectRef PageRef="1">37</od:ObjectRef>
+        <od:ObjectRef PageRef="1">38</od:ObjectRef>
+        <od:ObjectRef PageRef="1">39</od:ObjectRef>
+        <od:ObjectRef PageRef="1">40</od:ObjectRef>
+        <od:ObjectRef PageRef="1">41</od:ObjectRef>
+      </od:主送机关>
+      <od:正文>
+        <od:ObjectRef PageRef="1">43</od:ObjectRef>
+        <od:ObjectRef PageRef="1">44</od:ObjectRef>
+        <od:ObjectRef PageRef="1">45</od:ObjectRef>
+        <od:ObjectRef PageRef="1">46</od:ObjectRef>
+        <od:ObjectRef PageRef="1">47</od:ObjectRef>
+        <od:ObjectRef PageRef="1">48</od:ObjectRef>
+        <od:ObjectRef PageRef="1">49</od:ObjectRef>
+        <od:ObjectRef PageRef="1">50</od:ObjectRef>
+        <od:ObjectRef PageRef="1">51</od:ObjectRef>
+        <od:ObjectRef PageRef="1">52</od:ObjectRef>
+        <od:ObjectRef PageRef="1">53</od:ObjectRef>
+        <od:ObjectRef PageRef="1">54</od:ObjectRef>
+        <od:ObjectRef PageRef="1">55</od:ObjectRef>
+        <od:ObjectRef PageRef="1">56</od:ObjectRef>
+        <od:ObjectRef PageRef="1">57</od:ObjectRef>
+        <od:ObjectRef PageRef="1">58</od:ObjectRef>
+        <od:ObjectRef PageRef="59">64</od:ObjectRef>
+        <od:ObjectRef PageRef="59">65</od:ObjectRef>
+        <od:ObjectRef PageRef="59">66</od:ObjectRef>
+        <od:ObjectRef PageRef="59">67</od:ObjectRef>
+        <od:ObjectRef PageRef="59">68</od:ObjectRef>
+        <od:ObjectRef PageRef="59">69</od:ObjectRef>
+        <od:ObjectRef PageRef="59">70</od:ObjectRef>
+        <od:ObjectRef PageRef="59">71</od:ObjectRef>
+        <od:ObjectRef PageRef="59">72</od:ObjectRef>
+        <od:ObjectRef PageRef="59">73</od:ObjectRef>
+        <od:ObjectRef PageRef="59">74</od:ObjectRef>
+        <od:ObjectRef PageRef="59">75</od:ObjectRef>
+        <od:ObjectRef PageRef="59">76</od:ObjectRef>
+        <od:ObjectRef PageRef="59">77</od:ObjectRef>
+        <od:ObjectRef PageRef="59">78</od:ObjectRef>
+        <od:ObjectRef PageRef="59">79</od:ObjectRef>
+        <od:ObjectRef PageRef="59">80</od:ObjectRef>
+        <od:ObjectRef PageRef="59">81</od:ObjectRef>
+        <od:ObjectRef PageRef="59">82</od:ObjectRef>
+        <od:ObjectRef PageRef="59">83</od:ObjectRef>
+        <od:ObjectRef PageRef="59">84</od:ObjectRef>
+        <od:ObjectRef PageRef="59">85</od:ObjectRef>
+        <od:ObjectRef PageRef="59">86</od:ObjectRef>
+        <od:ObjectRef PageRef="59">87</od:ObjectRef>
+        <od:ObjectRef PageRef="59">88</od:ObjectRef>
+        <od:ObjectRef PageRef="59">89</od:ObjectRef>
+        <od:ObjectRef PageRef="59">90</od:ObjectRef>
+        <od:ObjectRef PageRef="59">91</od:ObjectRef>
+        <od:ObjectRef PageRef="59">92</od:ObjectRef>
+        <od:ObjectRef PageRef="59">93</od:ObjectRef>
+        <od:ObjectRef PageRef="59">94</od:ObjectRef>
+        <od:ObjectRef PageRef="59">95</od:ObjectRef>
+        <od:ObjectRef PageRef="59">96</od:ObjectRef>
+        <od:ObjectRef PageRef="59">97</od:ObjectRef>
+        <od:ObjectRef PageRef="59">98</od:ObjectRef>
+        <od:ObjectRef PageRef="59">99</od:ObjectRef>
+        <od:ObjectRef PageRef="59">100</od:ObjectRef>
+        <od:ObjectRef PageRef="59">101</od:ObjectRef>
+        <od:ObjectRef PageRef="59">102</od:ObjectRef>
+        <od:ObjectRef PageRef="59">103</od:ObjectRef>
+        <od:ObjectRef PageRef="59">104</od:ObjectRef>
+        <od:ObjectRef PageRef="59">105</od:ObjectRef>
+        <od:ObjectRef PageRef="59">106</od:ObjectRef>
+        <od:ObjectRef PageRef="59">107</od:ObjectRef>
+        <od:ObjectRef PageRef="59">108</od:ObjectRef>
+        <od:ObjectRef PageRef="59">109</od:ObjectRef>
+        <od:ObjectRef PageRef="59">110</od:ObjectRef>
+        <od:ObjectRef PageRef="59">111</od:ObjectRef>
+        <od:ObjectRef PageRef="59">112</od:ObjectRef>
+        <od:ObjectRef PageRef="59">113</od:ObjectRef>
+        <od:ObjectRef PageRef="59">114</od:ObjectRef>
+        <od:ObjectRef PageRef="59">115</od:ObjectRef>
+        <od:ObjectRef PageRef="59">116</od:ObjectRef>
+        <od:ObjectRef PageRef="59">117</od:ObjectRef>
+        <od:ObjectRef PageRef="118">123</od:ObjectRef>
+        <od:ObjectRef PageRef="118">124</od:ObjectRef>
+        <od:ObjectRef PageRef="118">125</od:ObjectRef>
+        <od:ObjectRef PageRef="118">126</od:ObjectRef>
+        <od:ObjectRef PageRef="118">127</od:ObjectRef>
+        <od:ObjectRef PageRef="118">128</od:ObjectRef>
+        <od:ObjectRef PageRef="118">129</od:ObjectRef>
+        <od:ObjectRef PageRef="118">130</od:ObjectRef>
+        <od:ObjectRef PageRef="118">131</od:ObjectRef>
+        <od:ObjectRef PageRef="118">132</od:ObjectRef>
+        <od:ObjectRef PageRef="118">133</od:ObjectRef>
+        <od:ObjectRef PageRef="118">134</od:ObjectRef>
+        <od:ObjectRef PageRef="118">135</od:ObjectRef>
+        <od:ObjectRef PageRef="118">136</od:ObjectRef>
+        <od:ObjectRef PageRef="118">137</od:ObjectRef>
+        <od:ObjectRef PageRef="118">138</od:ObjectRef>
+        <od:ObjectRef PageRef="118">139</od:ObjectRef>
+        <od:ObjectRef PageRef="118">140</od:ObjectRef>
+        <od:ObjectRef PageRef="118">141</od:ObjectRef>
+        <od:ObjectRef PageRef="118">142</od:ObjectRef>
+        <od:ObjectRef PageRef="118">143</od:ObjectRef>
+        <od:ObjectRef PageRef="118">144</od:ObjectRef>
+        <od:ObjectRef PageRef="118">145</od:ObjectRef>
+        <od:ObjectRef PageRef="118">146</od:ObjectRef>
+        <od:ObjectRef PageRef="118">147</od:ObjectRef>
+        <od:ObjectRef PageRef="118">148</od:ObjectRef>
+        <od:ObjectRef PageRef="118">149</od:ObjectRef>
+        <od:ObjectRef PageRef="118">150</od:ObjectRef>
+        <od:ObjectRef PageRef="151">156</od:ObjectRef>
+        <od:ObjectRef PageRef="151">157</od:ObjectRef>
+        <od:ObjectRef PageRef="151">158</od:ObjectRef>
+        <od:ObjectRef PageRef="151">159</od:ObjectRef>
+        <od:ObjectRef PageRef="151">160</od:ObjectRef>
+        <od:ObjectRef PageRef="151">161</od:ObjectRef>
+        <od:ObjectRef PageRef="151">162</od:ObjectRef>
+        <od:ObjectRef PageRef="151">163</od:ObjectRef>
+        <od:ObjectRef PageRef="151">164</od:ObjectRef>
+        <od:ObjectRef PageRef="151">165</od:ObjectRef>
+        <od:ObjectRef PageRef="151">166</od:ObjectRef>
+        <od:ObjectRef PageRef="151">167</od:ObjectRef>
+      </od:正文>
+      <od:发文机关署名>
+        <od:ObjectRef PageRef="151">168</od:ObjectRef>
+      </od:发文机关署名>
+      <od:成文日期>
+        <od:ObjectRef PageRef="151">169</od:ObjectRef>
+        <od:ObjectRef PageRef="151">170</od:ObjectRef>
+        <od:ObjectRef PageRef="151">171</od:ObjectRef>
+        <od:ObjectRef PageRef="151">172</od:ObjectRef>
+        <od:ObjectRef PageRef="151">173</od:ObjectRef>
+        <od:ObjectRef PageRef="151">174</od:ObjectRef>
+        <od:ObjectRef PageRef="151">175</od:ObjectRef>
+      </od:成文日期>
+    </od:主体>
+    <od:版记>
+      <od:抄送机关>
+        <od:ObjectRef PageRef="151">177</od:ObjectRef>
+      </od:抄送机关>
+      <od:印发机关>
+        <od:ObjectRef PageRef="151">179</od:ObjectRef>
+      </od:印发机关>
+      <od:印发日期>
+        <od:ObjectRef PageRef="151">180</od:ObjectRef>
+        <od:ObjectRef PageRef="151">181</od:ObjectRef>
+        <od:ObjectRef PageRef="151">182</od:ObjectRef>
+        <od:ObjectRef PageRef="151">183</od:ObjectRef>
+        <od:ObjectRef PageRef="151">184</od:ObjectRef>
+        <od:ObjectRef PageRef="151">185</od:ObjectRef>
+        <od:ObjectRef PageRef="151">186</od:ObjectRef>
+      </od:印发日期>
+    </od:版记>
+  </od:公文体>
+</od:电子公文>
+

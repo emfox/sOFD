@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ofd:CustomTags xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:CustomTag NameSpace="http://www.nits.org.cn/eGovDoc/2013">
+    <ofd:FileLoc>CustomTag/CustomTag.xml</ofd:FileLoc>
+  </ofd:CustomTag>
+</ofd:CustomTags>
+

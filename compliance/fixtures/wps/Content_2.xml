@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Page xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:Area>
+    <ofd:PhysicalBox>0.00 0.00 210.00 297.00</ofd:PhysicalBox>
+  </ofd:Area>
+  <ofd:Content>
+    <ofd:Layer ID="119">
+      <ofd:TextObject ID="120" Boundary="161.35 265.13 7.83 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.84" Y="4.48">—</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="121" Boundary="168.63 265.13 5.33 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.70" Y="4.48">3</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="122" Boundary="172.99 265.13 7.83 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.84" Y="4.48">—</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="123" Boundary="27.54 37.02 130.32 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.50" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56">应条款内容，教育和引导考生自觉抵制违法违规行为</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="124" Boundary="155.07 37.02 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.24" Y="4.78">。</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="125" Boundary="38.83 47.61 96.98 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.32" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56">二、进一步促进高等教育入学机会公平</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="126" Boundary="49.58 57.93 136.67 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.69" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82">促进区域入学机会公平。各地要认真贯彻落实中央关于</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="127" Boundary="27.35 68.24 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.69" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">促进教育公平的有关部署，在国家下达的年度本科、预科招生规</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="128" Boundary="27.35 78.83 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.69" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">模和经教育部备案的高职招生规模内，统筹好招生计划的增量安</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="129" Boundary="27.49 89.15 125.29 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.55" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56">排和存量调整，合理编制跨省招生计划。继续实施</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="130" Boundary="153.06 89.15 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-2.52" Y="4.78">“</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="131" Boundary="155.60 89.15 30.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.50" Y="4.78" DeltaX="5.56 5.56 5.56 5.56">支援中西部</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="132" Boundary="27.37 99.47 47.24 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.68" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56">地区招生协作计划</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="133" Boundary="71.75 99.47 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.48" Y="4.78">”</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="134" Boundary="75.06 99.47 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.08" Y="4.78">，</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="135" Boundary="78.22 99.47 108.09 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.62" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56">进一步增加支援中西部地区和录取率相对较</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="136" Boundary="27.37 110.05 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.68" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">低省份的招生名额。中央部门所属高校要积极履行促进入学机会</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="137" Boundary="27.40 120.37 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.64" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">公平的社会职责，合理确定分省招生计划，向重点高校录取比例</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="138" Boundary="27.35 130.69 58.08 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.69" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56">相对较低的省份倾斜。</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="139" Boundary="49.54 141.27 136.67 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.73" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82">逐步形成保障农村学生上重点高校的长效机制。继续实</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="140" Boundary="27.44 151.59 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.61" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">施国家、地方、高校三个定向招生专项计划，畅通农村和贫困地</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="141" Boundary="28.18 161.91 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.13" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">区学生纵向流动的渠道。各地要结合实施情况，进一步完善实施</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="142" Boundary="28.18 172.49 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.13" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">区域划定、考生资格认定等相关政策措施，会同公安等部门，优</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="143" Boundary="27.62 182.81 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.43" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">化资格审核程序，为考生提供更加简便、有效的报考服务。有关</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="144" Boundary="27.65 193.13 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">高校要充分考虑农村学生特点及相关地区基础教育实际，简化招</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="145" Boundary="27.65 203.71 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">录程序，探索适合农村学生的招生办法，努力完成招生任务。有</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="146" Boundary="27.65 214.03 69.20 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56 5.56 5.56">关工作具体安排另文部署。</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="147" Boundary="49.95 224.35 136.67 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.32" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82">落实和完善随迁子女在流入地参加高考政策。各地要进</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="148" Boundary="27.77 234.93 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.27" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">一步完善高考报名条件和办法，确保符合条件的进城务工人员及</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="149" Boundary="27.42 245.25 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.62" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">其他非户籍就业人员随迁子女都能在流入地参加高考。部分特大</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="150" Boundary="27.65 255.57 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">型城市要按照户籍制度改革要求，结合实际进一步完善随迁子女</ofd:TextCode>
+      </ofd:TextObject>
+    </ofd:Layer>
+  </ofd:Content>
+</ofd:Page>

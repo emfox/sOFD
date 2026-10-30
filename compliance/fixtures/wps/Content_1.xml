@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ofd:Page xmlns:ofd="http://www.ofdspec.org/2016">
+  <ofd:Area>
+    <ofd:PhysicalBox>0.00 0.00 210.00 297.00</ofd:PhysicalBox>
+  </ofd:Area>
+  <ofd:Content>
+    <ofd:Layer ID="60">
+      <ofd:TextObject ID="61" Boundary="32.50 265.13 7.83 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.84" Y="4.48">—</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="62" Boundary="39.82 265.13 5.33 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.66" Y="4.48">2</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="63" Boundary="44.14 265.13 7.83 5.61" Font="4" Size="5.03">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.84" Y="4.48">—</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="64" Boundary="27.40 37.02 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.64" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">科学选才，确保高校考试招生工作安全、平稳、有序实施。现就</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="65" Boundary="27.54 47.61 52.53 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.50" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29">有关工作通知如下：</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="66" Boundary="50.00 57.93 91.42 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.27" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56 5.56 5.56 5.56 5.56 5.56 5.56">一、全力保障高校考试招生安全稳定</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="67" Boundary="49.63 68.24 136.67 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.64" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82">全面加强高考工作组织领导。各省级高校招生委员会是</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="68" Boundary="27.42 78.83 58.08 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.62" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56">本行政区域内组织高考</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="69" Boundary="83.18 78.83 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.17" Y="4.78">、</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="70" Boundary="87.78 78.83 36.12 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.32" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56">治理考试环境</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="71" Boundary="121.01 78.83 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.17" Y="4.78">、</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="72" Boundary="125.49 78.83 58.08 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.45" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56">维护考试招生安全稳定</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="73" Boundary="181.07 78.83 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.17" Y="4.78">、</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="74" Boundary="27.51 89.15 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.54" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">整肃考风考纪的责任主体，主要负责同志是第一责任人；省级教</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="75" Boundary="27.49 99.47 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.55" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">育行政部门分管负责同志和省级招生考试机构主要负责同志是直</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="76" Boundary="27.42 110.05 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.62" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">接责任人。要按照全面从严治党要求，切实落实考试安全主体责</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="77" Boundary="27.51 120.37 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.54" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">任，逐级签订考试安全责任书。各省级教育行政部门、招生考试</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="78" Boundary="27.37 130.69 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.68" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">机构要把试题试卷安全作为考试安全工作的重中之重，加强对制</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="79" Boundary="27.40 141.27 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.64" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">卷、运送、保管、分发、施考、评卷等全过程监督管理。各地要</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="80" Boundary="27.54 151.59 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.50" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">成立高考安全突发事件应急处置领导小组，加强对舆情和应急事</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="81" Boundary="27.35 161.91 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.69" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">件的预判研判，细化完善应急预案，落实集体研判、科学决策、</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="82" Boundary="27.62 172.49 146.72 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.43" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.29 5.56 5.56">快速响应、协调联动的工作机制，快速妥善处置突发事件。</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="83" Boundary="49.54 182.81 47.24 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.73" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56">严厉整肃考风考纪</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="84" Boundary="94.22 182.81 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.24" Y="4.78">。</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="85" Boundary="98.58 182.81 52.79 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.64" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56">各地要按照教育部等</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="86" Boundary="150.01 182.81 8.22 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.27" Y="4.78" DeltaX="2.65">10</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="87" Boundary="156.54 182.81 13.90 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.62" Y="4.78" DeltaX="5.56">部门</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="88" Boundary="169.41 182.81 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-1.93" Y="4.78">《</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="89" Boundary="172.64 182.81 13.90 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56">关于</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="90" Boundary="27.42 193.13 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.62" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">进一步加强国家教育统一考试环境综合治理和考试安全工作的通</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="91" Boundary="27.49 203.71 13.90 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.55" Y="4.78" DeltaX="5.56">知》</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="92" Boundary="39.70 203.71 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.54" Y="4.78">(</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="93" Boundary="41.44 203.71 19.72 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.62" Y="4.78" DeltaX="5.56 5.82">教学〔</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="94" Boundary="58.59 203.71 13.78 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.41" Y="4.78" DeltaX="2.65 2.65 2.91">2012</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="95" Boundary="70.34 203.71 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.22" Y="4.78">〕</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="96" Boundary="75.24 203.71 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.43" Y="4.78">4</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="97" Boundary="79.51 203.71 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78">号</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="98" Boundary="85.01 203.71 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.71" Y="4.78">)</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="99" Boundary="87.92 203.71 98.30 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.45" Y="4.78" DeltaX="5.56 5.82 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.82 5.56 5.56">要求，完善联防联控、齐抓共管的工作</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="100" Boundary="27.37 214.03 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.68" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">机制，继续开展净化涉考网络环境、打击销售作弊器材、净化考</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="101" Boundary="27.90 224.35 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.15" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">点周边环境、打击替考作弊等专项行动。要加强标准化考点的日</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="102" Boundary="27.88 234.93 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.17" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">常维护和升级，把好考场入口关，采取多种切实有效措施严防替</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="103" Boundary="27.35 245.25 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.69" Y="4.78">考</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="104" Boundary="33.37 245.25 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.24" Y="4.78">。</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="105" Boundary="38.18 245.25 41.68 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.45" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56">要健全诚信制度</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="106" Boundary="77.45 245.25 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.08" Y="4.78">，</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="107" Boundary="82.15 245.25 25.01 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.40" Y="4.78" DeltaX="5.56 5.56 5.56">大力宣传</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="108" Boundary="106.18 245.25 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-1.93" Y="4.78">《</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="109" Boundary="109.30 245.25 30.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.50" Y="4.78" DeltaX="5.56 5.56 5.56 5.56">刑法修正案</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="110" Boundary="137.86 245.25 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.54" Y="4.78">(</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="111" Boundary="139.68 245.25 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.55" Y="4.78">九</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="112" Boundary="145.07 245.25 5.57 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.71" Y="4.78">)</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="113" Boundary="148.00 245.25 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.43" Y="4.78">》</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="114" Boundary="153.27 245.25 25.01 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-1.93" Y="4.78" DeltaX="5.56 5.56 5.56">《教育法</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="115" Boundary="173.14 245.25 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.43" Y="4.78">》</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="116" Boundary="178.62 245.25 8.34 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="-0.03" Y="4.78">中</ofd:TextCode>
+      </ofd:TextObject>
+      <ofd:TextObject ID="117" Boundary="27.54 255.57 158.89 5.57" Font="9" Size="5.56">
+        <ofd:FillColor Value="0 0 8" ColorSpace="5"/>
+        <ofd:TextCode X="0.50" Y="4.78" DeltaX="5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.56 5.82 5.56 5.56">有关涉考条款，并在考生诚信承诺书、考生须知等材料中增加相</ofd:TextCode>
+      </ofd:TextObject>
+    </ofd:Layer>
+  </ofd:Content>
+</ofd:Page>
