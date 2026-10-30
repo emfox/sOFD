@@ -277,6 +277,10 @@ jobs:
       - name: Build the reader
         run: cargo build --release -p sofd-egui
 
+      # The bundle step asserts this before the runtime is unpacked, because the
+      # failure it catches is silent: `install -Dm755` copies the source mode,
+      # so an executable bit lost on the way here produces a bundle that builds,
+      # installs, and only fails when something tries to run the reader.
       - name: Build the app and bundle it
         run: |
           # The tag is the version; see the note at the top.
@@ -300,9 +304,14 @@ jobs:
           # fetched sample is absent on CI, and the check would count nothing.
           cargo build --release -p sofd-cli
           mkdir -p dist/proof
-          flatpak build --filesystem="$PWD:ro" --die-with-parent \
-            dist/sofd-build \
+          # The tree is mounted read-only, which is the point — except for the
+          # one directory the conversion writes into, which is mounted again on
+          # its own. `cd` is explicit because the sandbox does not inherit the
+          # working directory, so a relative path would resolve against `/`.
+          flatpak build --filesystem="$PWD:ro" --filesystem="$PWD/dist:rw" \
+            --die-with-parent dist/sofd-build \
             sh -c "
+              cd \"$PWD\"
               test -x /app/bin/sofd-reader
               target/release/sofd convert compliance/fixtures/minimal.ofd \
                 --format png --output dist/proof

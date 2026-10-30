@@ -18,7 +18,8 @@ and verified, because a bundle that imports cleanly is the same bundle that a
 repository could serve.
 
 Usage:
-    python3 scripts/flatpak_package.py build --version 0.7.0 --binary target/release/sofd-reader --out dist
+    python3 scripts/flatpak_package.py build --version 0.7.0 \
+        --binary target/release/sofd-egui --out dist
     python3 scripts/flatpak_package.py verify --bundle dist/sofd-0.7.0.flatpak
     python3 scripts/flatpak_package.py selftest
 
@@ -104,6 +105,12 @@ ICON_SVG = """<?xml version="1.0" encoding="UTF-8"?>
 # `finish-args` is the security surface, so it is stated as a property of what
 # the app does. A build derives it and the self-test reads it back; neither
 # takes it from a file.
+#
+# The install says `install -Dm755`. That is accurate when the source already
+# carries the bit, and `stage` makes sure it does. It is *not* a way to set the
+# bit: `install -Dm755` without `-p` still copies the source mode, so a staged
+# file that lost its bit would put a non-executable reader in `/app/bin` and the
+# bundle would build, install and fail only when something tried to run it.
 MANIFEST = {
     "app-id": APP_ID,
     # Without this the build exports to `master` and `build-bundle` asks for
@@ -182,6 +189,16 @@ def repository(out: Path) -> Path:
     return out / "flatpak-repo"
 
 
+def build_directory(out: Path) -> Path:
+    """Where `flatpak-builder` leaves the unpacked app.
+
+    Kept rather than deleted: `flatpak build <dir> <command>` is how a step runs
+    something inside the sandbox the app was built for, and the directory is the
+    only thing that can be entered without installing the bundle first.
+    """
+    return out / "sofd-build"
+
+
 def run(argv: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
     """Run a step and keep its output for the failure message."""
     return subprocess.run(
@@ -202,7 +219,13 @@ def stage(version: str, binary: Path, where: Path) -> Path:
     shutil.copy2(binary, where / EXECUTABLE)
     # The build runs as a different user inside the sandbox, and an executable
     # bit that did not survive the copy is a build that fails on `install`.
-    (where / EXECUTABLE).chmod(0o755)
+    staged = where / EXECUTABLE
+    staged.chmod(0o755)
+    # `chmod` is the only thing that sets the bit, so this is the point it is
+    # worth stating: the build below cannot set it, and a bundle built around a
+    # non-executable reader is one that installs and then will not start.
+    if not os.access(staged, os.X_OK):
+        raise SystemExit(f"error: {staged} did not take the executable bit")
     (where / f"{APP_ID}.desktop").write_text(DESKTOP_ENTRY, encoding="utf-8")
     (where / f"{APP_ID}.svg").write_text(ICON_SVG, encoding="utf-8")
     (where / f"{APP_ID}.metainfo.xml").write_text(
@@ -215,7 +238,14 @@ def stage(version: str, binary: Path, where: Path) -> Path:
         encoding="utf-8",
     )
     manifest = where / f"{APP_ID}.yaml"
-    manifest.write_text(_yaml(MANIFEST), encoding="utf-8")
+    published = manifest_text()
+    manifest.write_text(published, encoding="utf-8")
+    # The text is what the builder reads, not the dictionary it came from, so
+    # the self-test asserts over the same text rather than over `MANIFEST`.
+    # Both are module state: this file is run as a script, and the text outlives
+    # the temporary directory it was written to.
+    global PUBLISHED_MANIFEST
+    PUBLISHED_MANIFEST = published
     return manifest
 
 
@@ -289,7 +319,11 @@ def build(version: str, binary: Path, out: Path) -> Path:
     work = Path(tempfile.mkdtemp(prefix="sofd-flatpak-"))
     try:
         manifest = stage(version, binary, work)
-        built = Path(work) / "build"
+        built = build_directory(out)
+        # `--force-clean` over a directory in `out` rather than a temporary one:
+        # the build tree is what a sandbox can be entered from, and the release
+        # job enters it to convert a document. Deleting it here is why that step
+        # used to fail with a path that had never existed by the time it ran.
         result = run([
             "flatpak-builder", "--force-clean", "--disable-rofiles-fuse",
             "--repo", str(repository(out)), str(built), str(manifest),
@@ -319,13 +353,17 @@ def build(version: str, binary: Path, out: Path) -> Path:
 
 
 def verify(bundle_path: Path) -> None:
-    """Install the bundle into a throwaway Flatpak home, then open a document.
+    """Install the bundle into a throwaway Flatpak home and read what landed.
 
     A build that succeeded is a build that compiled. This is the part that says
-    the app starts: the runtime is found, the `Exec` line runs, and a window
-    comes up. A headless machine has no window, so what is asserted here is the
-    executable and the metadata — the drawing is the release job's check, where
-    a display exists.
+    the bundle is one flatpak accepts: it imports, it lists, its version is the
+    one the file is named for, and the binary the desktop entry runs is in
+    `/app/bin` with its bit on.
+
+    What is deliberately *not* here is starting the app. That needs a display, a
+    session bus and a working bubblewrap, and a check that fails when the
+    machine lacks those is a check that says nothing about the bundle. The
+    release job starts the app where it has them, against a real document.
     """
     if not bundle_path.is_file():
         raise SystemExit(f"error: no bundle at {bundle_path}")
@@ -350,17 +388,48 @@ def verify(bundle_path: Path) -> None:
         for expected in (f"Version: {_version_of(bundle_path)}", "Origin:"):
             if expected.split(":")[0] not in info.stdout:
                 raise SystemExit(f"error: info is missing {expected}")
-        listed = flatpak("run", "--user", "--command=sh", APP_ID, "-c",
-                         f"test -x /app/bin/{EXECUTABLE}")
-        if listed.returncode != 0:
-            raise SystemExit(f"error: /app/bin/{EXECUTABLE} is not executable")
+        # Read the installed tree rather than starting the app. `flatpak run`
+        # needs a display, a session bus and a working bubblewrap, none of which
+        # a headless build machine promises — and when it fails it fails the
+        # same way whether the app is broken or the machine is, which is what
+        # made this check report a missing executable on a bundle that had one.
+        # The step that needs the app to actually run is in the release job,
+        # where it enters the build tree and converts a document.
+        installed = deployed_executable(env)
+        if not installed.is_file():
+            raise SystemExit(f"error: the bundle installed no {installed}")
+        if not os.access(installed, os.X_OK):
+            raise SystemExit(f"error: {installed} installed without the executable bit")
     finally:
         shutil.rmtree(home, ignore_errors=True)
+
+
+def deployed_executable(env: dict) -> Path:
+    """Where a `--user` install puts the binary, for the given flatpak home.
+
+    `FLATPAK_USER_DIR` wins over `XDG_DATA_HOME` when both are set, and both are
+    set here — so the root is read in that order rather than assumed. The rest
+    of the layout is flatpak's: `app/<id>/current/active/files` is the app's own
+    filesystem, and `bin/<exe>` is what the manifest installed into it.
+    """
+    root = env.get("FLATPAK_USER_DIR")
+    base = Path(root) if root else Path(env["XDG_DATA_HOME"]) / "flatpak"
+    return base / "app" / APP_ID / "current" / "active" / "files" / "bin" / EXECUTABLE
 
 
 def _version_of(bundle_path: Path) -> str:
     """Read the version back out of the file name the release gave it."""
     return bundle_path.name.removeprefix("sofd-").removesuffix(".flatpak")
+
+
+def manifest_text() -> str:
+    """The manifest as the builder will read it."""
+    return _yaml(MANIFEST) + "\n"
+
+
+# What `stage` last wrote. The self-test reads this rather than re-deriving it,
+# because the question is whether the file a build publishes is right.
+PUBLISHED_MANIFEST = manifest_text()
 
 
 def _shaped_like_the_manifest(text: str) -> bool:
@@ -400,6 +469,21 @@ def selftest() -> int:
     # same branch: the manifest's default is `master`, which is not this one.
     checks.append(("the manifest builds the branch the bundle asks for",
                    MANIFEST.get("branch") == BRANCH))
+    # The one thing three failed release builds got wrong. `install -Dm755`
+    # copies the source mode unless it is given `-p`, so the manifest installs
+    # what `stage` chmodded and does not claim to set anything itself. The
+    # comment is what a later reader trusts, so it is what is checked.
+    installs = MANIFEST["modules"][0]["build-commands"][0].split()
+    comment = Path(__file__).read_text(encoding="utf-8")
+    # `-m755` is the mode it copies and `-p` is the flag that would make the
+    # mode take effect; both are in the same word, which is why this reads the
+    # options rather than the line.
+    options = [word for word in installs if word.startswith("-")]
+    checks.append(("the install command does not claim to set the mode",
+                   any("m755" in o for o in options)
+                   and not any(o.lstrip("-").startswith("p") or "p" in o.lstrip("-").rstrip("0123456789")
+                               for o in options)
+                   and "copies the source mode" in comment))
     checks.append(("the command is the binary the module installs",
                    MANIFEST["command"] == EXECUTABLE
                    and any(f"/app/bin/{EXECUTABLE}" in c
@@ -428,7 +512,7 @@ def selftest() -> int:
     # it got wrong fails inside the sandbox after the runtime was downloaded.
     # Read the text back the way the builder reads it: PyYAML when it is here,
     # and the shape directly when it is not.
-    text = _yaml(MANIFEST)
+    text = PUBLISHED_MANIFEST
     try:
         import yaml as yaml_module
     except ImportError:
