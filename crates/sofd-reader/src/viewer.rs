@@ -52,9 +52,45 @@ impl Short {
 }
 
 /// A rasterized page, decoded and ready to paint.
+///
+/// Straight rather than premultiplied RGBA8, row-major from the top left, which
+/// is what a texture upload and an encoder both take. It is this crate's own
+/// type so the state that holds it does not need a particular toolkit to exist.
+#[derive(Clone)]
+pub struct Rgba {
+    /// Width in pixels.
+    pub width: u32,
+    /// Height in pixels.
+    pub height: u32,
+    /// Four bytes per pixel, straight alpha, row-major.
+    pub bytes: Vec<u8>,
+}
+
+impl Rgba {
+    /// The size in a toolkit's own order, which is what a texture takes.
+    pub fn size(&self) -> [usize; 2] {
+        [self.width as usize, self.height as usize]
+    }
+
+    /// One pixel, or white outside the image.
+    pub fn pixel(&self, x: u32, y: u32) -> [u8; 4] {
+        if x >= self.width || y >= self.height {
+            return [255, 255, 255, 255];
+        }
+        let base = ((y * self.width + x) * 4) as usize;
+        [
+            self.bytes[base],
+            self.bytes[base + 1],
+            self.bytes[base + 2],
+            self.bytes[base + 3],
+        ]
+    }
+}
+
+/// A rasterized page, decoded and ready to paint.
 pub struct RenderedPage {
-    /// The decoded image, in `egui` colour order.
-    pub image: egui::ColorImage,
+    /// The decoded image.
+    pub pixels: Rgba,
     /// The page's physical size in millimetres.
     pub size_mm: (f32, f32),
     /// The part of the page this image covers, in millimetres, or `None` for
@@ -164,7 +200,7 @@ pub const CACHE_PIXEL_BUDGET: usize = 64 * 1024 * 1024;
 
 /// The pixels one raster costs, which is what the cache budgets in.
 fn area(rendered: &RenderedPage) -> usize {
-    rendered.image.width() * rendered.image.height()
+    rendered.pixels.width as usize * rendered.pixels.height as usize
 }
 
 impl PageCache {
@@ -304,19 +340,18 @@ impl DroppedFile {
 /// Whether a rendered page carries no visible ink.
 ///
 /// It reads the raster, because a page may hold nothing but a background.
-pub fn looks_blank(image: &egui::ColorImage) -> bool {
-    let pixels = image.pixels.as_slice();
-    !pixels.is_empty()
-        && pixels.iter().all(|p| {
-            p.r() >= 255 - BLANK_THRESHOLD
-                && p.g() >= 255 - BLANK_THRESHOLD
-                && p.b() >= 255 - BLANK_THRESHOLD
+pub fn looks_blank(image: &Rgba) -> bool {
+    !image.bytes.is_empty()
+        && image.bytes.chunks_exact(4).all(|p| {
+            p[0] >= 255 - BLANK_THRESHOLD
+                && p[1] >= 255 - BLANK_THRESHOLD
+                && p[2] >= 255 - BLANK_THRESHOLD
         })
 }
 
 /// The largest texture this crate assumes, matched to the smallest limit a
 /// desktop driver imposes. This is the floor, not the answer: the backend
-/// reports what it can really hold in `egui`'s input each frame, and `App`
+/// reports what it can really hold in the toolkit's input each frame, and `App`
 /// passes that down, so a driver offering 8,192 is not held to a number
 /// chosen for the weakest board. Every function here takes the limit as an
 /// argument for that reason.
@@ -450,12 +485,12 @@ pub fn render_page_with_seals(
     for seal in seals.iter().filter(|s| s.page == page) {
         stamp_seal(&mut rgba, seal, f64::from(effective), options.window);
     }
-    let image = egui::ColorImage::from_rgba_unmultiplied(
-        [rgba.width() as usize, rgba.height() as usize],
-        rgba.as_raw(),
-    );
     Ok(RenderedPage {
-        image,
+        pixels: Rgba {
+            width,
+            height,
+            bytes: rgba.into_raw(),
+        },
         size_mm,
         window: window.map(|area| clip_to_page(area, size_mm)),
         short,
@@ -670,11 +705,11 @@ mod tests {
         );
         let mut red = 0;
         let mut total = 0;
-        for y in y0..y1.min(drawn.image.height()) {
-            for x in x0..x1.min(drawn.image.width()) {
-                let pixel = drawn.image.pixels[y * drawn.image.width() + x];
+        for y in y0..y1.min(drawn.pixels.height as usize) {
+            for x in x0..x1.min(drawn.pixels.width as usize) {
+                let [r, g, b, _] = drawn.pixels.pixel(x as u32, y as u32);
                 total += 1;
-                if pixel.r() > 150 && pixel.g() < 120 && pixel.b() < 120 {
+                if r > 150 && g < 120 && b < 120 {
                     red += 1;
                 }
             }
@@ -732,7 +767,7 @@ mod tests {
         );
         // The image is the part, not the page: its shape follows the window,
         // which is the whole point of carrying it.
-        let from_image = rendered.image.height() as f32 / rendered.image.width() as f32;
+        let from_image = rendered.pixels.height as f32 / rendered.pixels.width as f32;
         let from_part = (part.h / part.w) as f32;
         assert!(
             (from_image - from_part).abs() < 0.01,
@@ -780,10 +815,10 @@ mod tests {
         assert!(rendered.window.is_none(), "no window was asked for");
         let side = MAX_TEXTURE_SIDE as usize;
         assert!(
-            rendered.image.width() <= side && rendered.image.height() <= side,
+            rendered.pixels.size()[0] <= side && rendered.pixels.size()[1] <= side,
             "a {}x{} raster exceeds the {side} px texture limit",
-            rendered.image.width(),
-            rendered.image.height()
+            rendered.pixels.width,
+            rendered.pixels.height
         );
     }
 
@@ -889,7 +924,10 @@ mod tests {
         let expect_w = (f64::from(size.0) * dpi / MM_PER_INCH).ceil() as usize;
         let expect_h = (f64::from(size.1) * dpi / MM_PER_INCH).ceil() as usize;
         assert_eq!(
-            (rendered.image.width(), rendered.image.height()),
+            (
+                rendered.pixels.width as usize,
+                rendered.pixels.height as usize
+            ),
             (expect_w, expect_h),
             "the raster is not {expect_w} by {expect_h} px at {dpi} dpi"
         );
@@ -931,7 +969,11 @@ mod tests {
 
     fn page_of(side: usize) -> RenderedPage {
         RenderedPage {
-            image: egui::ColorImage::new([side, side], vec![egui::Color32::WHITE; side * side]),
+            pixels: Rgba {
+                width: side as u32,
+                height: side as u32,
+                bytes: vec![255; side * side * 4],
+            },
             size_mm: (210.0, 297.0),
             window: None,
             short: Short::default(),
@@ -1022,7 +1064,7 @@ mod tests {
         let view = sofd_common::Rect::new(30.0, 30.0, 40.0, 40.0);
         let found = cache.covering(0, 300.0, Some(view)).expect("one covers it");
         assert_eq!(
-            (found.image.width(), found.image.height()),
+            (found.pixels.width, found.pixels.height),
             (2, 2),
             "the larger raster answered a view the smaller one already held"
         );

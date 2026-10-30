@@ -25,7 +25,11 @@ const SCREEN_PT: (f64, f64) = (1200.0, 800.0);
 /// accounting honest.
 fn shot(side: usize, window: sofd_common::Rect) -> RenderedPage {
     RenderedPage {
-        image: egui::ColorImage::new([side, side], vec![egui::Color32::WHITE; side * side]),
+        pixels: sofd_reader::Rgba {
+            width: side as u32,
+            height: side as u32,
+            bytes: vec![255; side * side * 4],
+        },
         size_mm: PAGE_MM,
         window: Some(window),
         short: Short::default(),

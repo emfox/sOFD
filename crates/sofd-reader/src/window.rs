@@ -1370,7 +1370,7 @@ fn draw_one_page(ui: &mut Ui, app: &mut App, page: usize) {
     let Some(rendered) = app.cached(page) else {
         return;
     };
-    let image = rendered.image.clone();
+    let pixels = rendered.pixels.clone();
     let window = rendered.window;
     let (width_mm, height_mm) = rendered.size_mm;
     // The page's millimetres become points first, because a zoom of one draws
@@ -1401,6 +1401,9 @@ fn draw_one_page(ui: &mut Ui, app: &mut App, page: usize) {
     // One texture per page and resolution; the name carries both, so the
     // cache and the texture cannot disagree.
     let name = format!("page-{page}");
+    // The toolkit's own image type is built here rather than by the state that
+    // rasterized the page, which is what keeps that state free of any toolkit.
+    let image = egui::ColorImage::from_rgba_unmultiplied(pixels.size(), &pixels.bytes);
     let texture = ui.ctx().load_texture(name, image, TextureOptions::LINEAR);
     let target = match window {
         Some(part) if width_mm > 0.0 && height_mm > 0.0 => {

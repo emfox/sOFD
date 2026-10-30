@@ -290,7 +290,7 @@ impl App {
         }
         let page = self.current;
         match self.cache.get(page, self.dpi) {
-            Some(rendered) if viewer::looks_blank(&rendered.image) => Canvas::Blank,
+            Some(rendered) if viewer::looks_blank(&rendered.pixels) => Canvas::Blank,
             Some(_) => Canvas::Page,
             None if self.error.is_some() => Canvas::Failed,
             None => Canvas::Pending,

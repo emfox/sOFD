@@ -115,7 +115,11 @@ fn a_page_rasterizes_and_is_reused() {
     let page = app.current_page();
 
     wait_for_page(&mut app, page);
-    let first = app.cached(page).expect("the page is now cached").image.size;
+    let first = app
+        .cached(page)
+        .expect("the page is now cached")
+        .pixels
+        .size();
     assert!(
         first[0] > 0 && first[1] > 0,
         "the image has real dimensions"
@@ -123,7 +127,7 @@ fn a_page_rasterizes_and_is_reused() {
 
     // A second request must not rasterize again: the cache answers it.
     app.page_image(page).expect("the cached page is returned");
-    assert_eq!(app.cached(page).map(|p| p.image.size), Some(first));
+    assert_eq!(app.cached(page).map(|p| p.pixels.size()), Some(first));
 }
 
 /// The reader asks for what is on screen once per frame, so a page already on
@@ -151,11 +155,11 @@ fn the_cache_keys_on_the_resolution_too() {
     let mut app = open();
     let page = app.current_page();
     wait_for_page(&mut app, page);
-    let wide = app.cached(page).map(|p| p.image.size).unwrap();
+    let wide = app.cached(page).map(|p| p.pixels.size()).unwrap();
 
     app.set_zoom(200.0 / 72.0);
     wait_for_page(&mut app, page);
-    let larger = app.cached(page).map(|p| p.image.size).unwrap();
+    let larger = app.cached(page).map(|p| p.pixels.size()).unwrap();
 
     assert_ne!(wide, larger, "a different zoom is a different picture");
 }
@@ -174,7 +178,11 @@ fn a_large_cache_evicts_the_oldest_page() {
     let mut cache = PageCache::new(2);
     for page in 0..3 {
         let rendered = sofd_reader::RenderedPage {
-            image: egui::ColorImage::new([1, 1], vec![egui::Color32::WHITE]),
+            pixels: sofd_reader::Rgba {
+                width: 1,
+                height: 1,
+                bytes: vec![255, 255, 255, 255],
+            },
             size_mm: (210.0, 297.0),
             window: None,
             short: sofd_reader::Short::default(),
@@ -400,7 +408,7 @@ fn a_rendered_page_is_small_enough_to_upload() {
     app.set_zoom(MAX_DPI / 72.0);
     wait_for_page(&mut app, 0);
     let rendered = app.cached(0).expect("and lands in the cache");
-    let (w, h) = (rendered.image.width(), rendered.image.height());
+    let (w, h) = (rendered.pixels.size()[0], rendered.pixels.size()[1]);
     let limit = sofd_reader::viewer::MAX_TEXTURE_SIDE as usize;
     assert!(
         w <= limit && h <= limit,

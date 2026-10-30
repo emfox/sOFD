@@ -2,6 +2,7 @@
 //! colour or a point size is written. A zone names a token or a style, never a
 //! number, so a theme switch cannot leave one panel behind.
 
+pub use crate::typography::{BASE_POINTS, SCALE, Style};
 use eframe::egui::{self, Color32, FontFamily, FontId, TextStyle, Theme};
 
 /// A colour role. Every painted colour in the window is one of these.
@@ -93,9 +94,6 @@ const HIGH_CONTRAST_DARK: [(Token, Color32); 6] = [
     (Token::Unverified, Color32::from_rgb(0xff, 0xe0, 0x8a)),
 ];
 
-/// The body size at 100% text size, in points.
-pub const BASE_POINTS: f32 = 14.0;
-
 /// The spacing scale of section 5.4, in points. The guideline asks for
 /// increments of six, growing with the distance between two things, so this is
 /// one base and four multiples of it rather than four unrelated numbers.
@@ -146,85 +144,14 @@ pub const ITEM_GAP: f32 = 6.0;
 
 /// The type scale of section 5.2 as (name, ratio). It is strictly increasing,
 /// which a test asserts: a scale with one ratio out of order stops being one.
-pub(crate) const SCALE: [(&str, f32); 8] = [
-    ("large-title", 2.000),
-    ("title-1", 1.600),
-    ("title-2", 1.400),
-    ("title-3", 1.250),
-    ("heading", 1.200),
-    ("title-4", 1.100),
-    ("body", 1.000),
-    ("caption", 0.850),
-];
-
-/// The style name a caller asks for. `Body`, `Heading` and `Caption` double as
-/// the `egui` styles of the same role, so the two cannot drift apart.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Style {
-    /// The document name.
-    LargeTitle,
-    /// A panel title.
-    Title1,
-    /// A section inside a panel.
-    Title2,
-    /// A group heading.
-    Title3,
-    /// A row heading.
-    Title4,
-    /// A heading that is not titled.
-    Heading,
-    /// Everything read in sentences.
-    Body,
-    /// A signer, a time, a count.
-    Caption,
-}
-
-impl Style {
-    /// The non-`egui` names, in the order section 5.2 lists them.
-    pub const NAMED: [Self; 5] = [
-        Self::LargeTitle,
-        Self::Title1,
-        Self::Title2,
-        Self::Title3,
-        Self::Title4,
-    ];
-
-    /// The name this style is registered under in `egui`'s style table.
-    pub fn name(self) -> &'static str {
-        match self {
-            Self::LargeTitle => "large-title",
-            Self::Title1 => "title-1",
-            Self::Title2 => "title-2",
-            Self::Title3 => "title-3",
-            Self::Title4 => "title-4",
-            Self::Heading => "heading",
-            Self::Body => "body",
-            Self::Caption => "caption",
-        }
-    }
-
-    /// The ratio against the body size.
-    pub fn ratio(self) -> f32 {
-        SCALE
-            .iter()
-            .find(|(name, _)| *name == self.name())
-            .map_or(1.0, |(_, ratio)| *ratio)
-    }
-
-    /// The size in points at a given text scale, rounded so the rasterizer is
-    /// not asked for a hundredth of a point.
-    pub fn points(self, scale: f32) -> f32 {
-        (BASE_POINTS * self.ratio() * scale).round().max(1.0)
-    }
-
-    /// The `egui` style this one is drawn through, where it has a name.
-    pub fn egui(self) -> TextStyle {
-        match self {
-            Self::Body => TextStyle::Body,
-            Self::Heading => TextStyle::Heading,
-            Self::Caption => TextStyle::Small,
-            named => TextStyle::Name(named.name().into()),
-        }
+/// The toolkit's style this one is drawn through, where it has a name of its
+/// own. A free function because the style itself belongs to no toolkit.
+fn text_style(style: Style) -> TextStyle {
+    match style {
+        Style::Body => TextStyle::Body,
+        Style::Heading => TextStyle::Heading,
+        Style::Caption => TextStyle::Small,
+        named => TextStyle::Name(named.name().into()),
     }
 }
 
@@ -337,7 +264,7 @@ pub(crate) fn apply(ctx: &egui::Context, theme: Theme, text_scale: f32, high_con
         for style_name in Style::NAMED {
             style
                 .text_styles
-                .insert(style_name.egui(), font(style_name, text_scale));
+                .insert(text_style(style_name), font(style_name, text_scale));
         }
         style
             .text_styles
@@ -537,8 +464,8 @@ mod tests {
     #[test]
     fn a_named_style_is_drawn_through_its_own_entry() {
         let style = Style::Title1;
-        assert!(matches!(style.egui(), TextStyle::Name(name) if &*name == "title-1"));
-        assert_eq!(Style::Body.egui(), TextStyle::Body);
-        assert_eq!(Style::Caption.egui(), TextStyle::Small);
+        assert!(matches!(text_style(style), TextStyle::Name(name) if &*name == "title-1"));
+        assert_eq!(text_style(Style::Body), TextStyle::Body);
+        assert_eq!(text_style(Style::Caption), TextStyle::Small);
     }
 }

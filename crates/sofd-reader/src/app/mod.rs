@@ -838,14 +838,14 @@ impl App {
         let _ = self.page_image(page);
         self.cache
             .get(page, self.dpi)
-            .is_some_and(|rendered| viewer::looks_blank(&rendered.image))
+            .is_some_and(|rendered| viewer::looks_blank(&rendered.pixels))
     }
 
     /// Whether the page at `page` is cached and holds no visible ink.
     pub fn page_is_blank(&self, page: usize) -> bool {
         self.cache
             .get(page, self.dpi)
-            .is_some_and(|rendered| viewer::looks_blank(&rendered.image))
+            .is_some_and(|rendered| viewer::looks_blank(&rendered.pixels))
     }
 
     /// The notice shown when the current page has nothing on it.
@@ -999,7 +999,11 @@ mod tests {
             0,
             dpi,
             crate::viewer::RenderedPage {
-                image: egui::ColorImage::new([1, 1], vec![egui::Color32::WHITE]),
+                pixels: viewer::Rgba {
+                    width: 1,
+                    height: 1,
+                    bytes: vec![255, 255, 255, 255],
+                },
                 size_mm: (210.0, 297.0),
                 window: None,
                 short: crate::viewer::Short {
@@ -1026,7 +1030,11 @@ mod tests {
             0,
             dpi,
             crate::viewer::RenderedPage {
-                image: egui::ColorImage::new([1, 1], vec![egui::Color32::WHITE]),
+                pixels: viewer::Rgba {
+                    width: 1,
+                    height: 1,
+                    bytes: vec![255, 255, 255, 255],
+                },
                 size_mm: (210.0, 297.0),
                 window: None,
                 short: crate::viewer::Short::default(),
