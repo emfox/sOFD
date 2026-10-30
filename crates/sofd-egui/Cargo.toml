@@ -24,7 +24,7 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 # The session holds the document, the page cache and every queue; this crate
 # draws what it reports and reads the input that drives it.
-sofd-session = { path = "../sofd-session", version = "0.7" }
+sofd-session = { path = "../sofd-session", version = "0.8" }
 # The facade re-exports the option and verdict types its own methods take, so
 # the reader names them through `sofd` and depends on nothing below.
 sofd = { path = "../sofd", version = "0.9", features = ["render", "search", "pdf", "print", "annot", "sign"] }

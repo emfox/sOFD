@@ -63,6 +63,7 @@ pub fn action(name: &str, has_document: bool) -> Option<Action> {
         "escape" => Action::Escape,
         "open" => Action::Open,
         "exportPdf" => Action::ExportPdf,
+        "exportPng" => Action::ExportPng,
         "print" => Action::Print,
         _ => return None,
     };
@@ -93,6 +94,7 @@ pub fn key(name: &str) -> Option<KeyPress> {
         "Escape" => KeyPress::Escape,
         "o" | "O" => KeyPress::O,
         "s" | "S" => KeyPress::S,
+        "e" | "E" => KeyPress::E,
         "p" | "P" => KeyPress::P,
         "f" | "F" => KeyPress::F,
         "j" | "J" => KeyPress::J,

@@ -32,6 +32,7 @@ fn every_action_name_resolves_with_a_document() {
         "escape",
         "open",
         "exportPdf",
+        "exportPng",
         "print",
     ];
     for name in names {
@@ -42,6 +43,7 @@ fn every_action_name_resolves_with_a_document() {
     }
     assert_eq!(commands::action("nextPage", true), Some(Action::NextPage));
     assert_eq!(commands::action("open", true), Some(Action::Open));
+    assert_eq!(commands::action("exportPng", true), Some(Action::ExportPng));
 }
 
 /// With no document, the actions that act on a page do nothing, and the ones
@@ -49,7 +51,14 @@ fn every_action_name_resolves_with_a_document() {
 /// page. This is the session's own rule, not a second one written here.
 #[test]
 fn an_action_on_a_page_needs_a_document() {
-    for name in ["nextPage", "previousPage", "zoomIn", "exportPdf", "print"] {
+    for name in [
+        "nextPage",
+        "previousPage",
+        "zoomIn",
+        "exportPdf",
+        "exportPng",
+        "print",
+    ] {
         assert_eq!(
             commands::action(name, false),
             None,

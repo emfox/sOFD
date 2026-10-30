@@ -23,7 +23,7 @@ serde.workspace = true
 serde_json.workspace = true
 # The session holds the document, the page cache and every queue, exactly as it
 # does for the `egui` reader; this crate decides how a shape reaches a canvas.
-sofd-session = { path = "../sofd-session", version = "0.7" }
+sofd-session = { path = "../sofd-session", version = "0.8" }
 sofd = { path = "../sofd", version = "0.9", features = ["render", "search", "pdf", "print", "annot", "sign"] }
 # `path_data` writes the same `d` an SVG takes, and `Path2D` takes it too.
 sofd-common = { path = "../sofd-common", version = "0.6" }

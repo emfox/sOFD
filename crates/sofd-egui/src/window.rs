@@ -115,7 +115,7 @@ pub fn draw(ui: &mut Ui, app: &mut App) -> WindowRequests {
     // bars as if they had room they do not have.
     let style = ui.ctx().style_of(ui.ctx().theme());
     draw_menu(ui, app, &mut requests, &style);
-    draw_toolbar(ui, app, &style);
+    draw_toolbar(ui, app, &mut requests, &style);
     draw_search(ui, app, &style);
     draw_signatures(ui, app, &style);
     draw_annotations(ui, app, &style);
@@ -317,7 +317,12 @@ fn act(app: &mut App, action: shortcuts::Action, requests: &mut WindowRequests) 
         requests.open_dialog = true;
         return;
     }
-    if action == shortcuts::Action::ExportPdf {
+    // Both exports say the same thing to the window: it has to ask where the
+    // files go. The format travels in the request, so the two cases join.
+    if matches!(
+        action,
+        shortcuts::Action::ExportPdf | shortcuts::Action::ExportPng
+    ) {
         app.apply(action);
         requests.export = app.wants_export();
         return;
@@ -841,7 +846,7 @@ fn draw_layout_switcher(ui: &mut Ui, app: &mut App, shown: usize) {
 /// The document actions that write something: to a file or to paper. They
 /// belong to Z2 because they act on the pages on screen, which is what the
 /// toolbar is for, and they disable while a job runs so two cannot interleave.
-fn draw_exports(ui: &mut Ui, app: &mut App, shown: usize) {
+fn draw_exports(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests, shown: usize) {
     let busy = app.is_exporting();
     let printing = app.is_printing();
     let open = app.is_open();
@@ -877,7 +882,7 @@ fn draw_exports(ui: &mut Ui, app: &mut App, shown: usize) {
     )
     .clicked()
     {
-        app.request_export(ExportFormat::Pdf);
+        act(app, shortcuts::Action::ExportPdf, requests);
     }
     let png = app.text(ReaderMessage::ExportPng);
     if icon_button(
@@ -891,14 +896,14 @@ fn draw_exports(ui: &mut Ui, app: &mut App, shown: usize) {
     )
     .clicked()
     {
-        app.request_export(ExportFormat::Png);
+        act(app, shortcuts::Action::ExportPng, requests);
     }
 }
 
 /// Z2: the one toolbar — how the pages are arranged, which page, how it is
 /// scaled, and what to write it out as. Groups are separated by space, as the
 /// guideline asks, and the alignment points are the header bar's.
-fn draw_toolbar(ui: &mut Ui, app: &mut App, style: &egui::Style) {
+fn draw_toolbar(ui: &mut Ui, app: &mut App, requests: &mut WindowRequests, style: &egui::Style) {
     egui::Panel::top("toolbar").show(ui, |ui| {
         ui.set_style(style.clone());
         let width = ui.available_width();
@@ -968,7 +973,7 @@ fn draw_toolbar(ui: &mut Ui, app: &mut App, style: &egui::Style) {
             // follows was folded away, which `left` does not carry.
             let blank = ui.available_width() - end_width - value_box_overhang(ui);
             ui.add_space(blank.max(gap));
-            draw_exports(ui, app, exported);
+            draw_exports(ui, app, requests, exported);
             if exported > 0 && zoomed {
                 ui.add_space(groups);
             }

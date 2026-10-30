@@ -41,6 +41,8 @@ pub enum Action {
     Open,
     /// Ask the host to write a PDF of the pages on screen.
     ExportPdf,
+    /// Ask the host to write one PNG per page on screen.
+    ExportPng,
     /// Ask the host to print the pages on screen.
     Print,
 }
@@ -105,6 +107,8 @@ pub enum KeyPress {
     O,
     /// Write a PDF.
     S,
+    /// Write one PNG per page.
+    E,
     /// Print.
     P,
     /// Find on the page.
@@ -150,6 +154,7 @@ fn action_for(key: KeyPress, held: Held) -> Option<Action> {
             KeyPress::O => Some(Action::Open),
             KeyPress::F => Some(Action::ToggleSearch),
             KeyPress::S => Some(Action::ExportPdf),
+            KeyPress::E => Some(Action::ExportPng),
             KeyPress::P => Some(Action::Print),
             // The browser's find shortcut. The key carries a slash, not the
             // question mark some layouts print on it: the binding follows the

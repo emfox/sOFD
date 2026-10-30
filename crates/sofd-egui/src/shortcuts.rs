@@ -29,6 +29,7 @@ pub fn press(key: Key) -> Option<sofd_session::action::KeyPress> {
         Key::Escape => KeyPress::Escape,
         Key::O => KeyPress::O,
         Key::S => KeyPress::S,
+        Key::E => KeyPress::E,
         Key::P => KeyPress::P,
         Key::F => KeyPress::F,
         Key::J => KeyPress::J,

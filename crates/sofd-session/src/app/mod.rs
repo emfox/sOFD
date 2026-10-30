@@ -799,6 +799,7 @@ impl App {
             Action::FocusSearch | Action::Escape => {}
             Action::Open => self.request_open(),
             Action::ExportPdf => self.request_export(crate::export_worker::ExportFormat::Pdf),
+            Action::ExportPng => self.request_export(crate::export_worker::ExportFormat::Png),
             Action::Print => self.request_print(),
         }
     }

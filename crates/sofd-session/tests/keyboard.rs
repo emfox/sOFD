@@ -74,6 +74,8 @@ fn f3_walks_the_hits_in_both_directions() {
 fn the_command_keys_reach_the_expensive_actions() {
     assert_eq!(press(KeyPress::O, ctrl()), Some(Action::Open));
     assert_eq!(press(KeyPress::S, ctrl()), Some(Action::ExportPdf));
+    // The second export sits beside the first, so the pair reads as a pair.
+    assert_eq!(press(KeyPress::E, ctrl()), Some(Action::ExportPng));
     assert_eq!(press(KeyPress::P, ctrl()), Some(Action::Print));
     assert_eq!(press(KeyPress::F, ctrl()), Some(Action::ToggleSearch));
     assert_eq!(press(KeyPress::Slash, ctrl()), Some(Action::FocusSearch));
