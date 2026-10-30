@@ -3039,3 +3039,28 @@ fn an_object_alpha_scales_rather_than_replaces_the_colour_alpha() {
         .expect("a fill");
     assert_eq!(a, 64, "half of a half");
 }
+
+#[test]
+fn a_text_object_honours_the_object_alpha_as_well() {
+    // The same backplate a path draws, a text object can draw too: an
+    // invisible note behind the visible page. The alpha reaches the fill
+    // exactly as it does for a path, or the note paints over the page.
+    let ops = page_ops(
+        r##"<TextObject ID="10" Boundary="0 0 40 10" Alpha="0" Fill="true">
+  <FillColor Value="#FF0000"/>
+  <TextCode>hidden</TextCode>
+</TextObject>"##,
+        "",
+    );
+    let a = ops
+        .iter()
+        .find_map(|op| match op {
+            DrawOp::Text(run) => match run.fill.as_ref() {
+                Some(Paint::Solid(c)) => Some(c.a),
+                _ => None,
+            },
+            _ => None,
+        })
+        .expect("the text run");
+    assert_eq!(a, 0, "an invisible object paints no marks");
+}

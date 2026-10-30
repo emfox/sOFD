@@ -588,28 +588,34 @@ fn flatten_text(
     let (fill_on, stroke_on) = resolve_paint(&t.base, param, (true, false));
     let black = default_color();
     let fill = if fill_on {
-        Some(solid(
-            resolve_paint_color(
-                t.base.fill_color.as_ref(),
-                param,
-                |d| d.fill_color.as_ref(),
-                &black,
-            ),
-            colors,
-        )?)
+        Some(faded(
+            solid(
+                resolve_paint_color(
+                    t.base.fill_color.as_ref(),
+                    param,
+                    |d| d.fill_color.as_ref(),
+                    &black,
+                ),
+                colors,
+            )?,
+            t.base.alpha,
+        ))
     } else {
         None
     };
     let stroke = if stroke_on {
-        Some(solid(
-            resolve_paint_color(
-                t.base.stroke_color.as_ref(),
-                param,
-                |d| d.stroke_color.as_ref(),
-                &black,
-            ),
-            colors,
-        )?)
+        Some(faded(
+            solid(
+                resolve_paint_color(
+                    t.base.stroke_color.as_ref(),
+                    param,
+                    |d| d.stroke_color.as_ref(),
+                    &black,
+                ),
+                colors,
+            )?,
+            t.base.alpha,
+        ))
     } else {
         None
     };
