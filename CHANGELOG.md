@@ -13,6 +13,7 @@ release is written up is in
 - **The reader's state and its `egui` shell are separate crates**: `sofd-session` holds the open document, the page cache and every queue, and `sofd-egui` draws them, so a second shell — Tauri, Qt, a canvas of its own — drives the same decisions instead of reimplementing them. The binary is still `sofd-reader`.
 - **A key press maps to intent without the toolkit**: `sofd_session::action::interpret` takes the reader's own key names and modifiers, and `sofd-egui` translates `egui`'s codes into them, so which key does what is written down once and tested with no window attached.
 - **A page can be drawn from geometry instead of a bitmap**: `Document::vector_page` hands a shell the outlines in page millimetres, so a zoom is a transform rather than another render. `canvas_shell` is the worked example, and a document from another producer is now committed and checked against annex A.
+- **A third producer's document is read**: `compliance/fixtures/wps.ofd` is four pages of a Chinese official letter WPS Office wrote, so the committed fixtures now hold two producers other than this project rather than one — and the annex A gate validates all of them.
 - **A space is no longer counted as a missing glyph**, so a document whose fonts are complete stops warning that it lost every space it contains.
 
 ### Server
