@@ -1,9 +1,9 @@
 //! sofd-convert: one page's op stream, written as another format.
 //! A new target format means one [`replay::PageSink`] and nothing else.
 //!
-//! A page, not a document: assembling pages into one file belongs to whoever
-//! holds the document, a layer above. What this crate hands that caller — the
-//! facade `sofd` — is the per-page sink, and nothing here opens a document.
+//! Formats whose file structure spans pages — PDF, with its `/Pages` tree and
+//! catalog — build that skeleton here, because it is format knowledge. Nothing
+//! in this crate opens a document: pages arrive already flattened.
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
@@ -21,7 +21,7 @@ pub use replay::{PageSink, PaintShape, PathShape, paint_shape, replay};
 pub use svg::{SvgOptions, SvgSink, page_to_svg, page_to_svg_with_stats};
 
 #[cfg(feature = "pdf")]
-pub use pdf::{PdfOptions, PdfSink, page_to_pdf, page_to_pdf_with_stats};
+pub use pdf::{PdfOptions, PdfSink, page_to_pdf, page_to_pdf_with_stats, pages_to_pdf};
 
 /// How glyph runs become target-format content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

@@ -7,8 +7,6 @@
 
 mod compare;
 mod document;
-#[cfg(feature = "pdf")]
-mod export;
 #[cfg(feature = "convert")]
 mod outcome;
 pub mod shell;

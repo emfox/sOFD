@@ -286,31 +286,26 @@ impl Document {
     /// Convert the named pages to one PDF file, with the conversion's counts.
     /// Each page keeps its own physical box in the one document.
     ///
-    /// The loop is here rather than in `sofd-convert` because a page is what
-    /// that crate converts: it writes one page into a document, and the tree
-    /// over the pages — order, parents, catalog — is this layer's to build.
+    /// The selection is resolved here, because only this layer knows the
+    /// document; the file over the pages is `sofd-convert`'s, because it is
+    /// the one that knows what a PDF file is.
     #[cfg(feature = "pdf")]
     pub fn to_pdf_pages_with_stats(
         &self,
         pages: &[usize],
     ) -> Result<(Vec<u8>, sofd_convert::ConversionStats)> {
+        let mut selected = Vec::with_capacity(pages.len());
+        for wanted in pages {
+            selected.push(
+                self.page(*wanted)
+                    .ok_or_else(|| out_of_range(*wanted, self.page_count()))?,
+            );
+        }
         let options = sofd_convert::PdfOptions {
             fonts: Some(&self.fonts),
             ..Default::default()
         };
-        let mut stats = sofd_convert::ConversionStats::default();
-        let mut doc = lopdf::Document::new();
-        let mut page_ids = Vec::with_capacity(pages.len());
-        for wanted in pages {
-            let page = self
-                .page(*wanted)
-                .ok_or_else(|| out_of_range(*wanted, self.page_count()))?;
-            let mut sink = sofd_convert::PdfSink::new(page.page_box, &options);
-            sofd_convert::replay(page, &mut sink)?;
-            stats.absorb(sink.stats());
-            page_ids.push(sink.emit_page(&mut doc)?);
-        }
-        Ok((crate::export::finish_document(&mut doc, page_ids)?, stats))
+        sofd_convert::pages_to_pdf(&selected, &options)
     }
 
     /// Convert the named pages to one PDF, with one merged account of what

@@ -5,6 +5,7 @@
 //! One page in, one page out: [`PdfSink::emit_page`] hands back the object it
 //! wrote, so a document-level export composes pages above this crate.
 
+use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
@@ -672,12 +673,40 @@ pub fn page_to_pdf_with_stats(
     page: &sofd_display::PageDisplay,
     options: &PdfOptions<'_>,
 ) -> Result<(Vec<u8>, crate::ConversionStats)> {
-    let mut sink = PdfSink::new(page.page_box, options);
-    replay(page, &mut sink)?;
-    let stats = sink.stats.clone();
+    pages_to_pdf(&[page], options)
+}
+
+/// Convert several pages into one PDF, in the order given.
+///
+/// The file skeleton — `/Pages` and the `/Catalog` rooting it — is format
+/// knowledge, so it is built here, not by whatever layer holds the pages.
+///
+/// Returns the bytes and what every page cost.
+pub fn pages_to_pdf(
+    pages: &[&sofd_display::PageDisplay],
+    options: &PdfOptions<'_>,
+) -> Result<(Vec<u8>, crate::ConversionStats)> {
+    let mut stats = crate::ConversionStats::default();
     let mut doc = Document::new();
-    let page_id = sink.emit_page(&mut doc)?;
-    Ok((finish_one_page_document(&mut doc, page_id)?, stats))
+    // Keyed on the display page itself, so a caller that names the same one
+    // twice pays for it once. Two distinct pages that happen to draw the same
+    // thing stay two objects, which is what their separate `/Parent` needs.
+    let mut written: HashMap<*const sofd_display::PageDisplay, ObjectId> = HashMap::new();
+    let mut page_ids = Vec::with_capacity(pages.len());
+    for page in pages {
+        if let Some(id) = written.get(&(*page as *const _)) {
+            page_ids.push(*id);
+            continue;
+        }
+        let mut sink = PdfSink::new(page.page_box, options);
+        replay(page, &mut sink)?;
+        stats.absorb(sink.stats());
+        let id = sink.emit_page(&mut doc)?;
+        written.insert(*page as *const _, id);
+        page_ids.push(id);
+    }
+    let bytes = finish_document(&mut doc, page_ids)?;
+    Ok((bytes, stats))
 }
 
 /// The colour operator for `paint`, with an alpha state when it is
@@ -725,14 +754,21 @@ fn stroke_state(style: &StrokeStyle) -> String {
     s
 }
 
-fn finish_one_page_document(doc: &mut Document, page_id: ObjectId) -> Result<Vec<u8>> {
+/// Wire the catalog and page tree over `page_ids`, then serialize.
+///
+/// `page_ids` is in the order the pages should be read; the same object named
+/// twice is referenced twice rather than written twice.
+fn finish_document(doc: &mut Document, page_ids: Vec<ObjectId>) -> Result<Vec<u8>> {
+    let kids: Vec<Object> = page_ids.iter().copied().map(Object::Reference).collect();
     let mut pages = Dictionary::new();
     pages.set("Type", Object::Name(b"Pages".to_vec()));
-    pages.set("Kids", Object::Array(vec![Object::Reference(page_id)]));
-    pages.set("Count", 1i64);
+    pages.set("Kids", Object::Array(kids));
+    pages.set("Count", page_ids.len() as i64);
     let pages_id = doc.add_object(pages);
-    if let Ok(dict) = doc.get_dictionary_mut(page_id) {
-        dict.set("Parent", Object::Reference(pages_id));
+    for id in &page_ids {
+        if let Ok(dict) = doc.get_dictionary_mut(*id) {
+            dict.set("Parent", Object::Reference(pages_id));
+        }
     }
     let mut catalog = Dictionary::new();
     catalog.set("Type", Object::Name(b"Catalog".to_vec()));
@@ -742,7 +778,7 @@ fn finish_one_page_document(doc: &mut Document, page_id: ObjectId) -> Result<Vec
 
     let mut out = Vec::new();
     doc.save_to(&mut out)
-        .map_err(|e| convert_error("page", e.to_string()))?;
+        .map_err(|e| convert_error("document", e.to_string()))?;
     Ok(out)
 }
 
@@ -1704,5 +1740,52 @@ mod tests {
         assert_eq!(num(0.5), "0.5");
         assert_eq!(num(-0.00001), "0");
         assert_eq!(num(f64::NAN), "0");
+    }
+
+    #[test]
+    fn several_pages_become_one_file_in_the_order_given() {
+        let first = page(vec![sofd_display::DrawOp::Path {
+            path: rect(0.0, 0.0, 10.0, 10.0),
+            fill: Some(Paint::Solid(Color::rgba(255, 0, 0, 255))),
+            stroke: None,
+            stroke_style: StrokeStyle::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let second = page(vec![sofd_display::DrawOp::Path {
+            path: rect(0.0, 0.0, 10.0, 10.0),
+            fill: Some(Paint::Solid(Color::rgba(0, 0, 255, 255))),
+            stroke: None,
+            stroke_style: StrokeStyle::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let (bytes, _) = pages_to_pdf(&[&first, &second], &PdfOptions::default()).expect("convert");
+        let doc = Document::load_from(&bytes[..]).expect("parse");
+        assert_eq!(doc.get_pages().len(), 2, "the /Pages tree counts both");
+        let catalog = doc.catalog().expect("catalog");
+        assert!(catalog.get(b"Pages").is_ok(), "the catalog roots the tree");
+    }
+
+    #[test]
+    fn a_repeated_page_is_referenced_twice_rather_than_written_twice() {
+        let p = page(vec![sofd_display::DrawOp::Path {
+            path: rect(0.0, 0.0, 10.0, 10.0),
+            fill: Some(Paint::Solid(Color::BLACK)),
+            stroke: None,
+            stroke_style: StrokeStyle::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let (bytes, _) = pages_to_pdf(&[&p, &p], &PdfOptions::default()).expect("convert");
+        let doc = Document::load_from(&bytes[..]).expect("parse");
+        // `get_pages` walks Kids, so a repeated id appears twice even though
+        // the object it names was written once.
+        assert_eq!(doc.get_pages().len(), 2, "listed twice");
+        let count = doc
+            .catalog()
+            .and_then(|c| c.get(b"Pages"))
+            .and_then(|p| doc.get_dictionary(p.as_reference().expect("a reference")))
+            .and_then(|p| p.get(b"Count"))
+            .and_then(Object::as_i64)
+            .expect("count");
+        assert_eq!(count, 2, "the tree still reads as two pages");
     }
 }

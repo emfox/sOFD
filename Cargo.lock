@@ -6234,7 +6234,6 @@ version = "0.9.0"
 dependencies = [
  "criterion",
  "image",
- "lopdf",
  "rayon",
  "sofd-archive",
  "sofd-common",

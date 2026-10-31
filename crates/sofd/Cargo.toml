@@ -34,9 +34,6 @@ sofd-archive = { path = "../sofd-archive", version = "0.5", optional = true }
 sofd-print = { path = "../sofd-print", version = "0.5", optional = true }
 tracing.workspace = true
 rayon = { version = "1.11", optional = true }
-# The page tree over the pages `sofd-convert` writes, which is a document-level
-# job and so lives here rather than in the crate that converts one page.
-lopdf = { workspace = true, optional = true }
 
 [[test]]
 name = "edit_round_trip"
@@ -74,7 +71,7 @@ sign     = ["dep:sofd-sign", "dep:sofd-crypto"]
 convert  = ["dep:sofd-convert", "dep:sofd-render"]
 # `pdf` nests inside `convert` (convert is the superset): enabling it means
 # "convert, plus the PDF writer on top", not a parallel alternative.
-pdf      = ["convert", "sofd-convert/pdf", "dep:lopdf"]
+pdf      = ["convert", "sofd-convert/pdf"]
 # No `office` or `ocr` feature here either: a forwarding name enabled nothing
 # in the crate it named, so a caller asked for a capability and compiled
 # without it. Enabling one now fails the build rather than lying.
