@@ -1,6 +1,6 @@
 //! The type scale the interface is drawn at: named roles and the size each one
-//! takes. Nothing here knows a toolkit, so a second shell draws the same scale
-//! and the state that picks a text size can be tested with no window.
+//! takes. It is the only place a point size is written, and it is here rather
+//! than in either shell so a second shell draws the same scale.
 
 /// The size interface text is drawn at before the reader's own choice scales
 /// it.

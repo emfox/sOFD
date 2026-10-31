@@ -1,6 +1,7 @@
 //! The appearance tables from `docs/Ui-spec.md` section 5: the only place a
-//! colour or a point size is written. A zone names a token or a style, never a
-//! number, so a theme switch cannot leave one panel behind.
+//! colour is written. The type scale is not here — it lives in
+//! `sofd-session::typography`, so a second shell draws the same sizes — and
+//! is re-exported below, so a widget still names one module.
 
 use eframe::egui::{self, Color32, FontFamily, FontId, TextStyle, Theme};
 pub use sofd_session::typography::{BASE_POINTS, SCALE, Style};
