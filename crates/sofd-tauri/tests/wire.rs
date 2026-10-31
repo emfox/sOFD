@@ -5,8 +5,8 @@
 //! a front end would actually receive: shapes in drawing order, a `d` that
 //! parses, a stroke width in millimetres, and a colour it can set.
 
+use sofd::shell::wire::Rect;
 use sofd::{Document, RenderOptions};
-use sofd_common::Rect;
 use sofd_io::FileSource;
 use sofd_tauri::wire::{WirePaint, WireShape, geometry, marks};
 

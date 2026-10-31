@@ -34,6 +34,9 @@ sofd-archive = { path = "../sofd-archive", version = "0.5", optional = true }
 sofd-print = { path = "../sofd-print", version = "0.5", optional = true }
 tracing.workspace = true
 rayon = { version = "1.11", optional = true }
+# The shell wire format is serialized straight to a webview, so the types a
+# canvas receives carry their own derive rather than a copy in every shell.
+serde = { workspace = true, optional = true }
 
 [[test]]
 name = "edit_round_trip"
@@ -63,7 +66,7 @@ sofd-convert = { path = "../sofd-convert", version = "0.9" }
 default = ["render", "sign", "convert", "pdf"]
 
 # Capability features, to trim binary size per delivery form.
-render   = ["dep:sofd-render"]
+render   = ["dep:sofd-render", "dep:serde"]
 print    = ["dep:sofd-print"]
 sign     = ["dep:sofd-sign", "dep:sofd-crypto"]
 # Convert pulls in the raster backend anyway (PNG output goes through it),

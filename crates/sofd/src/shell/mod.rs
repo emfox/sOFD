@@ -1,9 +1,12 @@
 //! What a shell needs to draw a document itself, rather than as a bitmap.
 //!
 //! A canvas takes path data, not geometry: `Path2D` in a browser, an `egui`
-//! shape on the desktop. Handing that out is the difference between a shell
-//! that reads the display list and one that reaches into the converter for it,
-//! so the spelling lives here and the shells stay on one side of the facade.
+//! shape on the desktop. Handing that out is what keeps a shell on one side
+//! of the facade. [`wire`] goes further and hands back a whole page, already
+//! re-expressed for a canvas.
+
+#[cfg(feature = "render")]
+pub mod wire;
 
 /// A path as SVG `d` data, in millimetres.
 ///

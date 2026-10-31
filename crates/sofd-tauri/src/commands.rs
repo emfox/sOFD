@@ -217,7 +217,7 @@ pub fn page(host: State<'_, Host>, index: usize) -> Result<PageGeometry, String>
 pub fn overlays(host: State<'_, Host>, index: usize) -> WireMarks {
     let app = host.app.lock().expect("the session lock is never poisoned");
     let hits = app.hit_rects_on(index);
-    let boundaries: Vec<(sofd_common::Rect, bool)> = app
+    let boundaries: Vec<_> = app
         .annotations_on(index)
         .into_iter()
         .filter(|(annotation, _)| annotation.visible)
