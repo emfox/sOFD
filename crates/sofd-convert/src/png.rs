@@ -1,6 +1,7 @@
 //! PNG backend.
 //! Rasterization belongs to the render crate; this only encodes its output,
-//! so the two never disagree about what a page looks like.
+//! so the two never disagree about what a page looks like. Behind the `png`
+//! feature, because it is the only backend that needs pixels.
 
 use sofd_display::PageDisplay;
 use sofd_error::{OfdError, RenderError, Result};

@@ -170,7 +170,7 @@ impl Document {
     /// Rasterize one page and encode it as PNG, reporting what the page was
     /// short of. The face search only happens while drawing, so a caller that
     /// needs to warn about a missing font has to ask here and not before.
-    #[cfg(feature = "convert")]
+    #[cfg(all(feature = "convert", feature = "png"))]
     pub fn to_png_with_stats(
         &self,
         index: usize,
@@ -368,7 +368,7 @@ impl Document {
     }
 
     /// Rasterize one page and encode it as PNG.
-    #[cfg(feature = "convert")]
+    #[cfg(all(feature = "convert", feature = "png"))]
     pub fn to_png(&self, index: usize, options: &sofd_render::RenderOptions) -> Result<Vec<u8>> {
         let page = self
             .page(index)

@@ -57,21 +57,23 @@ image.workspace = true
 # Benchmarks build their documents out of testkit fixtures and measure the
 # raster, which is a dev-dependency's job: it reaches no consumer.
 criterion.workspace = true
-sofd-convert = { path = "../sofd-convert", version = "0.9" }
+sofd-convert = { path = "../sofd-convert", version = "0.9", features = ["png"] }
 
 [features]
 # `sofd-convert` reaches PDF only through `sofd-convert/pdf`, because the
 # workspace names it `default-features = false`. So `pdf` belongs here: an
 # absent default would leave `cargo add sofd` without PDF writing and no error.
-default = ["render", "sign", "convert", "pdf"]
+default = ["render", "sign", "convert", "png", "pdf"]
 
 # Capability features, to trim binary size per delivery form.
 render   = ["dep:sofd-render", "dep:serde"]
 print    = ["dep:sofd-print"]
 sign     = ["dep:sofd-sign", "dep:sofd-crypto"]
-# Convert pulls in the raster backend anyway (PNG output goes through it),
-# so naming the dependency here costs no extra compilation.
+# `convert` is the writers that need no pixels: SVG and, with `pdf`, PDF.
 convert  = ["dep:sofd-convert", "dep:sofd-render"]
+# PNG output is the one path that rasterizes, so the raster stack is named
+# here and a caller that wants text formats alone can leave it at home.
+png      = ["convert", "sofd-convert/png"]
 # `pdf` nests inside `convert` (convert is the superset): enabling it means
 # "convert, plus the PDF writer on top", not a parallel alternative.
 pdf      = ["convert", "sofd-convert/pdf"]

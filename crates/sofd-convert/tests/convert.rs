@@ -11,6 +11,7 @@ use sofd_display::ops::{Color, Paint, PaintRule, StrokeStyle};
 use sofd_display::{DrawOp, PageDisplay};
 use sofd_font::FontManager;
 use sofd_geometry::Path;
+#[cfg(feature = "png")]
 use sofd_render::RenderOptions;
 
 /// A page with no content, useful for shape assertions on the wrapper.
@@ -103,6 +104,7 @@ fn pdf_output_starts_with_the_format_marker() {
 }
 
 #[test]
+#[cfg(feature = "png")]
 fn png_output_is_a_png_of_the_requested_size() {
     let page = one_rect_page(0);
     let fonts = FontManager::new();
@@ -118,6 +120,7 @@ fn png_output_is_a_png_of_the_requested_size() {
 }
 
 #[test]
+#[cfg(feature = "png")]
 fn the_pixel_budget_is_enforced_before_any_raster_is_allocated() {
     let page = one_rect_page(0);
     let fonts = FontManager::new();
@@ -244,6 +247,21 @@ fn content_of(pdf: &[u8]) -> String {
     String::from_utf8_lossy(&doc.get_page_content(page)).into_owned()
 }
 
+/// A PNG of straight RGBA bytes, written by this test rather than by the
+/// encoder under test: a fixture that goes through `sofd-convert` would make
+/// the PDF cases depend on the raster backend they never touch.
+fn encode_rgba(width: u32, height: u32, rgba: &[u8]) -> Vec<u8> {
+    let mut png = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut png, width, height);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().expect("png header");
+        writer.write_image_data(rgba).expect("png data");
+    }
+    png
+}
+
 /// A 2x2 PNG: red everywhere, with the right column half transparent.
 ///
 /// The shape a seal has over the line it signs: colour where the ink is,
@@ -256,12 +274,7 @@ fn translucent_png() -> Vec<u8> {
             rgba.extend_from_slice(&[220, 30, 30, alpha]);
         }
     }
-    let image = image::RgbaImage::from_raw(2, 2, rgba).expect("2x2 pixels");
-    let mut png = std::io::Cursor::new(Vec::new());
-    image::DynamicImage::ImageRgba8(image)
-        .write_to(&mut png, image::ImageFormat::Png)
-        .expect("encode the fixture");
-    png.into_inner()
+    encode_rgba(2, 2, &rgba)
 }
 
 /// A page whose only content is that resource, placed over the whole sheet.
@@ -329,16 +342,11 @@ fn a_translucent_image_travels_as_a_soft_mask() {
 
 #[test]
 fn an_opaque_image_writes_no_mask() {
-    let mut png = std::io::Cursor::new(Vec::new());
     let mut rgba = Vec::new();
     for _ in 0..4 {
         rgba.extend_from_slice(&[200, 10, 10, 255]);
     }
-    let image = image::RgbaImage::from_raw(2, 2, rgba).expect("2x2 pixels");
-    image::DynamicImage::ImageRgba8(image)
-        .write_to(&mut png, image::ImageFormat::Png)
-        .expect("encode the fixture");
-    let page = seal_page(png.into_inner());
+    let page = seal_page(encode_rgba(2, 2, &rgba));
     let pdf = page_to_pdf(&page, &PdfOptions::default()).expect("convert");
     let doc = lopdf::Document::load_mem(&pdf).expect("the export is a PDF");
     let painted = doc

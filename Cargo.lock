@@ -6311,6 +6311,7 @@ dependencies = [
  "criterion",
  "image",
  "lopdf",
+ "png 0.18.1",
  "sofd-common",
  "sofd-display",
  "sofd-error",

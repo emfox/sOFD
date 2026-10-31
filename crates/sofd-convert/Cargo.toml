@@ -19,14 +19,19 @@ sofd-display = { path = "../sofd-display", version = "0.8" }
 sofd-io = { path = "../sofd-io", version = "0.5" }
 sofd-geometry = { path = "../sofd-geometry", version = "0.5" }
 sofd-font = { path = "../sofd-font", version = "0.5" }
-sofd-render = { path = "../sofd-render", version = "0.7" }
-image.workspace = true
+# PNG is the one backend that needs pixels, so the raster stack is behind a
+# feature: a build that only writes PDF or SVG never compiles tiny-skia.
+sofd-render = { path = "../sofd-render", version = "0.7", optional = true }
+# The raster backend is the only thing here that produces pixels, so the
+# encoder comes with it and a PDF-only build leaves it out.
+image = { workspace = true, optional = true }
 tracing.workspace = true
 lopdf = { workspace = true, optional = true }
 
 [features]
-default = ["pdf"]
+default = ["pdf", "png"]
 pdf     = ["dep:lopdf"]
+png     = ["dep:sofd-render", "dep:image"]
 # No `office` or `ocr` feature: one that compiles and does nothing reads as a
 # capability this crate has. Enabling either now fails the build, which is the
 # honest answer. `docs/Roadmap.md` carries the intent.
@@ -40,10 +45,14 @@ sofd-testkit = { path = "../sofd-testkit" }
 # version numbers for them.
 sofd-parser = { path = "../sofd-parser" }
 sofd-package = { path = "../sofd-package" }
+# The tests write their own PNG fixtures, so a PDF case does not need the
+# raster backend to have been compiled in.
+png = "0.18"
 
 [[bench]]
 name = "convert"
 harness = false
+required-features = ["png"]
 
 [package.metadata.cargo-semver-checks.lints]
 workspace = true

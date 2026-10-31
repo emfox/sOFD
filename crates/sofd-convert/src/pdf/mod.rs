@@ -971,6 +971,20 @@ mod tests {
     use sofd_display::ops::Paint;
     use sofd_font::FontId;
 
+    /// A 2x2 PNG of the given straight RGBA bytes. Written here rather than
+    /// by the image crate: a PDF case must compile without the raster stack.
+    fn png_fixture(rgba: &[u8]) -> Vec<u8> {
+        let mut out = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut out, 2, 2);
+            encoder.set_color(png::ColorType::Rgba);
+            encoder.set_depth(png::BitDepth::Eight);
+            let mut writer = encoder.write_header().expect("png header");
+            writer.write_image_data(rgba).expect("png data");
+        }
+        out
+    }
+
     /// A real face, so outlining runs for real rather than degrading.
     fn font_bytes() -> Vec<u8> {
         std::fs::read(concat!(
@@ -1435,11 +1449,7 @@ mod tests {
 
     #[test]
     fn an_image_becomes_an_xobject_drawn_with_a_matrix() {
-        let mut png = Vec::new();
-        let solid = image::RgbaImage::from_pixel(2, 2, image::Rgba([10, 20, 30, 255]));
-        solid
-            .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
-            .expect("encode the fixture");
+        let png = png_fixture(&[10, 20, 30, 255].repeat(4));
         let p = page(vec![sofd_display::DrawOp::Image {
             image: ImageRef::new(
                 "i",

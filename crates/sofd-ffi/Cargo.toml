@@ -14,7 +14,7 @@ publish = false
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-sofd = { path = "../sofd", version = "0.9", features = ["sign", "convert", "search", "pdf"] }
+sofd = { path = "../sofd", version = "0.9", features = ["sign", "convert", "search", "pdf", "png"] }
 sofd-error = { path = "../sofd-error", version = "0.5" }
 sofd-bindings = { path = "../sofd-bindings", version = "0.2" }
 

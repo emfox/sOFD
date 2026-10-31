@@ -9,6 +9,7 @@
 
 use sofd_font::Unresolved;
 
+#[cfg(feature = "png")]
 pub mod png;
 pub mod replay;
 pub mod svg;
@@ -16,6 +17,7 @@ pub mod svg;
 #[cfg(feature = "pdf")]
 pub mod pdf;
 
+#[cfg(feature = "png")]
 pub use png::{encode_png, page_to_png};
 pub use replay::{PageSink, PaintShape, PathShape, paint_shape, replay};
 pub use svg::{SvgOptions, SvgSink, page_to_svg, page_to_svg_with_stats};

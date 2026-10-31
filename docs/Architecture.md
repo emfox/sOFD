@@ -249,11 +249,12 @@ Features trim binary size per delivery form:
 
 ```toml
 [features]
-default  = ["render", "sign", "convert", "pdf"]
+default  = ["render", "sign", "convert", "png", "pdf"]
 render   = ["dep:sofd-render"]
 print    = ["dep:sofd-print"]
 sign     = ["dep:sofd-sign", "dep:sofd-crypto"]
-convert  = ["dep:sofd-convert", "dep:sofd-render"]
+convert  = ["dep:sofd-convert", "dep:sofd-render"]  # writers that need no pixels: SVG, and PDF
+png      = ["convert", "sofd-convert/png"]          # the one output that rasterizes
 pdf      = ["convert", "sofd-convert/pdf"]  # nests inside convert: convert, plus the PDF writer
 edit     = ["dep:sofd-edit"]
 search   = ["dep:sofd-search"]
@@ -262,6 +263,10 @@ annot    = []
 batch    = ["dep:rayon"]   # rendering strategy: rayon sweep in render_pages, not a capability
 async    = ["batch"]       # the name `batch` shipped under, kept so a caller's list still builds
 ```
+
+`png` is separate from `convert` because it is the only backend that needs
+pixels: without it, `sofd-convert` compiles neither the raster stack nor the
+image encoder, so a server that writes PDFs and SVGs stops paying for tiny-skia.
 
 `annot` only gates the `annotations()` accessor: annotations are read through
 the parser, which is never optional, so disabling it compiles the accessor out

@@ -10,7 +10,7 @@ repository.workspace = true
 publish = false
 
 [dependencies]
-sofd = { path = "../sofd", version = "0.9", features = ["render", "search", "pdf", "print", "annot", "sign"] }
+sofd = { path = "../sofd", version = "0.9", features = ["render", "search", "pdf", "print", "annot", "sign", "png"] }
 # A search hit carries a page-space rectangle, and `Rect` is defined here.
 sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-i18n = { path = "../sofd-i18n", version = "0.5" }
