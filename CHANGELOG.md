@@ -20,6 +20,19 @@ release is written up is in
 
 ### Architecture
 
+- **Format knowledge moved to the crates that own the format.** A second
+  cohesion pass closed six coupling faults: `sofd-convert::pages_to_pdf` now
+  builds the `/Pages` tree and catalog, so the facade dropped `export.rs` and
+  its direct `lopdf` dependency; the canvas wire format moved to
+  `sofd::shell::wire`, so `sofd-tauri` names `sofd`, `sofd-session` and
+  `sofd-icons` only; the raster stack sits behind a `png` feature in both
+  crates, so a PDF-and-SVG build no longer compiles tiny-skia; nine unread
+  manifest edges went, two of them demoted to dev-dependencies; and the memory
+  benchmark moved to `sofd` because it measures the whole chain. **Breaking**:
+  `sofd-convert` 0.9.0 gains the `png` feature (on by default) and drops
+  `sofd_render` from its unconditional dependencies; `sofd` 0.9.0 gains `png`
+  and a `serde` dependency behind `render`, and `to_png`/`to_png_with_stats`
+  now require `png`.
 - **`sofd-convert` converts one page, the facade assembles documents.** The
   document-level exports (`to_pdf` over several pages, page-tree and catalog
   assembly, summed counts) moved from `sofd-convert` up to `sofd` — the crate
