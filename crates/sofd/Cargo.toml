@@ -42,11 +42,22 @@ lopdf = { workspace = true, optional = true }
 name = "edit_round_trip"
 required-features = ["archive"]
 
+# The memory ceiling is measured over the whole chain — open, parse, rasterize
+# — which is why it lives here rather than in any one crate below.
+[[bench]]
+name = "memory"
+harness = false
+required-features = ["convert"]
+
 [dev-dependencies]
 # Fixture archives, so a test opens a real document rather than hand-built XML.
 sofd-testkit = { path = "../sofd-testkit" }
 # The golden suite compares rendered pixels, so it decodes PNG to read them.
 image.workspace = true
+# Benchmarks build their documents out of testkit fixtures and measure the
+# raster, which is a dev-dependency's job: it reaches no consumer.
+criterion.workspace = true
+sofd-convert = { path = "../sofd-convert", version = "0.9" }
 
 [features]
 # `sofd-convert` reaches PDF only through `sofd-convert/pdf`, because the

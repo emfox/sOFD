@@ -6232,6 +6232,7 @@ dependencies = [
 name = "sofd"
 version = "0.9.0"
 dependencies = [
+ "criterion",
  "image",
  "lopdf",
  "rayon",
@@ -6489,9 +6490,7 @@ version = "0.5.3"
 dependencies = [
  "criterion",
  "proptest",
- "sofd",
  "sofd-common",
- "sofd-convert",
  "sofd-display",
  "sofd-error",
  "sofd-font",
@@ -6499,7 +6498,6 @@ dependencies = [
  "sofd-io",
  "sofd-model",
  "sofd-package",
- "sofd-render",
  "sofd-testkit",
  "sofd-xml",
  "tracing",

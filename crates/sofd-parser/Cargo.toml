@@ -25,19 +25,10 @@ tracing.workspace = true
 [dev-dependencies]
 proptest.workspace = true
 criterion.workspace = true
-sofd-render = { path = "../sofd-render", version = "0.7" }
 sofd-testkit = { path = "../sofd-testkit" }
-# The memory benchmark rasterizes a page, which is where a page's bytes go.
-sofd = { path = "../sofd", version = "0.9" }
-sofd-convert = { path = "../sofd-convert", version = "0.9" }
 
 [[bench]]
 name = "parse"
-harness = false
-
-# The memory ceiling, measured through a counting allocator rather than timed.
-[[bench]]
-name = "memory"
 harness = false
 
 [package.metadata.cargo-semver-checks.lints]

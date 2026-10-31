@@ -161,7 +161,7 @@ def inferred_logs(criterion_dir: Path) -> list[Path]:
         log = criterion_dir / f"{name.replace('/', '-')}-readings.log"
         log.write_text(
             "no reading was kept for this run; "
-            "run `cargo bench -p sofd-parser --bench memory`\n",
+            "run `cargo bench -p sofd --bench memory`\n",
             encoding="utf-8",
         )
         logs.append(log)

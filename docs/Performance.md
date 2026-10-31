@@ -119,10 +119,12 @@ layout shows and then some. A change that made a page cost 40 MB would bring
 twenty pages to 800 MB and be caught here rather than on a reader's machine.
 
 Both readings come from the `memory` benchmark, which wraps the allocator and
-prints what a page holds once it has been drawn:
+prints what a page holds once it has been drawn. It lives in the facade rather
+than in the parser, because a page's bytes are only settled after the page has
+been flattened and rasterized, and that is the whole chain:
 
 ```sh
-cargo bench -p sofd-parser --bench memory | tee memory.log
+cargo bench -p sofd --bench memory | tee memory.log
 python3 scripts/check_performance.py --logs memory.log
 ```
 
@@ -176,7 +178,7 @@ checks each budgeted line against its ceiling. It runs locally after a
 
 ```sh
 cargo bench -p sofd-parser --bench parse
-cargo bench -p sofd-parser --bench memory | tee memory.log
+cargo bench -p sofd --bench memory | tee memory.log
 cargo bench -p sofd-convert --bench convert
 python3 scripts/check_performance.py --logs memory.log
 ```

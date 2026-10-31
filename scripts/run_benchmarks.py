@@ -30,7 +30,7 @@ READINGS = CRITERION / "memory-readings.log"
 # Crate and bench target, in the order the gate expects to find them.
 BENCHES = (
     ("sofd-parser", "parse"),
-    ("sofd-parser", "memory"),
+    ("sofd", "memory"),
     ("sofd-convert", "convert"),
 )
 

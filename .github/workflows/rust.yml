@@ -293,7 +293,7 @@ jobs:
       - name: Run the budgeted benchmarks
         run: |
           cargo bench -p sofd-parser --bench parse
-          cargo bench -p sofd-parser --bench memory
+          cargo bench -p sofd --bench memory
           cargo bench -p sofd-convert --bench convert
 
       - name: Every benchmarked stage is within budget
