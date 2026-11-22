@@ -108,7 +108,7 @@ impl Icon {
             Self::Print => "document-print-symbolic",
             Self::ExportPdf => "document-save-symbolic",
             Self::ExportPng => "image-x-generic-symbolic",
-            Self::Valid => "emblem-ok-symbolic",
+            Self::Valid => "object-select-symbolic",
             Self::Tampered => "dialog-error-symbolic",
             Self::Unverified => "dialog-question-symbolic",
             Self::Untrusted => "dialog-warning-symbolic",
@@ -161,7 +161,7 @@ impl Icon {
     /// lists them. Each is one `<path>` element's `d`, and nothing else.
     pub fn paths(self) -> &'static [&'static str] {
         match self {
-            Self::Open => &[OPEN_0, OPEN_1],
+            Self::Open => &[OPEN_0],
             Self::Close => &[CLOSE_0],
             Self::Search => &[SEARCH_0],
             Self::Signatures => &[CERTIFICATE_0],

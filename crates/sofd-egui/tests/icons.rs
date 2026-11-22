@@ -247,10 +247,10 @@ fn starts_with(whole: &[f64], part: &[f64]) -> bool {
 
 #[test]
 fn every_glyph_matches_the_icon_it_is_named_for() {
-    // The glyphs are copied from the pinned release's own files, checked
+    // The glyphs are copied from Adwaita 51.0's own files, checked
     // against those rather than the host theme: a newer Adwaita redraws some
     // glyphs, and comparing to it would report the pin as a mistake.
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data/adwaita-44");
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data/adwaita-51");
     for icon in Icon::ALL {
         let name = icon.theme_name();
         let path = dir.join(format!("{name}.svg"));

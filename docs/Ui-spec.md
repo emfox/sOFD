@@ -560,7 +560,7 @@ and filled by the reader at draw time:
 
 | Property | Value |
 | --- | --- |
-| Source | `adwaita-icon-theme` 44.0, `symbolic/<context>/<name>.svg` |
+| Source | `adwaita-icon-theme` 51.0, `symbolic/<context>/<name>.svg` |
 | Square | 16 units, `fill` paths, no strokes |
 | Colour | the window's own token, so a glyph follows the theme and high contrast |
 | Fill rule | nonzero winding, as an SVG path fills by default |
