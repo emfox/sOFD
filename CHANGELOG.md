@@ -17,6 +17,10 @@ release is written up is in
   meshes and pattern fills now paint, tiling patterns travel as
   `/PatternType 1` cells with their own resources, and a pattern-filled shape
   keeps the outer half of its stroke instead of being clipped to its fill.
+- **An SVG pattern mirrors the axis its reflection names.** `Row` flipped on
+  the wrong rows and `Column` on the wrong columns, so a reflecting pattern
+  tiled plain copies; the mirrored neighbour is now placed on the axis it
+  belongs to.
 - **A seal stays transparent over what it signs.** Three faults stacked on one
   page: an object's `Alpha` attribute was never read, so a producer's
   `Alpha="0"` backplate painted out the whole sheet; an image exported to PDF

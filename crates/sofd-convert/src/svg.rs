@@ -148,11 +148,12 @@ impl<'a> SvgSink<'a> {
         } else {
             spec.height
         };
-        // A cell drawn once is the common case; a reflecting one needs the
-        // mirrored neighbours in the block so plain tiling reproduces them.
+        // A reflecting pattern needs its mirrored neighbours in the block that
+        // repeats: `Row` flips left and right on alternate rows, so it needs two
+        // rows, and `Column` flips up and down on alternate columns.
         let cols = if matches!(
             spec.reflect,
-            sofd_display::Reflect::Row | sofd_display::Reflect::RowAndColumn
+            sofd_display::Reflect::Column | sofd_display::Reflect::RowAndColumn
         ) {
             2
         } else {
@@ -160,7 +161,7 @@ impl<'a> SvgSink<'a> {
         };
         let rows = if matches!(
             spec.reflect,
-            sofd_display::Reflect::Column | sofd_display::Reflect::RowAndColumn
+            sofd_display::Reflect::Row | sofd_display::Reflect::RowAndColumn
         ) {
             2
         } else {
@@ -170,23 +171,20 @@ impl<'a> SvgSink<'a> {
         for row in 0..rows {
             for col in 0..cols {
                 let (mx, my) = spec.reflect.mirrors(col, row);
-                let transform = match (mx, my) {
-                    (false, false) => String::new(),
-                    (true, false) => format!(
-                        " transform=\"translate({},{}) scale(-1,1)\"",
-                        num(step_x * (col as f64 + 1.0)),
-                        num(0.0)
-                    ),
-                    (false, true) => format!(
-                        " transform=\"translate({},{}) scale(1,-1)\"",
-                        num(0.0),
-                        num(step_y * (row as f64 + 1.0))
-                    ),
-                    (true, true) => format!(
-                        " transform=\"translate({},{}) scale(-1,-1)\"",
-                        num(step_x * (col as f64 + 1.0)),
-                        num(step_y * (row as f64 + 1.0))
-                    ),
+                let sx = if mx { -1.0 } else { 1.0 };
+                let sy = if my { -1.0 } else { 1.0 };
+                let tx = (if mx { spec.width } else { 0.0 }) + step_x * col as f64;
+                let ty = (if my { spec.height } else { 0.0 }) + step_y * row as f64;
+                let transform = if mx || my {
+                    format!(
+                        " transform=\"translate({},{}) scale({},{})\"",
+                        num(tx),
+                        num(ty),
+                        num(sx),
+                        num(sy)
+                    )
+                } else {
+                    String::new()
                 };
                 let mut placed = String::new();
                 for op in &spec.cell.ops {
@@ -1329,6 +1327,52 @@ mod tests {
             "the diagonal copy is mirrored: {svg}"
         );
         assert!(svg.contains("fill=\"#008000\""), "the cell is drawn: {svg}");
+    }
+
+    #[test]
+    fn a_row_reflection_mirrors_across_rows_not_columns() {
+        // `Row` flips left and right as the row advances, so its block is one
+        // step wide and two tall; getting the axes the wrong way round tiles
+        // two plain copies side by side and never mirrors at all.
+        let cell = sofd_display::PageDisplay {
+            index: 0,
+            page_box: Rect::new(0.0, 0.0, 4.0, 4.0),
+            ops: vec![DrawOp::Path {
+                path: rect(0.0, 0.0, 2.0, 1.0),
+                fill: Some(Paint::Solid(Color::rgba(0, 128, 0, 255))),
+                stroke: None,
+                stroke_style: Default::default(),
+                rule: PaintRule::NonZero,
+            }],
+            content_bbox: Rect::EMPTY,
+        };
+        let p = page(vec![DrawOp::Path {
+            path: rect(0.0, 0.0, 20.0, 20.0),
+            fill: Some(Paint::Pattern(Box::new(sofd_display::PatternSpec {
+                cell: Box::new(cell),
+                width: 4.0,
+                height: 4.0,
+                step_x: 4.0,
+                step_y: 4.0,
+                reflect: sofd_display::Reflect::Row,
+            }))),
+            stroke: None,
+            stroke_style: Default::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let svg = page_to_svg(&p, &SvgOptions::default()).expect("convert");
+        assert!(
+            svg.contains("width=\"4\" height=\"8\""),
+            "the block is one step wide and two tall: {svg}"
+        );
+        assert!(
+            svg.contains("translate(4,4) scale(-1,1)"),
+            "the second row sits below and is flipped left to right: {svg}"
+        );
+        assert!(
+            !svg.contains("scale(1,-1)"),
+            "the row is not flipped up and down: {svg}"
+        );
     }
 
     #[test]
