@@ -3,7 +3,7 @@
 //! Every glyph is the Adwaita symbolic icon of the same name, stored as that
 //! file's `d` attributes and nothing else. A shell decides how to fill them, so
 //! two shells draw the same shapes rather than each keeping a copy that drifts.
-//! Source: `adwaita-icon-theme` 44.0, licence CC BY-SA 3.0 US, see NOTICE.md.
+//! Source: `adwaita-icon-theme` 51.0, licence CC BY-SA 3.0 US, see NOTICE.md.
 
 mod data;
 pub mod path;
