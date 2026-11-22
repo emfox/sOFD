@@ -713,7 +713,7 @@ impl PageSink for PdfSink<'_> {
         }
         // `Do` paints across the unit square, so the rect is the placement:
         // dividing by the pixel count too would shrink a 159-px seal to a dot.
-        let placement = Affine::new(dst.w, 0.0, 0.0, dst.h, dst.x, dst.y);
+        let placement = Affine::new(dst.w, 0.0, 0.0, -dst.h, dst.x, dst.y + dst.h);
         let total = self.to_pt(placement);
         let index = self.images.len();
         self.images.push(PendingImage {
@@ -1879,11 +1879,11 @@ mod tests {
         assert_eq!(images.len(), 1, "one image xobject");
         let content = content_of(&bytes);
         assert!(content.contains("/Im0 Do"));
-        // The placement is 10 mm square, so the matrix spans 10 mm in points
-        // whatever the image's own pixel count is: `Do` paints across the unit
-        // square, not across one pixel.
+        // The placement is 10 mm square whatever the image's pixel count is:
+        // `Do` paints across the unit square. The height is negative before the
+        // page flip because the image's space starts at its top-left corner.
         assert!(
-            content.contains("28.3465 0 0 -28.3465 14.1732 827.7165 cm"),
+            content.contains("28.3465 0 0 28.3465 14.1732 799.3701 cm"),
             "{content}"
         );
     }

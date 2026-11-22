@@ -21,6 +21,10 @@ release is written up is in
   the wrong rows and `Column` on the wrong columns, so a reflecting pattern
   tiled plain copies; the mirrored neighbour is now placed on the axis it
   belongs to.
+- **An image exported to PDF is the right way up.** The placement matrix carried
+  the page's y flip as well as the image's own top-down space, so every picture
+  came out mirrored vertically: a photograph of a projection read upside down,
+  and a background texture landed over the text it sat behind.
 - **A seal stays transparent over what it signs.** Three faults stacked on one
   page: an object's `Alpha` attribute was never read, so a producer's
   `Alpha="0"` backplate painted out the whole sheet; an image exported to PDF
