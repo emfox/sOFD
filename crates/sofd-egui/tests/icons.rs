@@ -247,41 +247,33 @@ fn starts_with(whole: &[f64], part: &[f64]) -> bool {
 
 #[test]
 fn every_glyph_matches_the_icon_it_is_named_for() {
-    // The glyphs are copied from Adwaita's own files, checked against those
-    // releases rather than the host theme. The set began at 44.0 and later
-    // glyphs came from 51.0, so a glyph has to match one of the two.
-    let data = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data");
-    let pinned = [data.join("adwaita-44"), data.join("adwaita-51")];
+    // The glyphs are copied from the pinned release's own files, checked
+    // against those rather than the host theme: a newer Adwaita redraws some
+    // glyphs, and comparing to it would report the pin as a mistake.
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data/adwaita-44");
     for icon in Icon::ALL {
         let name = icon.theme_name();
-        let mut seen = 0usize;
-        let mut matched = false;
-        for dir in &pinned {
-            let path = dir.join(format!("{name}.svg"));
-            let Ok(source) = std::fs::read_to_string(&path) else {
-                continue;
-            };
-            seen += 1;
-            let in_file: Vec<Vec<f64>> = source
-                .split("d=\"")
-                .skip(1)
-                .map(|part| points(part.split('"').next().unwrap_or("")))
-                .filter(|path| !path.is_empty())
-                .collect();
-            // A shorthand is spelled out in full here, so compare the points a
-            // path walks through rather than the letters it uses. The theme
-            // also closes by repeating the start, which the reader leaves off.
-            if icons::path_data(icon).iter().all(|d| {
-                let mine = points(d);
-                let mine = &mine[..mine.len().saturating_sub(2)];
-                in_file.iter().any(|path| starts_with(path, mine))
-            }) {
-                matched = true;
-                break;
-            }
+        let path = dir.join(format!("{name}.svg"));
+        let source = std::fs::read_to_string(&path)
+            .unwrap_or_else(|_| panic!("{} is not vendored", path.display()));
+        let in_file: Vec<Vec<f64>> = source
+            .split("d=\"")
+            .skip(1)
+            .map(|part| points(part.split('"').next().unwrap_or("")))
+            .filter(|path| !path.is_empty())
+            .collect();
+        // A shorthand is spelled out in full here, so compare the points a
+        // path walks through rather than the letters it uses. The theme also
+        // closes by repeating the start, which the reader leaves off.
+        for (index, d) in icons::path_data(icon).iter().enumerate() {
+            let mine = points(d);
+            let mine = &mine[..mine.len().saturating_sub(2)];
+            assert!(
+                in_file.iter().any(|path| starts_with(path, mine)),
+                "{name}: path {index} is not in {}",
+                path.display()
+            );
         }
-        assert!(seen > 0, "{name} is not vendored in either pinned release");
-        assert!(matched, "{name} does not match either pinned release");
     }
 }
 

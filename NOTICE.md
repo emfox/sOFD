@@ -12,7 +12,7 @@ name for it (`document-open-symbolic`, `go-next-symbolic`, …).
 
 | | |
 | --- | --- |
-| Source | [adwaita-icon-theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme), releases 44.0 and 51.0 |
+| Source | [adwaita-icon-theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme), release 44.0 |
 | Copyright | the GNOME Project and contributors |
 | Licence | GNU LGPL v3, or Creative Commons Attribution-ShareAlike 3.0 United States |
 | Attribution | "GNOME Project", with a link to https://www.gnome.org where possible |

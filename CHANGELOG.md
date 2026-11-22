@@ -28,6 +28,10 @@ release is written up is in
 - **The webview's URL parser is past a stack-overflow advisory.** `url` moved to
   2.5.9 for RUSTSEC-2026-0592, where a `blob:` URL nested deeply enough aborted
   the process instead of parsing.
+- **The icon set is one Adwaita release again.** The search glyph had been taken
+  from 51.0 while the other nineteen came from 44.0, so the magnifier's handle
+  sat at a different angle from the drawing the rest of the set is built on; it
+  is back on the 44.0 file, which is the release `NOTICE.md` names.
 - **A seal stays transparent over what it signs.** Three faults stacked on one
   page: an object's `Alpha` attribute was never read, so a producer's
   `Alpha="0"` backplate painted out the whole sheet; an image exported to PDF
