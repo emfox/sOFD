@@ -297,13 +297,14 @@ impl<'a> PdfSink<'a> {
         dict.set("PatternType", Object::Integer(1));
         dict.set("PaintType", Object::Integer(1));
         dict.set("TilingType", Object::Integer(1));
+        let bleed = (0.08 * PT_PER_MM) as f32;
         dict.set(
             "BBox",
             Object::Array(vec![
-                Object::Real(0.0),
-                Object::Real(0.0),
-                Object::Real((box_w * PT_PER_MM) as f32),
-                Object::Real((box_h * PT_PER_MM) as f32),
+                Object::Real(-bleed),
+                Object::Real(-bleed),
+                Object::Real((box_w * PT_PER_MM) as f32 + bleed),
+                Object::Real((box_h * PT_PER_MM) as f32 + bleed),
             ]),
         );
         dict.set(
@@ -1492,6 +1493,60 @@ mod tests {
         );
         assert_eq!(stats.paints_approximated, 0, "nothing was simplified");
         assert_eq!(stats.gradients, 0, "a pattern is not a gradient");
+    }
+
+    #[test]
+    fn a_pattern_cell_bleeds_past_its_box_so_repeats_join() {
+        // A cell clipped exactly at its edge leaves a hairline at every repeat:
+        // each tile's antialiased edge blends with the page, not the neighbour.
+        // The box reaches past the cell, and the path fill still clips it.
+        let cell = sofd_display::PageDisplay {
+            index: 0,
+            page_box: Rect::new(0.0, 0.0, 4.0, 4.0),
+            ops: vec![sofd_display::DrawOp::Path {
+                path: rect(0.0, 0.0, 4.0, 4.0),
+                fill: Some(sofd_display::ops::Paint::Solid(Color::BLACK)),
+                stroke: None,
+                stroke_style: Default::default(),
+                rule: PaintRule::NonZero,
+            }],
+            content_bbox: Rect::EMPTY,
+        };
+        let p = page(vec![sofd_display::DrawOp::Path {
+            path: rect(0.0, 0.0, 20.0, 20.0),
+            fill: Some(sofd_display::ops::Paint::Pattern(Box::new(
+                sofd_display::PatternSpec {
+                    cell: Box::new(cell),
+                    width: 4.0,
+                    height: 4.0,
+                    step_x: 4.0,
+                    step_y: 4.0,
+                    reflect: sofd_display::Reflect::Normal,
+                },
+            ))),
+            stroke: None,
+            stroke_style: Default::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let bytes = page_to_pdf(&p, &PdfOptions::default()).expect("convert");
+        let doc = Document::load_from(&bytes[..]).expect("parse");
+        let bbox: Vec<f32> = pattern_stream(&doc, "P0")
+            .dict
+            .get(b"BBox")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|v| v.as_f32().ok())
+            .collect();
+        assert!(
+            bbox[0] < 0.0 && bbox[1] < 0.0,
+            "the box starts early: {bbox:?}"
+        );
+        assert!(
+            bbox[2] > (4.0 * PT_PER_MM) as f32 && bbox[3] > (4.0 * PT_PER_MM) as f32,
+            "the box reaches past the cell: {bbox:?}"
+        );
     }
 
     #[test]
