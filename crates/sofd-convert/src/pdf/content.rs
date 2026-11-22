@@ -96,21 +96,6 @@ pub(crate) fn rgb(c: &Color) -> String {
     )
 }
 
-/// `r g b` for the first fill in a pattern's cell, used where no tiling pattern
-/// can be written. An empty cell is left black.
-pub(crate) fn pattern_rgb(spec: &sofd_display::PatternSpec) -> String {
-    for op in &spec.cell.ops {
-        if let sofd_display::DrawOp::Path {
-            fill: Some(sofd_display::Paint::Solid(c)),
-            ..
-        } = op
-        {
-            return rgb(c);
-        }
-    }
-    "0 0 0".to_string()
-}
-
 /// Channel triplet of a colour, for gradient function dictionaries.
 pub(crate) fn channel_triplet(c: &Color) -> [f64; 3] {
     [c.r as f64 / 255.0, c.g as f64 / 255.0, c.b as f64 / 255.0]

@@ -10,6 +10,13 @@ release is written up is in
 
 ### Fixed
 
+- **A PDF export paints what the page holds.** A gradient was registered under
+  one name and named by another, a shading pattern was written as a stream that
+  PDF does not accept as one, a tiling pattern was flattened to its first
+  colour, and a gradient or pattern on a stroke came out black. Gradients,
+  meshes and pattern fills now paint, tiling patterns travel as
+  `/PatternType 1` cells with their own resources, and a pattern-filled shape
+  keeps the outer half of its stroke instead of being clipped to its fill.
 - **A seal stays transparent over what it signs.** Three faults stacked on one
   page: an object's `Alpha` attribute was never read, so a producer's
   `Alpha="0"` backplate painted out the whole sheet; an image exported to PDF

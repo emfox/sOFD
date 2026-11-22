@@ -54,6 +54,24 @@ struct PendingShading {
     mesh: Option<MeshShading>,
 }
 
+/// A tiling pattern waiting to become a PDF pattern stream.
+struct PendingTiling {
+    /// The cell, in cell-local millimetres.
+    cell: Box<sofd_display::PageDisplay>,
+    /// Cell width in millimetres.
+    width: f64,
+    /// Cell height in millimetres.
+    height: f64,
+    /// Horizontal step between cells, in millimetres.
+    step_x: f64,
+    /// Vertical step between cells, in millimetres.
+    step_y: f64,
+    /// How successive cells mirror.
+    reflect: sofd_display::Reflect,
+    /// Cell points to page points, the object's placement included.
+    matrix: Affine,
+}
+
 /// A Gouraud mesh ready to be written as a PDF free-form triangle shading.
 struct MeshShading {
     /// Vertices, each `(x, y, r, g, b)` in the page's point space.
@@ -75,6 +93,8 @@ pub struct PdfSink<'a> {
     images: Vec<PendingImage>,
     /// All shadings in creation order; the name is the position.
     shadings: Vec<PendingShading>,
+    /// All tiling patterns in creation order; the name is the position.
+    tilings: Vec<PendingTiling>,
     /// Distinct alpha values, each becoming one ExtGState.
     alphas: Vec<f64>,
     /// Whether live text was emitted, which needs the Helvetica resource.
@@ -108,6 +128,7 @@ impl<'a> PdfSink<'a> {
             clips: vec![0],
             images: Vec::new(),
             shadings: Vec::new(),
+            tilings: Vec::new(),
             alphas: Vec::new(),
             live_text: false,
             stats: ConversionStats::default(),
@@ -125,6 +146,38 @@ impl<'a> PdfSink<'a> {
     /// multi-page file: it hands back the page object, and the tree over those
     /// objects is the caller's to build.
     pub fn emit_page(&mut self, doc: &mut Document) -> Result<ObjectId> {
+        let resources = self.emit_resources(doc)?;
+        let mut content = Stream::new(
+            Dictionary::new(),
+            std::mem::take(&mut self.ops).into_bytes(),
+        );
+        content
+            .compress()
+            .map_err(|e| convert_error("content stream", e.to_string()))?;
+        let content_id = doc.add_object(content);
+
+        let mut page = Dictionary::new();
+        page.set("Type", Object::Name(b"Page".to_vec()));
+        page.set(
+            "MediaBox",
+            Object::Array(vec![
+                Object::Real(0.0),
+                Object::Real(0.0),
+                Object::Real((self.page_box.w * PT_PER_MM) as f32),
+                Object::Real((self.page_box.h * PT_PER_MM) as f32),
+            ]),
+        );
+        page.set("Contents", Object::Reference(content_id));
+        page.set("Resources", Object::Dictionary(resources));
+        Ok(doc.add_object(page))
+    }
+
+    /// Write everything this content paints with and return its resource dict.
+    ///
+    /// A tiling pattern's cell is content of its own, so it is replayed through
+    /// this same method and gets a resource dict of its own; that is what lets a
+    /// cell carry images and shadings that the page never names directly.
+    fn emit_resources(&self, doc: &mut Document) -> Result<Dictionary> {
         let mut resources = Dictionary::new();
         if !self.images.is_empty() {
             let mut xobjects = Dictionary::new();
@@ -144,12 +197,19 @@ impl<'a> PdfSink<'a> {
             }
             resources.set("XObject", Object::Dictionary(xobjects));
         }
-        if !self.shadings.is_empty() {
+        if !self.shadings.is_empty() || !self.tilings.is_empty() {
             let mut patterns = Dictionary::new();
             for (index, shading) in self.shadings.iter().enumerate() {
-                let stream = shading_pattern(shading, doc)?;
+                let pattern = shading_pattern(shading, doc)?;
                 patterns.set(
                     format!("Sh{index}"),
+                    Object::Reference(doc.add_object(pattern)),
+                );
+            }
+            for (index, tiling) in self.tilings.iter().enumerate() {
+                let stream = self.tiling_pattern(tiling, doc)?;
+                patterns.set(
+                    format!("P{index}"),
                     Object::Reference(doc.add_object(stream)),
                 );
             }
@@ -176,30 +236,103 @@ impl<'a> PdfSink<'a> {
             fonts.set("F1", Object::Dictionary(font));
             resources.set("Font", Object::Dictionary(fonts));
         }
+        Ok(resources)
+    }
 
-        let mut content = Stream::new(
-            Dictionary::new(),
-            std::mem::take(&mut self.ops).into_bytes(),
-        );
-        content
-            .compress()
-            .map_err(|e| convert_error("content stream", e.to_string()))?;
-        let content_id = doc.add_object(content);
-
-        let mut page = Dictionary::new();
-        page.set("Type", Object::Name(b"Page".to_vec()));
-        page.set(
-            "MediaBox",
+    /// Build one tiling pattern: the cell replayed at cell scale, then placed by
+    /// the pattern matrix. A reflecting pattern writes the mirrored neighbours
+    /// into a doubled cell, because PDF's tiling never mirrors on its own.
+    fn tiling_pattern(&self, tiling: &PendingTiling, doc: &mut Document) -> Result<Stream> {
+        let options = PdfOptions {
+            text: self.text,
+            fonts: self.fonts,
+        };
+        let cell_box = Rect::new(0.0, 0.0, tiling.width, tiling.height);
+        let mut cell = PdfSink::new(cell_box, &options);
+        replay(tiling.cell.as_ref(), &mut cell)?;
+        let resources = cell.emit_resources(doc)?;
+        let step_x = if tiling.step_x > 0.0 {
+            tiling.step_x
+        } else {
+            tiling.width
+        };
+        let step_y = if tiling.step_y > 0.0 {
+            tiling.step_y
+        } else {
+            tiling.height
+        };
+        let (cols, rows) = reflection_block(tiling.reflect);
+        let mut body = String::new();
+        for row in 0..rows {
+            for col in 0..cols {
+                let (mirror_x, mirror_y) = tiling.reflect.mirrors(col, row);
+                if mirror_x || mirror_y {
+                    let sx = if mirror_x { -1.0 } else { 1.0 };
+                    let sy = if mirror_y { -1.0 } else { 1.0 };
+                    let tx = if mirror_x { tiling.width } else { 0.0 };
+                    let ty = if mirror_y { tiling.height } else { 0.0 };
+                    let _ = writeln!(
+                        body,
+                        "q {} 0 0 {} {} {} cm",
+                        num(sx),
+                        num(sy),
+                        num((tx + step_x * col as f64) * PT_PER_MM),
+                        num((ty + step_y * row as f64) * PT_PER_MM),
+                    );
+                }
+                body.push_str(&cell.ops);
+                if mirror_x || mirror_y {
+                    body.push_str("Q\n");
+                }
+            }
+        }
+        // The cell is content of its own, so it is closed inside a group: a
+        // save it leaves open would leak into every repeat. The box holds every
+        // copy, and the step is what the viewer repeats it by.
+        let body = format!("q\n{body}Q\n");
+        let box_w = (tiling.width + step_x * (cols as f64 - 1.0)).max(tiling.width);
+        let box_h = (tiling.height + step_y * (rows as f64 - 1.0)).max(tiling.height);
+        let mut dict = Dictionary::new();
+        dict.set("Type", Object::Name(b"Pattern".to_vec()));
+        dict.set("PatternType", Object::Integer(1));
+        dict.set("PaintType", Object::Integer(1));
+        dict.set("TilingType", Object::Integer(1));
+        dict.set(
+            "BBox",
             Object::Array(vec![
                 Object::Real(0.0),
                 Object::Real(0.0),
-                Object::Real((self.page_box.w * PT_PER_MM) as f32),
-                Object::Real((self.page_box.h * PT_PER_MM) as f32),
+                Object::Real((box_w * PT_PER_MM) as f32),
+                Object::Real((box_h * PT_PER_MM) as f32),
             ]),
         );
-        page.set("Contents", Object::Reference(content_id));
-        page.set("Resources", Object::Dictionary(resources));
-        Ok(doc.add_object(page))
+        dict.set(
+            "XStep",
+            Object::Real((step_x * cols as f64 * PT_PER_MM) as f32),
+        );
+        dict.set(
+            "YStep",
+            Object::Real((step_y * rows as f64 * PT_PER_MM) as f32),
+        );
+        dict.set(
+            "Matrix",
+            Object::Array(vec![
+                Object::Real(tiling.matrix.a as f32),
+                Object::Real(tiling.matrix.b as f32),
+                Object::Real(tiling.matrix.c as f32),
+                Object::Real(tiling.matrix.d as f32),
+                Object::Real(tiling.matrix.e as f32),
+                Object::Real(tiling.matrix.f as f32),
+            ]),
+        );
+        // PDF wants the key present even when the cell names nothing: a
+        // viewer that resolves resources up front warns when it is missing.
+        dict.set("Resources", Object::Dictionary(resources));
+        let mut stream = Stream::new(dict, body.into_bytes());
+        stream
+            .compress()
+            .map_err(|e| convert_error("pattern stream", e.to_string()))?;
+        Ok(stream)
     }
 
     /// Page millimetres to PDF points, page box origin and y flip included.
@@ -284,19 +417,16 @@ impl<'a> PdfSink<'a> {
     }
 
     /// Fill a region with a shading, clipped to the path by construction.
-    fn fill_shading(&mut self, path: &Path, name: &str) {
+    /// Fill a region with a registered pattern colour. The path is its own
+    /// clip, so no clip group is opened and a stroke that follows is not cut.
+    fn fill_with_pattern(&mut self, path: &Path, rule: PaintRule, name: &str) {
         let total = self.to_pt(Affine::IDENTITY);
-        let bbox = path.tight_bounding_box();
-        let (x0, y0) = total.apply(bbox.x, bbox.y);
-        let (x1, y1) = total.apply(bbox.x + bbox.w, bbox.y + bbox.h);
         self.write_path(path, total);
-        self.op(format!(
-            "W n /Pattern cs /{name} scn {} {} {} {} re f",
-            num(x0),
-            num(y0),
-            num(x1),
-            num(y1)
-        ));
+        let operator = match rule {
+            PaintRule::NonZero => "f",
+            PaintRule::EvenOdd => "f*",
+        };
+        self.op(format!("/Pattern cs /{name} scn {operator}"));
     }
 
     /// Outline every glyph into vector paths, reporting what became of them.
@@ -469,75 +599,85 @@ impl PageSink for PdfSink<'_> {
         let total = self.to_pt(Affine::IDENTITY);
         let mut setup = String::new();
         let mut operator = String::new();
-        // A gradient carries its own axis, so it is registered into the
-        // document the moment it is painted: no earlier op has to be matched.
-        let gradient = match shape.fill {
-            Some(PaintShape::Linear(spec)) => Some(self.register_linear(spec, total)),
-            Some(PaintShape::Radial(spec)) => Some(self.register_radial(spec, total)),
-            Some(PaintShape::Mesh(spec)) => Some(self.register_mesh(spec, total)),
-            _ => None,
-        };
-        let mut shaded = false;
-        if let Some(index) = gradient {
-            // A shading paints its own region, so a stroke has to follow it
-            // rather than share one painting operator.
-            self.fill_shading(shape.path, &format!("Sh{index}"));
-            shaded = true;
-            if shape.stroke.is_none() {
-                return;
+        // A paint that is not a colour covers the path by itself, so it writes
+        // the geometry and the fill together; a stroke then writes the path a
+        // second time instead of sharing the fill's operator.
+        let mut filled = false;
+        let fill = shape.fill.filter(paint_is_drawable);
+        let stroke = shape.stroke.filter(paint_is_drawable);
+        match fill {
+            None => {}
+            Some(PaintShape::Solid(c)) => {
+                let _ = write!(setup, "{} rg", rgb(c));
+                if c.a != 255 {
+                    setup.push(' ');
+                    setup.push_str(&self.alpha_state(c.a as f64 / 255.0));
+                }
+                operator.push_str(match shape.rule {
+                    PaintRule::NonZero => " f",
+                    PaintRule::EvenOdd => " f*",
+                });
             }
-        } else {
-            match shape.fill {
-                None => {}
-                Some(PaintShape::Solid(c)) => {
-                    let _ = write!(setup, "{} rg", rgb(c));
+            Some(PaintShape::Linear(spec)) => {
+                let name = self.register_linear(spec, total);
+                self.fill_with_pattern(shape.path, shape.rule, &name);
+                filled = true;
+            }
+            Some(PaintShape::Radial(spec)) => {
+                let name = self.register_radial(spec, total);
+                self.fill_with_pattern(shape.path, shape.rule, &name);
+                filled = true;
+            }
+            Some(PaintShape::Mesh(spec)) => {
+                let name = self.register_mesh(spec, total);
+                self.fill_with_pattern(shape.path, shape.rule, &name);
+                filled = true;
+            }
+            Some(PaintShape::Pattern(spec)) => {
+                let name = self.register_tiling(spec, total);
+                self.fill_with_pattern(shape.path, shape.rule, &name);
+                filled = true;
+            }
+        }
+        if filled && stroke.is_none() {
+            return;
+        }
+        if let Some(paint) = stroke {
+            setup.push(' ');
+            setup.push_str(&stroke_prefix(shape.stroke_style, &self.ctm));
+            setup.push(' ');
+            match paint {
+                PaintShape::Solid(c) => {
+                    let _ = write!(setup, "{} RG", rgb(c));
                     if c.a != 255 {
                         setup.push(' ');
                         setup.push_str(&self.alpha_state(c.a as f64 / 255.0));
                     }
-                    operator.push_str(match shape.rule {
-                        PaintRule::NonZero => " f",
-                        PaintRule::EvenOdd => " f*",
-                    });
                 }
-                // A tiling pattern is not written yet; the cell's first fill
-                // keeps the region visible, and the stand-in is counted rather
-                // than passed off as the document's own paint.
-                Some(PaintShape::Pattern(spec)) => {
-                    self.stats.paints_approximated += 1;
-                    let _ = write!(setup, "{} rg", pattern_rgb(spec));
-                    operator.push_str(" f");
+                PaintShape::Linear(spec) => {
+                    let name = self.register_linear(spec, total);
+                    let _ = write!(setup, "/Pattern CS /{name} SCN");
                 }
-                Some(_) => {
-                    setup.push_str("0 0 0 rg");
-                    operator.push_str(" f");
+                PaintShape::Radial(spec) => {
+                    let name = self.register_radial(spec, total);
+                    let _ = write!(setup, "/Pattern CS /{name} SCN");
                 }
-            }
-        }
-        if shape.stroke.is_some() {
-            setup.push(' ');
-            setup.push_str(&stroke_prefix(shape.stroke_style, &self.ctm));
-            if let Some(paint) = shape.stroke {
-                match paint {
-                    PaintShape::Solid(c) => {
-                        let _ = write!(setup, " {} RG", rgb(c));
-                        if c.a != 255 {
-                            setup.push(' ');
-                            setup.push_str(&self.alpha_state(c.a as f64 / 255.0));
-                        }
-                    }
-                    _ => setup.push_str(" 0 0 0 RG"),
+                PaintShape::Mesh(spec) => {
+                    let name = self.register_mesh(spec, total);
+                    let _ = write!(setup, "/Pattern CS /{name} SCN");
+                }
+                PaintShape::Pattern(spec) => {
+                    let name = self.register_tiling(spec, total);
+                    let _ = write!(setup, "/Pattern CS /{name} SCN");
                 }
             }
-            operator = if shaded {
+            operator = if filled || fill.is_none() {
                 " S".to_string()
-            } else if shape.fill.is_some() {
+            } else {
                 match shape.rule {
                     PaintRule::NonZero => " B".to_string(),
                     PaintRule::EvenOdd => " B*".to_string(),
                 }
-            } else {
-                " S".to_string()
             };
         }
         if operator.trim().is_empty() {
@@ -659,6 +799,61 @@ impl PdfSink<'_> {
         });
         format!("Sh{index}")
     }
+
+    /// Register a tiling pattern and return the name `P{index}` it gets.
+    ///
+    /// The cell is written at its own scale with y pointing up, so the matrix
+    /// undoes that frame and applies the object's placement in one transform.
+    fn register_tiling(&mut self, spec: &sofd_display::PatternSpec, total: Affine) -> String {
+        let cell = Affine::scale(PT_PER_MM, -PT_PER_MM)
+            .then(Affine::translate(0.0, spec.height * PT_PER_MM));
+        let index = self.tilings.len();
+        self.tilings.push(PendingTiling {
+            cell: spec.cell.clone(),
+            width: spec.width,
+            height: spec.height,
+            step_x: spec.step_x,
+            step_y: spec.step_y,
+            reflect: spec.reflect,
+            matrix: cell.inverse().unwrap_or(Affine::IDENTITY).then(total),
+        });
+        format!("P{index}")
+    }
+}
+
+/// Whether a paint can be written at all. A pattern whose cell or step has no
+/// extent would tile in place forever, so it paints nothing rather than
+/// producing a pattern stream a viewer rejects.
+fn paint_is_drawable(paint: &PaintShape<'_>) -> bool {
+    match paint {
+        PaintShape::Pattern(spec) => {
+            spec.width > 0.0 && spec.height > 0.0 && spec.step_x != 0.0 && spec.step_y != 0.0
+        }
+        _ => true,
+    }
+}
+
+/// How many cells a pattern's repeating block holds on each axis. PDF tiles a
+/// cell unchanged, so a reflecting pattern needs the mirrored neighbours
+/// written into the block it repeats.
+fn reflection_block(reflect: sofd_display::Reflect) -> (i64, i64) {
+    let cols = if matches!(
+        reflect,
+        sofd_display::Reflect::Column | sofd_display::Reflect::RowAndColumn
+    ) {
+        2
+    } else {
+        1
+    };
+    let rows = if matches!(
+        reflect,
+        sofd_display::Reflect::Row | sofd_display::Reflect::RowAndColumn
+    ) {
+        2
+    } else {
+        1
+    };
+    (cols, rows)
 }
 
 /// Convert one page into a single-page PDF document.
@@ -783,9 +978,15 @@ fn finish_document(doc: &mut Document, page_ids: Vec<ObjectId>) -> Result<Vec<u8
 }
 
 /// Build the shading pattern that paints one gradient.
-fn shading_pattern(shading: &PendingShading, doc: &mut Document) -> Result<Stream> {
+fn shading_pattern(shading: &PendingShading, doc: &mut Document) -> Result<Dictionary> {
+    // A shading pattern is a dictionary, not a stream: only a tiling pattern
+    // carries content of its own.
     if let Some(mesh) = &shading.mesh {
-        return mesh_pattern(mesh);
+        let id = doc.add_object(mesh_shading(mesh)?);
+        let mut dict = Dictionary::new();
+        dict.set("PatternType", Object::Integer(2));
+        dict.set("Shading", Object::Reference(id));
+        return Ok(dict);
     }
     let mut dict = Dictionary::new();
     dict.set("PatternType", Object::Integer(2));
@@ -811,16 +1012,20 @@ fn shading_pattern(shading: &PendingShading, doc: &mut Document) -> Result<Strea
     );
     inner.set("Function", Object::Reference(stops_function(shading, doc)?));
     dict.set("Shading", Object::Dictionary(inner));
-    Ok(Stream::new(dict, Vec::new()))
+    Ok(dict)
 }
 
 /// Build a shading pattern that paints one Gouraud mesh. PDF's `ShadingType 4`
 /// is a free-form triangle mesh with a colour per vertex, which is exactly the
 /// clause's model, so every triangle is written as one shading-4 element.
-fn mesh_pattern(mesh: &MeshShading) -> Result<Stream> {
+fn mesh_shading(mesh: &MeshShading) -> Result<Stream> {
+    let xs: Vec<f64> = mesh.vertices.iter().map(|v| v.0).collect();
+    let ys: Vec<f64> = mesh.vertices.iter().map(|v| v.1).collect();
+    let (min_x, max_x) = extent(&xs);
+    let (min_y, max_y) = extent(&ys);
     let mut data: Vec<u8> = Vec::new();
     for tri in &mesh.triangles {
-        write_mesh_triangle(&mut data, mesh, tri);
+        write_mesh_triangle(&mut data, mesh, tri, (min_x, max_x), (min_y, max_y));
     }
     let mut inner = Dictionary::new();
     inner.set("ShadingType", Object::Integer(4));
@@ -828,10 +1033,6 @@ fn mesh_pattern(mesh: &MeshShading) -> Result<Stream> {
     inner.set("BitsPerCoordinate", Object::Integer(16));
     inner.set("BitsPerComponent", Object::Integer(8));
     inner.set("BitsPerFlag", Object::Integer(8));
-    let xs: Vec<f64> = mesh.vertices.iter().map(|v| v.0).collect();
-    let ys: Vec<f64> = mesh.vertices.iter().map(|v| v.1).collect();
-    let (min_x, max_x) = extent(&xs);
-    let (min_y, max_y) = extent(&ys);
     inner.set(
         "Decode",
         Object::Array(vec![
@@ -847,29 +1048,39 @@ fn mesh_pattern(mesh: &MeshShading) -> Result<Stream> {
             Object::Real(1.0),
         ]),
     );
-    let mut dict = Dictionary::new();
-    dict.set("PatternType", Object::Integer(2));
-    dict.set("Shading", Object::Dictionary(inner));
-    Ok(Stream::new(dict, data))
+    Ok(Stream::new(inner, data))
 }
 
 /// One triangle as a shading-4 element: flag 0, then each vertex as
 /// 16-bit x, 16-bit y and three 8-bit colour channels, all big-endian bytes.
-fn write_mesh_triangle(out: &mut Vec<u8>, mesh: &MeshShading, tri: &[usize; 3]) {
+fn write_mesh_triangle(
+    out: &mut Vec<u8>,
+    mesh: &MeshShading,
+    tri: &[usize; 3],
+    x_range: (f64, f64),
+    y_range: (f64, f64),
+) {
     for (position, index) in tri.iter().enumerate() {
         let (x, y, r, g, b) = mesh.vertices[*index];
         let flag = if position == 0 { 0u8 } else { 2u8 };
         out.push(flag);
-        out.extend_from_slice(&quantise(x).to_be_bytes());
-        out.extend_from_slice(&quantise(y).to_be_bytes());
+        out.extend_from_slice(&quantise(x, x_range).to_be_bytes());
+        out.extend_from_slice(&quantise(y, y_range).to_be_bytes());
         out.extend_from_slice(&[r, g, b]);
     }
 }
 
 /// A coordinate in the 16-bit range PDF's `Decode` maps onto the axis.
-fn quantise(value: f64) -> u16 {
-    let clamped = value.clamp(0.0, 1.0);
-    (clamped * 65535.0).round() as u16
+fn quantise(value: f64, (min, max): (f64, f64)) -> u16 {
+    // The stream carries the fraction of the axis, and `Decode` maps it back
+    // onto the page; writing points here would put every vertex at the top.
+    let span = max - min;
+    let fraction = if span.abs() < f64::EPSILON {
+        0.5
+    } else {
+        (value - min) / span
+    };
+    (fraction.clamp(0.0, 1.0) * 65535.0).round() as u16
 }
 
 /// The smallest and largest of a coordinate list, defaulting to the unit range
@@ -959,8 +1170,8 @@ fn stops_function(shading: &PendingShading, doc: &mut Document) -> Result<Object
 mod content;
 
 use content::{
-    channel_array, convert_error, curve_op, image_xobject, num, pattern_rgb, pdf_string, point_op,
-    rgb, stroke_prefix,
+    channel_array, convert_error, curve_op, image_xobject, num, pdf_string, point_op, rgb,
+    stroke_prefix,
 };
 
 #[cfg(test)]
@@ -1015,6 +1226,43 @@ mod tests {
         let page_id = *pages.values().next().expect("one page");
         let content = doc.get_page_content(page_id);
         String::from_utf8(content).expect("utf8 content")
+    }
+
+    /// The object a page's pattern resource names.
+    fn pattern_object<'a>(doc: &'a Document, name: &str) -> &'a Object {
+        let page_id = *doc.get_pages().values().next().expect("one page");
+        let resources = doc
+            .get_page_resources(page_id)
+            .expect("resources")
+            .0
+            .expect("resource dict");
+        let patterns = resources
+            .get(b"Pattern")
+            .expect("pattern dict")
+            .as_dict()
+            .expect("pattern dict");
+        let id = patterns
+            .get(name.as_bytes())
+            .expect("the named pattern")
+            .as_reference()
+            .expect("a pattern is an indirect object");
+        doc.get_object(id).expect("the pattern object")
+    }
+
+    /// The pattern dictionary a page resource names.
+    fn pattern_dict<'a>(doc: &'a Document, name: &str) -> &'a Dictionary {
+        match pattern_object(doc, name) {
+            Object::Dictionary(dict) => dict,
+            _ => panic!("a shading pattern is a dictionary"),
+        }
+    }
+
+    /// The pattern stream a page resource names, decoded by the caller.
+    fn pattern_stream<'a>(doc: &'a Document, name: &str) -> &'a Stream {
+        match pattern_object(doc, name) {
+            Object::Stream(stream) => stream,
+            _ => panic!("a tiling pattern is a stream"),
+        }
     }
 
     #[test]
@@ -1181,16 +1429,16 @@ mod tests {
             "a shading pattern is registered"
         );
         let content = content_of(&bytes);
-        assert!(content.contains("/Pattern cs"));
-        assert!(content.contains("scn"));
-        assert!(content.contains("re f"));
+        // The path is its own clip for a pattern colour, so the fill needs no
+        // `W n` group and a stroke that follows is not cut in half.
+        assert!(content.contains("/Pattern cs /Sh0 scn f"), "{content}");
+        assert!(!content.contains("W n"), "{content}");
     }
 
     #[test]
-    fn a_pattern_is_painted_as_its_first_colour_and_counted() {
-        // A tiling pattern needs a PDF tiling pattern built from the cell. Until
-        // one is written, the cell's first fill keeps the region visible, and
-        // the stand-in is counted so a caller can say the export simplified it.
+    fn a_pattern_becomes_a_tiling_pattern_stream() {
+        // The cell is content of its own: a PDF tiling pattern repeats it, so
+        // the fill keeps the stripes instead of flattening them to one colour.
         let cell = sofd_display::PageDisplay {
             index: 0,
             page_box: Rect::new(0.0, 0.0, 4.0, 4.0),
@@ -1221,12 +1469,130 @@ mod tests {
         }]);
         let (bytes, stats) = page_to_pdf_with_stats(&p, &PdfOptions::default()).expect("convert");
         let content = content_of(&bytes);
-        assert!(
-            content.contains("1 0 0 rg"),
-            "the first colour fills: {content}"
+        assert!(content.contains("/Pattern cs /P0 scn f"), "{content}");
+        let doc = Document::load_from(&bytes[..]).expect("parse");
+        let stream = pattern_stream(&doc, "P0");
+        assert_eq!(
+            stream.dict.get(b"PatternType").unwrap().as_i64().unwrap(),
+            1,
+            "a tiling pattern, not a shading"
         );
-        assert_eq!(stats.paints_approximated, 1, "the stand-in is counted");
+        assert_eq!(
+            stream.dict.get(b"XStep").unwrap().as_float().unwrap(),
+            (4.0 * PT_PER_MM) as f32,
+        );
+        let body = String::from_utf8(stream.decompressed_content().expect("decode")).expect("utf8");
+        assert!(
+            body.contains("1 0 0 rg"),
+            "the cell keeps its own paint: {body}"
+        );
+        assert!(
+            body.contains("0 11.3386 m"),
+            "the cell is in its own points: {body}"
+        );
+        assert_eq!(stats.paints_approximated, 0, "nothing was simplified");
         assert_eq!(stats.gradients, 0, "a pattern is not a gradient");
+    }
+
+    #[test]
+    fn a_stroke_is_painted_with_the_same_pattern_colour() {
+        // A gradient on a stroke used to be written black, because only a fill
+        // had an operator that could name a pattern.
+        let p = page(vec![sofd_display::DrawOp::Path {
+            path: rect(1.0, 1.0, 10.0, 10.0),
+            fill: None,
+            stroke: Some(sofd_display::ops::Paint::LinearGradient(Box::new(
+                LinearGradientSpec {
+                    start: Point::new(0.0, 0.0),
+                    end: Point::new(10.0, 0.0),
+                    stops: vec![GradientStop {
+                        offset: 0.0,
+                        color: Color::WHITE,
+                    }],
+                },
+            ))),
+            stroke_style: Default::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let content = content_of(&page_to_pdf(&p, &PdfOptions::default()).expect("convert"));
+        assert!(content.contains("/Pattern CS /Sh0 SCN"), "{content}");
+        assert!(content.trim_end().ends_with('S'), "{content}");
+        assert!(
+            !content.contains("0 0 0 RG"),
+            "no black stand-in: {content}"
+        );
+    }
+
+    #[test]
+    fn a_filled_and_stroked_path_is_not_clipped_to_its_fill() {
+        // The fill used to open a `W n` group, which cut the outer half of the
+        // stroke away; the path itself is the clip a pattern fill needs.
+        let p = page(vec![sofd_display::DrawOp::Path {
+            path: rect(0.0, 0.0, 10.0, 10.0),
+            fill: Some(sofd_display::ops::Paint::LinearGradient(Box::new(
+                LinearGradientSpec {
+                    start: Point::new(0.0, 0.0),
+                    end: Point::new(10.0, 0.0),
+                    stops: vec![GradientStop {
+                        offset: 0.0,
+                        color: Color::WHITE,
+                    }],
+                },
+            ))),
+            stroke: Some(sofd_display::ops::Paint::Solid(Color::BLACK)),
+            stroke_style: Default::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let content = content_of(&page_to_pdf(&p, &PdfOptions::default()).expect("convert"));
+        assert!(!content.contains("W n"), "no clip group: {content}");
+        assert!(content.contains("0 0 0 RG"), "the stroke keeps its colour");
+    }
+
+    #[test]
+    fn a_reflecting_pattern_repeats_a_mirrored_block() {
+        // PDF tiles a cell unchanged, so the mirror has to be part of the
+        // repeated block: the step doubles and the second row is flipped.
+        let cell = sofd_display::PageDisplay {
+            index: 0,
+            page_box: Rect::new(0.0, 0.0, 4.0, 4.0),
+            ops: vec![sofd_display::DrawOp::Path {
+                path: rect(0.0, 0.0, 4.0, 4.0),
+                fill: Some(sofd_display::ops::Paint::Solid(Color::BLACK)),
+                stroke: None,
+                stroke_style: Default::default(),
+                rule: PaintRule::NonZero,
+            }],
+            content_bbox: Rect::EMPTY,
+        };
+        let p = page(vec![sofd_display::DrawOp::Path {
+            path: rect(0.0, 0.0, 20.0, 20.0),
+            fill: Some(sofd_display::ops::Paint::Pattern(Box::new(
+                sofd_display::PatternSpec {
+                    cell: Box::new(cell),
+                    width: 4.0,
+                    height: 4.0,
+                    step_x: 4.0,
+                    step_y: 4.0,
+                    reflect: sofd_display::Reflect::Row,
+                },
+            ))),
+            stroke: None,
+            stroke_style: Default::default(),
+            rule: PaintRule::NonZero,
+        }]);
+        let bytes = page_to_pdf(&p, &PdfOptions::default()).expect("convert");
+        let doc = Document::load_from(&bytes[..]).expect("parse");
+        let stream = pattern_stream(&doc, "P0");
+        assert_eq!(
+            stream.dict.get(b"YStep").unwrap().as_float().unwrap(),
+            (8.0 * PT_PER_MM) as f32,
+            "two rows per block"
+        );
+        let body = String::from_utf8(stream.decompressed_content().expect("decode")).expect("utf8");
+        assert!(
+            body.contains("q -1 0 0 1"),
+            "the second row is mirrored: {body}"
+        );
     }
 
     #[test]
@@ -1251,35 +1617,32 @@ mod tests {
         }]);
         let bytes = page_to_pdf(&p, &PdfOptions::default()).expect("convert");
         let doc = Document::load_from(&bytes[..]).expect("parse");
-        // The shading dictionary sits inside the pattern stream, so look one
-        // level down rather than at the top of every object.
-        let found = doc.objects.values().any(|o| {
-            let dict = match o {
-                Object::Stream(stream) => Some(&stream.dict),
-                Object::Dictionary(dict) => Some(dict),
-                _ => None,
-            };
-            dict.and_then(|d| d.get(b"Shading").ok())
-                .and_then(|s| s.as_dict().ok())
-                .and_then(|d| d.get(b"ShadingType").ok())
-                .and_then(|t| t.as_i64().ok())
-                == Some(3)
-        });
-        assert!(found, "a radial shading is type 3");
+        let pattern = pattern_dict(&doc, "Sh0");
+        assert_eq!(
+            pattern.get(b"PatternType").unwrap().as_i64().unwrap(),
+            2,
+            "a shading pattern"
+        );
+        let shading = pattern
+            .get(b"Shading")
+            .expect("the shading")
+            .as_dict()
+            .expect("an inline shading dictionary");
+        assert_eq!(
+            shading.get(b"ShadingType").unwrap().as_i64().unwrap(),
+            3,
+            "a radial shading is type 3"
+        );
         // Both circles travel: PDF's type 3 is the cone the clause describes,
         // so the two centres and both radii reach the shading as written.
-        let coords = doc.objects.values().find_map(|o| match o {
-            Object::Stream(stream) => stream
-                .dict
-                .get(b"Shading")
-                .ok()
-                .and_then(|s| s.as_dict().ok())
-                .and_then(|d| d.get(b"Coords").ok())
-                .and_then(|c| c.as_array().ok())
-                .map(|a| a.iter().filter_map(|v| v.as_f32().ok()).collect::<Vec<_>>()),
-            _ => None,
-        });
-        let coords = coords.expect("the shading carries its two circles");
+        let coords: Vec<f32> = shading
+            .get(b"Coords")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|v| v.as_f32().ok())
+            .collect();
         assert_eq!(coords.len(), 6, "two circles, each a centre and a radius");
         let pt = (72.0 / 25.4) as f32;
         assert!((coords[2] - pt).abs() < 1e-3, "start radius: {:?}", coords);
@@ -1328,29 +1691,24 @@ mod tests {
         }]);
         let bytes = page_to_pdf(&p, &PdfOptions::default()).expect("convert");
         let doc = Document::load_from(&bytes[..]).expect("parse");
-        let shading = doc.objects.values().find_map(|o| match o {
-            Object::Stream(stream) => stream
-                .dict
-                .get(b"Shading")
-                .ok()
-                .and_then(|s| s.as_dict().ok())
-                .cloned(),
-            _ => None,
-        });
-        let shading = shading.expect("the pattern carries a shading");
-        let kind = shading
+        let pattern = pattern_dict(&doc, "Sh0");
+        let id = pattern
+            .get(b"Shading")
+            .expect("the shading")
+            .as_reference()
+            .expect("a free-form shading is a stream");
+        let stream = match doc.get_object(id).expect("the shading object") {
+            Object::Stream(stream) => stream,
+            _ => panic!("a type 4 shading is a stream"),
+        };
+        let kind = stream
+            .dict
             .get(b"ShadingType")
-            .ok()
-            .and_then(|t| t.as_i64().ok());
+            .and_then(|t| t.as_i64())
+            .ok();
         assert_eq!(kind, Some(4), "a mesh is a free-form triangle shading");
         // The three vertex colours travel: red, blue and green, in order.
-        let data = doc.objects.values().find_map(|o| match o {
-            Object::Stream(stream) if stream.dict.get(b"Shading").is_ok() => {
-                Some(stream.content.clone())
-            }
-            _ => None,
-        });
-        let data = data.expect("the shading stream has content");
+        let data = stream.content.clone();
         // The stream is the raw bytes the format asks for: red, blue and
         // green, one per vertex, each a triple.
         let has = |tri: [u8; 3]| data.windows(3).any(|w| w == tri);

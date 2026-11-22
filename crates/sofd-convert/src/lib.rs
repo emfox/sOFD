@@ -63,9 +63,9 @@ pub struct ConversionStats {
     pub images_skipped: usize,
     /// Gradients emitted.
     pub gradients: usize,
-    /// Fills painted as a stand-in rather than as the document states: a PDF
-    /// tiling pattern flattened to its first colour, an SVG mesh with no
-    /// triangles left. Counted so a caller can say what the export simplified.
+    /// Fills painted as a stand-in rather than as the document states, such as
+    /// an SVG mesh with no triangles left. Counted so a caller can say what the
+    /// export simplified.
     pub paints_approximated: usize,
     /// Runs that carry only a stroke paint. The PDF keeps them as an unfilled
     /// outline, which every viewer shows; SVG cannot, and counts them here so
