@@ -34,6 +34,8 @@ include/sofd.h
 /criterion/
 *.svg
 !docs/**/*.svg
+# The icon test vendors the theme's own SVG files as its reference.
+!crates/sofd-egui/tests/data/**/*.svg
 
 # ─── Generated documentation ───
 /docs/book/

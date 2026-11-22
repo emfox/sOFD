@@ -5,14 +5,14 @@ here, which comes under its own terms.
 
 ## Adwaita icon theme
 
-The desktop reader's icons, in `crates/sofd-egui/src/icons/mod.rs`, are the
+The desktop reader's icons, in `crates/sofd-icons/src/data.rs`, are the
 Adwaita symbolic icons. Each one is stored as the `d` attribute of the matching
 `<path>` element in the theme's SVG file, and each glyph records the theme's own
 name for it (`document-open-symbolic`, `go-next-symbolic`, …).
 
 | | |
 | --- | --- |
-| Source | [adwaita-icon-theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme), release 44.0 |
+| Source | [adwaita-icon-theme](https://gitlab.gnome.org/GNOME/adwaita-icon-theme), releases 44.0 and 51.0 |
 | Copyright | the GNOME Project and contributors |
 | Licence | GNU LGPL v3, or Creative Commons Attribution-ShareAlike 3.0 United States |
 | Attribution | "GNOME Project", with a link to https://www.gnome.org where possible |

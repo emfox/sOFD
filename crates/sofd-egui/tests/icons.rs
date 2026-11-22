@@ -165,6 +165,10 @@ fn commands(d: &str) -> Vec<(char, Vec<f64>)> {
             // is needed, and the theme leans on that to keep its files small.
             flush(letter, &mut number, &mut out);
             number.push(c);
+        } else if c == '.' && number.contains('.') {
+            // The same holds for a second decimal point: `.5.25` is two numbers.
+            flush(letter, &mut number, &mut out);
+            number.push(c);
         } else {
             number.push(c);
         }
@@ -243,43 +247,41 @@ fn starts_with(whole: &[f64], part: &[f64]) -> bool {
 
 #[test]
 fn every_glyph_matches_the_icon_it_is_named_for() {
-    // The path data is copied from the installed theme, so where the theme is
-    // here the copy is checked against it: a name it does not ship reads as
-    // absent, and so does a drawing borrowed from the file next door.
-    let dir = std::path::Path::new("/usr/share/icons/Adwaita/symbolic");
-    if !dir.is_dir() {
-        eprintln!("no theme installed; the copy cannot be checked here");
-        return;
-    }
+    // The glyphs are copied from Adwaita's own files, checked against those
+    // releases rather than the host theme. The set began at 44.0 and later
+    // glyphs came from 51.0, so a glyph has to match one of the two.
+    let data = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data");
+    let pinned = [data.join("adwaita-44"), data.join("adwaita-51")];
     for icon in Icon::ALL {
         let name = icon.theme_name();
-        // The theme keeps a name in one of several contexts, and the file with
-        // that name is the drawing whichever context it sits in.
-        let found = std::fs::read_dir(dir)
-            .expect("the theme reads")
-            .filter_map(|part| part.ok())
-            .map(|part| part.path().join(format!("{name}.svg")))
-            .find(|path| path.is_file());
-        let path = found.unwrap_or_else(|| panic!("{name} is not a file the theme ships"));
-        let source = std::fs::read_to_string(&path).expect("the icon file reads");
-        let in_file: Vec<Vec<f64>> = source
-            .split("d=\"")
-            .skip(1)
-            .map(|part| points(part.split('"').next().unwrap_or("")))
-            .filter(|path| !path.is_empty())
-            .collect();
-        // A shorthand is spelled out in full here, so compare the points a
-        // path walks through rather than the letters it uses. The theme also
-        // closes by repeating the start, which the reader leaves off.
-        for (index, d) in icons::path_data(icon).iter().enumerate() {
-            let mine = points(d);
-            let mine = &mine[..mine.len().saturating_sub(2)];
-            assert!(
-                in_file.iter().any(|path| starts_with(path, mine)),
-                "{name}: path {index} is not in {}",
-                path.display()
-            );
+        let mut seen = 0usize;
+        let mut matched = false;
+        for dir in &pinned {
+            let path = dir.join(format!("{name}.svg"));
+            let Ok(source) = std::fs::read_to_string(&path) else {
+                continue;
+            };
+            seen += 1;
+            let in_file: Vec<Vec<f64>> = source
+                .split("d=\"")
+                .skip(1)
+                .map(|part| points(part.split('"').next().unwrap_or("")))
+                .filter(|path| !path.is_empty())
+                .collect();
+            // A shorthand is spelled out in full here, so compare the points a
+            // path walks through rather than the letters it uses. The theme
+            // also closes by repeating the start, which the reader leaves off.
+            if icons::path_data(icon).iter().all(|d| {
+                let mine = points(d);
+                let mine = &mine[..mine.len().saturating_sub(2)];
+                in_file.iter().any(|path| starts_with(path, mine))
+            }) {
+                matched = true;
+                break;
+            }
         }
+        assert!(seen > 0, "{name} is not vendored in either pinned release");
+        assert!(matched, "{name} does not match either pinned release");
     }
 }
 
