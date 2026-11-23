@@ -199,6 +199,7 @@ fn an_exported_glyph_is_a_path_rather_than_an_embedded_face() {
         &page,
         &PdfOptions {
             fonts: Some(&fonts),
+            text_layer: false,
             ..PdfOptions::default()
         },
     )
@@ -236,6 +237,29 @@ fn an_exported_glyph_is_a_path_rather_than_an_embedded_face() {
         !svg.contains("@font-face"),
         "the SVG embedded the face it was told to draw"
     );
+}
+
+#[test]
+fn a_text_layer_carries_the_unicode_behind_the_outlines() {
+    // The outlines stay the drawing; the text layer is the same glyphs as
+    // invisible text, so a search reads them instead of nothing. Its Type3
+    // font has empty glyphs and exists only for the ToUnicode map.
+    let (page, fonts) = one_glyph_page();
+    let pdf = page_to_pdf(
+        &page,
+        &PdfOptions {
+            fonts: Some(&fonts),
+            ..PdfOptions::default()
+        },
+    )
+    .expect("convert");
+    let text = String::from_utf8_lossy(&pdf);
+    for marker in ["/Subtype/Type3", "/CharProcs", "/ToUnicode"] {
+        assert!(text.contains(marker), "the PDF carries {marker}");
+    }
+    let content = content_of(&pdf);
+    assert!(content.contains("3 Tr"), "the text is invisible: {content}");
+    assert!(content.contains(" Tj"), "the text is written: {content}");
 }
 
 /// The decoded content of a one-page PDF written by this crate. The stream is

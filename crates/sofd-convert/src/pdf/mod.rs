@@ -5,7 +5,7 @@
 //! One page in, one page out: [`PdfSink::emit_page`] hands back the object it
 //! wrote, so a document-level export composes pages above this crate.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write as _;
 
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
@@ -13,7 +13,7 @@ use sofd_common::Rect;
 use sofd_display::ops::{Color, GradientStop, LineCap, LineJoin, PaintRule, StrokeStyle};
 use sofd_display::{GlyphRun, ImageRef, LinearGradientSpec, MeshSpec, RadialGradientSpec};
 use sofd_error::{ConvertError, OfdError, Result};
-use sofd_font::FontManager;
+use sofd_font::{FontFace, FontId, FontManager};
 use sofd_geometry::{Affine, Path, PathSegment, arc_cubics};
 
 use crate::replay::{PageSink, PaintShape, PathShape, replay};
@@ -23,12 +23,26 @@ use crate::{ConversionStats, TextExport};
 const PT_PER_MM: f64 = 72.0 / 25.4;
 
 /// Options for PDF export.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct PdfOptions<'a> {
     /// How glyph runs become PDF content.
     pub text: TextExport,
     /// Font source for outlined text; without one, runs fall back to live text.
     pub fonts: Option<&'a FontManager>,
+    /// Whether outlined runs also carry an invisible text layer, so the page
+    /// can be searched and copied. It needs `fonts`; without them nothing is
+    /// written and the outlines stay the only content.
+    pub text_layer: bool,
+}
+
+impl Default for PdfOptions<'_> {
+    fn default() -> Self {
+        Self {
+            text: TextExport::default(),
+            fonts: None,
+            text_layer: true,
+        }
+    }
 }
 
 /// An image waiting to become an XObject.
@@ -52,6 +66,14 @@ struct PendingShading {
     /// A Gouraud mesh's triangles, each vertex a position and a colour. When
     /// present the shading is written as PDF `ShadingType 4`, not a gradient.
     mesh: Option<MeshShading>,
+}
+
+/// A Type3 font whose glyphs draw nothing, used only for the text layer.
+/// A Type3 font needs no embedded program, so a collection or CFF face is as
+/// usable as a TrueType one; the content it names is empty on purpose.
+struct PendingType3 {
+    /// One-byte code to the Unicode text it stands for, for `ToUnicode`.
+    glyphs: BTreeMap<u8, String>,
 }
 
 /// A tiling pattern waiting to become a PDF pattern stream.
@@ -95,6 +117,12 @@ pub struct PdfSink<'a> {
     shadings: Vec<PendingShading>,
     /// All tiling patterns in creation order; the name is the position.
     tilings: Vec<PendingTiling>,
+    /// Text-layer fonts, in the order their `T{n}` resource names were handed out.
+    type3: Vec<PendingType3>,
+    /// The font and code a glyph was given, so one glyph keeps one code.
+    type3_codes: HashMap<(FontId, u16), (usize, u8)>,
+    /// Whether outlined runs also carry an invisible text layer.
+    text_layer: bool,
     /// Distinct alpha values, each becoming one ExtGState.
     alphas: Vec<f64>,
     /// Whether live text was emitted, which needs the Helvetica resource.
@@ -129,6 +157,9 @@ impl<'a> PdfSink<'a> {
             images: Vec::new(),
             shadings: Vec::new(),
             tilings: Vec::new(),
+            type3: Vec::new(),
+            type3_codes: HashMap::new(),
+            text_layer: options.text_layer,
             alphas: Vec::new(),
             live_text: false,
             stats: ConversionStats::default(),
@@ -226,14 +257,22 @@ impl<'a> PdfSink<'a> {
             }
             resources.set("ExtGState", Object::Dictionary(states));
         }
-        if self.live_text {
+        if self.live_text || !self.type3.is_empty() {
             let mut fonts = Dictionary::new();
-            let mut font = Dictionary::new();
-            font.set("Type", Object::Name(b"Font".to_vec()));
-            font.set("Subtype", Object::Name(b"Type1".to_vec()));
-            font.set("BaseFont", Object::Name(b"Helvetica".to_vec()));
-            font.set("Encoding", Object::Name(b"WinAnsiEncoding".to_vec()));
-            fonts.set("F1", Object::Dictionary(font));
+            if self.live_text {
+                let mut font = Dictionary::new();
+                font.set("Type", Object::Name(b"Font".to_vec()));
+                font.set("Subtype", Object::Name(b"Type1".to_vec()));
+                font.set("BaseFont", Object::Name(b"Helvetica".to_vec()));
+                font.set("Encoding", Object::Name(b"WinAnsiEncoding".to_vec()));
+                fonts.set("F1", Object::Dictionary(font));
+            }
+            for (index, font) in self.type3.iter().enumerate() {
+                fonts.set(
+                    format!("T{index}"),
+                    Object::Reference(type3_font(font, doc)?),
+                );
+            }
             resources.set("Font", Object::Dictionary(fonts));
         }
         Ok(resources)
@@ -246,6 +285,7 @@ impl<'a> PdfSink<'a> {
         let options = PdfOptions {
             text: self.text,
             fonts: self.fonts,
+            text_layer: self.text_layer,
         };
         let cell_box = Rect::new(0.0, 0.0, tiling.width, tiling.height);
         let mut cell = PdfSink::new(cell_box, &options);
@@ -694,7 +734,11 @@ impl PageSink for PdfSink<'_> {
         }
         match self.text {
             TextExport::Outline => match self.outline_text(run) {
-                Outlined::Drew | Outlined::Blank => {}
+                Outlined::Drew | Outlined::Blank => {
+                    // The outlines are what a viewer draws; the text layer is
+                    // only what a search or a copy reads.
+                    self.invisible_text(run);
+                }
                 // With no face to outline, the run's own text is still worth
                 // writing when it spells characters rather than glyph ids.
                 Outlined::Dropped => self.live_text(run),
@@ -735,6 +779,82 @@ impl PageSink for PdfSink<'_> {
 }
 
 impl PdfSink<'_> {
+    /// Write the run as invisible text over its outlines: the page still draws
+    /// the paths, but a search or a copy reads these glyphs instead of none.
+    ///
+    /// The font is a Type3 whose charprocs are empty, so no face is embedded
+    /// and a collection or CFF source is no obstacle. `ToUnicode` is what makes
+    /// the codes readable.
+    fn invisible_text(&mut self, run: &GlyphRun) {
+        if !self.text_layer {
+            return;
+        }
+        let Some(fonts) = self.fonts else {
+            return;
+        };
+        let Some(face) = sofd_display::run_face(fonts, run) else {
+            return;
+        };
+        let entries = text_entries(run, &face);
+        if !entries.iter().any(|(_, text)| text.is_some()) {
+            return;
+        }
+        let offsets = run.glyph_offsets();
+        let size = run.size.value() * PT_PER_MM;
+        let mut ops = String::from("q 3 Tr BT\n");
+        let mut current = usize::MAX;
+        for ((gid, text), offset) in entries.iter().zip(&offsets) {
+            let Some(text) = text else {
+                continue;
+            };
+            let (font, code) = self.type3_code(face.id(), *gid, text);
+            if font != current {
+                let _ = writeln!(ops, "/T{font} {} Tf", num(size));
+                current = font;
+            }
+            // The placement is the run's own transform, not `glyph_matrix`:
+            // that one carries the size, and `Tf` already states it.
+            let place = Affine::rotate_deg(run.glyph_angle)
+                .then(Affine::translate(*offset, 0.0))
+                .then(run.transform);
+            let m = self.to_pt(place);
+            let _ = writeln!(
+                ops,
+                "{} {} {} {} {} {} Tm <{code:02X}> Tj",
+                num(m.a),
+                num(m.b),
+                num(m.c),
+                num(m.d),
+                num(m.e),
+                num(m.f)
+            );
+        }
+        ops.push_str("ET Q");
+        self.op(ops);
+    }
+
+    /// The resource name and one-byte code for a glyph, adding a font when the
+    /// current one has no code left. A code is never reused for another glyph.
+    fn type3_code(&mut self, face: FontId, gid: u16, text: &str) -> (usize, u8) {
+        if let Some(&(font, code)) = self.type3_codes.get(&(face, gid)) {
+            return (font, code);
+        }
+        let font = self
+            .type3
+            .iter()
+            .position(|font| font.glyphs.len() < 255)
+            .unwrap_or_else(|| {
+                self.type3.push(PendingType3 {
+                    glyphs: BTreeMap::new(),
+                });
+                self.type3.len() - 1
+            });
+        let code = self.type3[font].glyphs.len() as u8 + 1;
+        self.type3[font].glyphs.insert(code, text.to_string());
+        self.type3_codes.insert((face, gid), (font, code));
+        (font, code)
+    }
+
     /// Register a linear shading and return the name `Sh{index}` it gets.
     fn register_linear(&mut self, spec: &LinearGradientSpec, total: Affine) -> String {
         let (x0, y0) = total.apply(spec.start.x, spec.start.y);
@@ -976,6 +1096,134 @@ fn finish_document(doc: &mut Document, page_ids: Vec<ObjectId>) -> Result<Vec<u8
     doc.save_to(&mut out)
         .map_err(|e| convert_error("document", e.to_string()))?;
     Ok(out)
+}
+
+/// The glyph id and Unicode text of every glyph in a run, in run order.
+/// A glyph with no text is kept so its position still lines up with the others.
+fn text_entries(run: &GlyphRun, face: &FontFace) -> Vec<(u16, Option<String>)> {
+    let chars: Vec<char> = run
+        .text
+        .as_deref()
+        .map(|t| t.chars().collect())
+        .unwrap_or_default();
+    run.glyphs
+        .iter()
+        .enumerate()
+        .map(|(index, &code)| {
+            let gid = if run.codes_are_glyphs {
+                face.glyph_for_cid(code).unwrap_or(code)
+            } else {
+                face.glyph_id(u32::from(code)).unwrap_or(code)
+            };
+            let text = if !run.codes_are_glyphs {
+                char::from_u32(u32::from(code)).map(|c| c.to_string())
+            } else if let Some(map) = &run.cluster_map {
+                let start = map.get(index).copied().unwrap_or(0) as usize;
+                let end = map
+                    .get(index + 1)
+                    .copied()
+                    .map(|v| v as usize)
+                    .unwrap_or(start + 1)
+                    .max(start + 1);
+                if start < chars.len() {
+                    Some(chars[start..end.min(chars.len())].iter().collect())
+                } else {
+                    None
+                }
+            } else if chars.len() == run.glyphs.len() {
+                Some(chars[index].to_string())
+            } else {
+                face.reverse_cmap(gid)
+                    .and_then(char::from_u32)
+                    .map(|c| c.to_string())
+            };
+            (gid, text)
+        })
+        .collect()
+}
+
+/// One Type3 font for the invisible text layer: empty charprocs, one code per
+/// glyph, and a `ToUnicode` map so the codes read back as text.
+fn type3_font(font: &PendingType3, doc: &mut Document) -> Result<ObjectId> {
+    let mut empty = Stream::new(Dictionary::new(), Vec::new());
+    empty
+        .compress()
+        .map_err(|e| convert_error("glyph stream", e.to_string()))?;
+    let empty_id = doc.add_object(empty);
+
+    let mut procs = Dictionary::new();
+    procs.set("g", Object::Reference(empty_id));
+
+    let mut differences = Vec::new();
+    for code in font.glyphs.keys() {
+        differences.push(Object::Integer(i64::from(*code)));
+        differences.push(Object::Name(b"g".to_vec()));
+    }
+    let mut encoding = Dictionary::new();
+    encoding.set("Type", Object::Name(b"Encoding".to_vec()));
+    encoding.set("Differences", Object::Array(differences));
+
+    let widths: Vec<Object> = font.glyphs.keys().map(|_| Object::Integer(1000)).collect();
+    let mut cmap = Stream::new(Dictionary::new(), to_unicode_cmap(&font.glyphs));
+    cmap.compress()
+        .map_err(|e| convert_error("ToUnicode stream", e.to_string()))?;
+    let cmap_id = doc.add_object(cmap);
+
+    let mut dict = Dictionary::new();
+    dict.set("Type", Object::Name(b"Font".to_vec()));
+    dict.set("Subtype", Object::Name(b"Type3".to_vec()));
+    dict.set(
+        "FontBBox",
+        Object::Array(vec![
+            Object::Integer(0),
+            Object::Integer(0),
+            Object::Integer(1000),
+            Object::Integer(1000),
+        ]),
+    );
+    dict.set(
+        "FontMatrix",
+        Object::Array(vec![
+            Object::Real(0.001),
+            Object::Real(0.0),
+            Object::Real(0.0),
+            Object::Real(0.001),
+            Object::Real(0.0),
+            Object::Real(0.0),
+        ]),
+    );
+    dict.set("CharProcs", Object::Dictionary(procs));
+    dict.set("Encoding", Object::Dictionary(encoding));
+    dict.set("FirstChar", Object::Integer(1));
+    dict.set("LastChar", Object::Integer(font.glyphs.len() as i64));
+    dict.set("Widths", Object::Array(widths));
+    dict.set("Resources", Object::Dictionary(Dictionary::new()));
+    dict.set("ToUnicode", Object::Reference(cmap_id));
+    Ok(doc.add_object(dict))
+}
+
+/// The `ToUnicode` CMap that maps each one-byte code to its text.
+fn to_unicode_cmap(glyphs: &BTreeMap<u8, String>) -> Vec<u8> {
+    let mut out = String::from(
+        "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n\
+         /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n\
+         /CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n\
+         1 begincodespacerange\n<00> <FF>\nendcodespacerange\n",
+    );
+    let entries: Vec<(&u8, &String)> = glyphs.iter().collect();
+    for chunk in entries.chunks(100) {
+        let _ = writeln!(out, "{} beginbfchar", chunk.len());
+        for (code, text) in chunk {
+            let hex: String = text
+                .encode_utf16()
+                .map(|unit| format!("{unit:04X}"))
+                .collect();
+            let _ = writeln!(out, "<{code:02X}> <{hex}>");
+        }
+        out.push_str("endbfchar\n");
+    }
+    out.push_str("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n");
+    out.into_bytes()
 }
 
 /// Build the shading pattern that paints one gradient.
@@ -1978,6 +2226,7 @@ mod tests {
         let options = PdfOptions {
             text: TextExport::Outline,
             fonts: Some(&manager),
+            ..PdfOptions::default()
         };
         let mut sink = PdfSink::new(Rect::A4_PORTRAIT, &options);
         replay(&page(vec![sofd_display::DrawOp::Text(run)]), &mut sink).expect("replay");
@@ -2020,6 +2269,7 @@ mod tests {
         let options = PdfOptions {
             text: TextExport::Outline,
             fonts: Some(&manager),
+            ..PdfOptions::default()
         };
         let p = page(vec![sofd_display::DrawOp::Text(run)]);
         let (bytes, stats) = page_to_pdf_with_stats(&p, &options).expect("convert");
@@ -2063,6 +2313,7 @@ mod tests {
         let options = PdfOptions {
             text: TextExport::Outline,
             fonts: Some(&manager),
+            ..PdfOptions::default()
         };
         let mut sink = PdfSink::new(Rect::A4_PORTRAIT, &options);
         replay(&page(vec![sofd_display::DrawOp::Text(run)]), &mut sink).expect("replay");

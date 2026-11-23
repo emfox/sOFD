@@ -71,7 +71,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libfontconfig1-dev pkg-config \
             libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev \
-            libsoup-3.0-dev build-essential poppler-utils python3-pil
+            libsoup-3.0-dev build-essential poppler-utils python3-pil fonts-noto-cjk
 
       # `rust-version` in the workspace manifest is a claim until something
       # builds under it. The version is read from the manifest rather than

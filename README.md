@@ -46,7 +46,7 @@ for anyone working on it.
 | Capability | What it covers |
 |---|---|
 | Reading and rendering | GB/T 33190 rendering, lossless zoom, sharded loading for large documents |
-| Conversion | OFD to PDF, SVG and PNG; one whole document or a page selection per call |
+| Conversion | OFD to searchable PDF, SVG and PNG; one whole document or a page selection per call |
 | Signatures | SM2 signatures, SM3 digests, SM4 encryption and GB/T 20520 timestamps. Verification checks the proof and the certificate's window at the signing time; a caller who wants the issuer question answered passes its own trust anchors and gets a separate verdict for a signer outside them. International algorithms are named by GB/T 38540-2020 but not implemented |
 | Delivery | One engine, built as a CLI, WebAssembly, a C ABI library, an HTTP service and a desktop reader |
 | Localization | Fluent message layer, en-US and zh-CN |

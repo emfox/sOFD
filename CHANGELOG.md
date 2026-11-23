@@ -10,6 +10,12 @@ release is written up is in
 
 ### Fixed
 
+- **A PDF export carries its text as well as its outlines.** Every outlined run
+  is followed by an invisible Type3 text layer with a `ToUnicode` map, so a
+  search or a copy reads the page's characters instead of nothing; the
+  `PdfOptions::text_layer` switch turns it off, and a run without a font source
+  keeps its visible outlines alone. **Breaking**: `sofd-convert` 0.10.0 adds the
+  field, so a `PdfOptions` built as a struct literal has to name it.
 - **A PDF export paints what the page holds.** A gradient was registered under
   one name and named by another, a shading pattern was written as a stream that
   PDF does not accept as one, a tiling pattern was flattened to its first
@@ -57,7 +63,7 @@ release is written up is in
   crates, so a PDF-and-SVG build no longer compiles tiny-skia; nine unread
   manifest edges went, two of them demoted to dev-dependencies; and the memory
   benchmark moved to `sofd` because it measures the whole chain. **Breaking**:
-  `sofd-convert` 0.9.0 gains the `png` feature (on by default) and drops
+  `sofd-convert` 0.10.0 gains the `png` feature (on by default) and drops
   `sofd_render` from its unconditional dependencies; `sofd` 0.9.0 gains `png`
   and a `serde` dependency behind `render`, and `to_png`/`to_png_with_stats`
   now require `png`.

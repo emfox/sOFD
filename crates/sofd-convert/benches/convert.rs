@@ -72,6 +72,7 @@ fn converting(c: &mut Criterion) {
             let options = PdfOptions {
                 text: TextExport::LiveText,
                 fonts: None,
+                ..PdfOptions::default()
             };
             b.iter(|| page_to_pdf(&page, &options).expect("pdf"));
         });

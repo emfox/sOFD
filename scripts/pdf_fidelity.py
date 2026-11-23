@@ -11,6 +11,7 @@ Usage: python3 scripts/pdf_fidelity.py [FIXTURE ...]
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -34,6 +35,10 @@ LIMITS = {
     "wps": 4.5,
 }
 DEFAULT_LIMIT = 5.0
+
+# What a search must find in each committed fixture. Kept in JSON so the text
+# a document declares is data rather than a literal in this script.
+EXPECTED_TEXT = json.loads((Path(__file__).resolve().parent / "pdf_text.json").read_text())
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -90,6 +95,15 @@ def compare(doc: Path, work: Path) -> list[str]:
         mean = sum(level * count for level, count in enumerate(histogram)) / total
         verdict = "ok" if mean <= limit else "FAIL"
         lines.append(f"{doc.stem} page {page}: mean {mean:.2f} limit {limit:.1f} {verdict}")
+    expected = EXPECTED_TEXT.get(doc.stem, [])
+    if expected:
+        extracted = run(["pdftotext", str(pdf), "-"]).stdout
+        flat = "".join(extracted.split())
+        missing = [marker for marker in expected if "".join(marker.split()) not in flat]
+        if missing:
+            lines.append(f"{doc.stem} text: missing {missing}")
+        else:
+            lines.append(f"{doc.stem} text: {len(expected)} marker(s) found")
     return lines
 
 
@@ -107,7 +121,7 @@ def main() -> int:
                 raise SystemExit(f"{doc} is not a file")
             for line in compare(doc.resolve(), work):
                 print(line)
-                if line.endswith("FAIL"):
+                if line.endswith("FAIL") or " text: missing " in line:
                     failed = True
     if failed:
         print("PDF export does not match the raster within the limits above")
