@@ -27,7 +27,7 @@ crate-type = ["rlib", "cdylib"]
 sofd-session = { path = "../sofd-session", version = "0.8" }
 # The facade re-exports the option and verdict types its own methods take, so
 # the reader names them through `sofd` and depends on nothing below.
-sofd = { path = "../sofd", version = "0.9", features = ["render", "search", "pdf", "print", "annot", "sign"] }
+sofd = { path = "../sofd", version = "0.9", default-features = false, features = ["render", "search", "pdf", "print", "annot", "sign"] }
 # Search hits carry a page-space rectangle, and `Rect` is defined here.
 sofd-common = { path = "../sofd-common", version = "0.6" }
 sofd-i18n = { path = "../sofd-i18n", version = "0.5" }

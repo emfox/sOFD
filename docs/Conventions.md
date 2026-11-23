@@ -167,7 +167,7 @@ next to the check that produced it. Grouped by what they need:
 | `repo` | the checkers' own unit tests, `release_checksums.py selftest`, `pack_fixtures.py --check` | nothing |
 | `schema` | `validate_ofd.py --allow-foreign` over `compliance/fixtures` | `lxml` |
 | `package` | `android_package.py selftest`, `uos_package.py selftest`, `release_package.py selftest`; the last one also holds a release to one archive per product | nothing |
-| `rust` | `cargo fmt`, `clippy`, the `msrv` check, `build` and `test`, the golden images, the PDF/raster comparison, the headless reader window, `check_compliance.py`, and the matrix freshness diff | `cargo`, `git`, `pdftoppm` and Pillow for the PDF comparison, and the Rust channel named by `rust-version` for `msrv` |
+| `rust` | `cargo fmt`, `clippy`, the `msrv` check, `build` and `test`, the golden images, the PDF/raster comparison, the delivery feature sets, the headless reader window, `check_compliance.py`, and the matrix freshness diff | `cargo`, `git`, `pdftoppm` and Pillow for the PDF comparison, and the Rust channel named by `rust-version` for `msrv` |
 | `samples` | `sample_fetch.py`, `--check` then `--parse`, once per set | the fetched samples, `cargo` |
 | `perf` | `run_benchmarks.py` then `check_performance.py` against the budget in [Performance.md](Performance.md) | `cargo` |
 | `review` | `check_commit_scope.py`, which names commits that read as more than one change | `git` |

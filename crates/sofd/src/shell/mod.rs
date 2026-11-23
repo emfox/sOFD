@@ -5,7 +5,7 @@
 //! of the facade. [`wire`] goes further and hands back a whole page, already
 //! re-expressed for a canvas.
 
-#[cfg(feature = "render")]
+#[cfg(all(feature = "render", feature = "convert"))]
 pub mod wire;
 
 /// A path as SVG `d` data, in millimetres.
@@ -19,7 +19,7 @@ pub fn path_data(path: &sofd_geometry::Path) -> String {
 }
 
 /// The same, for a shell that only draws shapes.
-#[cfg(feature = "render")]
+#[cfg(all(feature = "render", feature = "convert"))]
 pub fn shape_path_data(shape: &sofd_render::Shape) -> Option<String> {
     match shape {
         sofd_render::Shape::Path { path, .. }

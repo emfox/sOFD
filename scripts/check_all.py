@@ -211,6 +211,25 @@ CHECKS: tuple[Check, ...] = (
         (py("scripts/pdf_fidelity.py"),),
         needs=("sofd-binary", "pdftoppm", "pillow"),
     ),
+    # Every delivery crate turns the facade's defaults off and names the
+    # features it uses. That is the only way a slim build is a fact, so each
+    # one is compiled on its own rather than through the workspace's union.
+    Check(
+        "features",
+        "rust",
+        (
+            ("cargo", "check", "-p", "sofd", "--no-default-features", "--features", "pdf"),
+            ("cargo", "check", "-p", "sofd", "--no-default-features", "--features", "render"),
+            ("cargo", "check", "-p", "sofd-bindings"),
+            ("cargo", "check", "-p", "sofd-wasm"),
+            ("cargo", "check", "-p", "sofd-ffi"),
+            ("cargo", "check", "-p", "sofd-server"),
+            ("cargo", "check", "-p", "sofd-session"),
+            ("cargo", "check", "-p", "sofd-egui"),
+            ("cargo", "check", "-p", "sofd-cli"),
+        ),
+        needs=("cargo",),
+    ),
     Check("test", "rust", (("cargo", "test", "--workspace"),), needs=("cargo",)),
     Check(
         "test-all-features",

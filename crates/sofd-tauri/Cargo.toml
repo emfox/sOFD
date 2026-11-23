@@ -26,7 +26,7 @@ serde_json.workspace = true
 sofd-session = { path = "../sofd-session", version = "0.8" }
 # The page wire format is `sofd::shell::wire`, so a page reaches this shell
 # already expressed for a canvas and nothing below the facade is named here.
-sofd = { path = "../sofd", version = "0.9", features = ["render", "search", "pdf", "print", "annot", "sign"] }
+sofd = { path = "../sofd", version = "0.9", default-features = false, features = ["render", "search", "pdf", "print", "annot", "sign"] }
 # The glyphs are the theme's own drawing, shared with the `egui` shell.
 sofd-icons = { path = "../sofd-icons", version = "0.2" }
 

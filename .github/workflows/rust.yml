@@ -129,6 +129,18 @@ jobs:
       - name: PDF export matches the raster
         run: python3 scripts/pdf_fidelity.py
 
+      # Each delivery crate states the facade features it uses and turns the
+      # defaults off, so a slim build is what it says rather than the union of
+      # everything in the workspace.
+      - name: Feature sets are what each delivery names
+        run: |
+          cargo check -p sofd --no-default-features --features pdf
+          cargo check -p sofd --no-default-features --features render
+          for crate in sofd-bindings sofd-wasm sofd-ffi sofd-server \
+                       sofd-session sofd-egui sofd-cli; do
+            cargo check -p "$crate"
+          done
+
       # The six worked examples are the starting point a third party copies,
       # so an example that stops compiling is a broken front door. They are
       # named rather than left to `--all-targets`, because the browser one only
