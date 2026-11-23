@@ -1,6 +1,6 @@
 # sOFD Rust Architecture
 
-> Version v0.1 | 26 crates | `cargo check --workspace` clean
+> Version v0.1 | 31 crates | `cargo check --workspace` clean
 > Brand: sOFD (external); code prefix: `sofd-*`
 
 ---
@@ -220,11 +220,12 @@ which is also the order `cargo publish` has to run in.
 | L1 | `sofd-xml` | XML codec wrapping quick-xml | transitive |
 | L1 | `sofd-package` | ZIP container I/O, safety validation, atomic replacement | transitive |
 | L1.5 | `sofd-i18n` | Fluent localization layer | surface |
+| L1.5 | `sofd-icons` | The Adwaita symbolic glyph set as path data | surface |
 | L2 | `sofd-geometry` | Backend-independent `Path` and `Affine` | extension |
 | L2 | `sofd-font` | Font registry, metrics, system fallback | extension |
 | L2 | `sofd-display` | **Display list IR**, the architectural keystone | extension |
 | L2 | `sofd-parser` | `Content.xml` to `DisplayList` | extension |
-| L2 | `sofd-render` | Raster backend: display list to pixels | extension |
+| L2 | `sofd-render` | Raster and vector backends: display list to pixels or canvas shapes | extension |
 | L3 | `sofd-crypto` | SM2, SM3, SM4, X.509, PKCS#12 | surface |
 | L3 | `sofd-sign` | Electronic seals and verification per GB/T 38540 | surface |
 | L3 | `sofd-convert` | Display list to PDF, SVG or PNG, and the file skeleton each format needs | surface |
@@ -233,6 +234,7 @@ which is also the order `cargo publish` has to run in.
 | L3 | `sofd-archive` | Archival compliance validation (OFD-A) | surface |
 | L3 | `sofd-print` | Printing, reusing the display list for fidelity | surface |
 | L4 | `sofd` | Facade, trimming capabilities through features | surface |
+| L4 | `sofd-bindings` | Serialisable shapes shared by wasm, C and the HTTP service | surface |
 | L5 | `sofd-cli` | Command line tool `sofd` | surface |
 | L5 | `sofd-wasm` | Browser WebAssembly bindings | withheld |
 | L5 | `sofd-ffi` | C ABI shared library for OA and ERP integration | withheld |
@@ -241,6 +243,7 @@ which is also the order `cargo publish` has to run in.
 | L5 | `sofd-session` | The state one open document is read in, driven by any shell | withheld |
 | L5 | `sofd-server` | HTTP service for batch conversion and verification | withheld |
 | — | `sofd-testkit` | Fixtures shared by the test suites, a dev-dependency only | withheld |
+| — | `sofd-fuzz` | Fuzz targets, nightly only | withheld |
 
 ---
 
@@ -285,13 +288,16 @@ what it names.
 
 Typical combinations:
 
+Every delivery crate sets `default-features = false` on `sofd` and names only
+what it uses, so the union of the workspace cannot turn a slim build full.
+
 | Delivery form | Enabled features |
 |---|---|
-| Server-side conversion service | `convert, pdf, archive, async` |
-| Browser preview SDK | `sign` (a canvas backend is planned) |
-| Web reader, full featured | `render, sign, convert, print, edit, search` |
-| Embedded slim build | `render`, English only |
-| The `sofd` command | every capability, plus `async` |
+| HTTP service (`sofd-server`) | `render, sign, convert, search, pdf, png` |
+| Browser bindings (`sofd-wasm`) | `render, sign, convert, search, png` |
+| C ABI (`sofd-ffi`) | `render, sign, convert, search, pdf, png` |
+| Reader shells (`sofd-egui`, `sofd-tauri`, `sofd-session`) | `render, search, pdf, print, annot, sign`, and `png` for the session's export worker |
+| The `sofd` command | every capability, plus `batch` |
 
 ---
 

@@ -6275,7 +6275,6 @@ dependencies = [
  "serde",
  "sofd",
  "sofd-error",
- "sofd-font",
  "sofd-testkit",
 ]
 
@@ -6557,7 +6556,6 @@ dependencies = [
  "sofd",
  "sofd-bindings",
  "sofd-error",
- "sofd-font",
  "sofd-testkit",
  "tokio",
  "tower",
@@ -6578,7 +6576,6 @@ dependencies = [
  "sofd-error",
  "sofd-i18n",
  "sofd-print",
- "sofd-sign",
  "sofd-testkit",
  "tracing",
 ]

@@ -52,6 +52,18 @@ release is written up is in
 
 ### Architecture
 
+- **A delivery crate names the features it uses.** `sofd`'s `convert` no longer
+  pulls the raster stack, `png` names `sofd-render` itself, and every adapter
+  sets `default-features = false`: a PDF-only build of `sofd` no longer
+  compiles tiny-skia, and the wasm build no longer carries `lopdf`.
+- **A document summary has one owner.** `Document::summary()` returns the
+  version, page box, embedded-face count and signature count; `sofd-bindings`,
+  `sofd-server` and `sofd-cli` read it instead of repeating the count, and the
+  first two drop their direct `sofd-font` dependency.
+- **The session no longer names the signature crate.** The signature detail it
+  shows is the facade's `SignatureDetails`; the direct `sofd-sign` edge went
+  with it. Image decoding and painting moved out of `raster/text.rs` into
+  `raster/images.rs`, where a picture belongs.
 - **A PDF export is checked against the page it came from.** `scripts/pdf_fidelity.py`
   rasterizes every committed fixture's PDF and compares it with the engine's own
   raster, failing above a per-document mean difference; CI runs it after the

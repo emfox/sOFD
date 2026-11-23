@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use sofd::{Annotation, Comparison, Document, SearchOptions, VerifyStatus};
+use sofd::{Annotation, Comparison, Document, SearchOptions, SignatureDetails, VerifyStatus};
 use sofd_i18n::{I18n, MessageId};
 
 use crate::message::ReaderMessage;
@@ -148,7 +148,7 @@ pub struct SignatureReport {
     /// valid in, and for an invoice the seal's own text. Kept on the report
     /// rather than fetched when a dialog opens, because reading it costs a
     /// second pass over the container and the panel needs it to draw.
-    pub details: sofd_sign::details::SignatureDetails,
+    pub details: SignatureDetails,
     /// Where the seals this signature carries are drawn, one entry per stamp.
     pub seals: Vec<SealBox>,
 }

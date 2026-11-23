@@ -178,7 +178,7 @@ parser is the part handling untrusted input.
 
 ## Module map
 
-30 crates in five layers. An arrow points from a crate to what it
+31 crates in five layers. An arrow points from a crate to what it
 depends on; boxes below the facade are pulled in only when a feature names them.
 
 ```

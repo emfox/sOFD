@@ -289,17 +289,19 @@ pub fn render_page(
 }
 
 mod gradient;
+mod images;
 mod mesh;
 mod pattern;
 mod shape;
 mod text;
 
 use gradient::{focal_shader, linear_shader};
+use images::{ImageOutcome, draw_image};
 use shape::{
     State, clip_mask, fill_rule, glyph_outlines, hairline_width, is_hairline, paint_for,
     solid_paint, to_color, to_ts, to_ts_path, to_ts_stroke, total_transform,
 };
-use text::{ImageOutcome, TextOutcome, draw_image, draw_text};
+use text::{TextOutcome, draw_text};
 
 /// Rasterize a pattern cell at `scale` pixels per millimetre, so a tile and the
 /// page it repeats on agree. The cell carries its own bounds, which become the
