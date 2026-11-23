@@ -71,7 +71,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libfontconfig1-dev pkg-config \
             libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev \
-            libsoup-3.0-dev build-essential
+            libsoup-3.0-dev build-essential poppler-utils python3-pil
 
       # `rust-version` in the workspace manifest is a claim until something
       # builds under it. The version is read from the manifest rather than
@@ -122,6 +122,12 @@ jobs:
       # recompile the same crates for each flag set it is invoked with.
       - name: Build every target and feature
         run: cargo build --workspace --all-targets --all-features
+
+      # A PDF that opens but paints the wrong page passes every structural
+      # test; this rasterizes the export and compares it with the engine's own
+      # raster for each committed fixture.
+      - name: PDF export matches the raster
+        run: python3 scripts/pdf_fidelity.py
 
       # The six worked examples are the starting point a third party copies,
       # so an example that stops compiling is a broken front door. They are

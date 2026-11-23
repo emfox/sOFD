@@ -43,6 +43,11 @@ release is written up is in
 
 ### Architecture
 
+- **A PDF export is checked against the page it came from.** `scripts/pdf_fidelity.py`
+  rasterizes every committed fixture's PDF and compares it with the engine's own
+  raster, failing above a per-document mean difference; CI runs it after the
+  build, so a paint that stops reaching the PDF is caught by a number rather
+  than by a reader.
 - **Format knowledge moved to the crates that own the format.** A second
   cohesion pass closed six coupling faults: `sofd-convert::pages_to_pdf` now
   builds the `/Pages` tree and catalog, so the facade dropped `export.rs` and

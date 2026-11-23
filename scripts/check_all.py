@@ -202,6 +202,15 @@ CHECKS: tuple[Check, ...] = (
         (("cargo", "build", "--workspace", "--all-targets", "--all-features"),),
         needs=("cargo",),
     ),
+    # A PDF that opens but paints the wrong page is the failure no structural
+    # test sees: rasterize the export and compare it with the engine's own
+    # raster. It runs after the build because it drives the CLI binary.
+    Check(
+        "pdf-fidelity",
+        "rust",
+        (py("scripts/pdf_fidelity.py"),),
+        needs=("sofd-binary", "pdftoppm", "pillow"),
+    ),
     Check("test", "rust", (("cargo", "test", "--workspace"),), needs=("cargo",)),
     Check(
         "test-all-features",
@@ -349,6 +358,18 @@ def precondition(name: str) -> tuple[bool, str]:
     if name == "lxml":
         if importlib.util.find_spec("lxml") is None:
             return False, "lxml is missing (python3 -m pip install lxml)"
+        return True, ""
+    if name == "pillow":
+        if importlib.util.find_spec("PIL") is None:
+            return False, "Pillow is missing (python3 -m pip install pillow)"
+        return True, ""
+    if name == "pdftoppm":
+        if shutil.which("pdftoppm") is None:
+            return False, "pdftoppm is not on PATH (apt install poppler-utils)"
+        return True, ""
+    if name == "sofd-binary":
+        if not (ROOT / "target" / "debug" / "sofd").is_file():
+            return False, "target/debug/sofd is missing (the build check makes it)"
         return True, ""
     if name == "bench":
         # A reading is only as good as the run that produced it, so this is a
