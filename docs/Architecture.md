@@ -160,8 +160,9 @@ reading.
 Export takes the same route. A PDF is one document holding a list of pages,
 and each page carries its own `PhysicalBox` as a `MediaBox`, because a receipt
 is shorter than the A4 sheets that follow it. The conversion is handed the
-document's font manager so a run is drawn as outlines; without one it falls
-back to live text, which only reads where the same face is installed.
+document's font manager so a run is drawn as outlines, with an invisible
+Type3 text layer behind them so a search or a copy reads the page; without one
+it falls back to live text, which only reads where the same face is installed.
 
 A step back moves no glyph forward, so it ends a row: `flatten::run_shapes`
 cuts the code at each one, and the row below takes its own height from `DeltaY`.
