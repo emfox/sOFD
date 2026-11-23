@@ -55,6 +55,10 @@ question has a shape.
 - **Blending is deliberately unsupported.** GB/T 33190-2016 defines no blend
   mode; `Alpha` is the whole of its transparency model. Recorded in
   `docs/Interop.md` §6.
+- **Conversion is one-way.** PDF, SVG and PNG are exports of an OFD document.
+  Importing a PDF is not implemented and is not planned: the model starts from
+  the OFD container, and reading another format's content stream is a different
+  project with a different set of guarantees.
 - **Far-term work is not scheduled.** The directions above describe an
   outcome, not a date.
 - **A closed issue is not a closed direction.** The direction stays until the
