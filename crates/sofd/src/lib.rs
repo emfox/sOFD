@@ -14,7 +14,7 @@ pub mod shell;
 pub use compare::{Comparison, PageChange, PageDiff};
 #[cfg(feature = "annot")]
 pub use document::Annotation;
-pub use document::Document;
+pub use document::{Document, DocumentSummary};
 
 // Types that appear in `Document`'s own signatures. Re-exported so a caller
 // can name them without taking a direct dependency on the crate that defines

@@ -130,29 +130,23 @@ pub fn i18n_for(cli: &Cli) -> I18n {
 fn info(path: &Path, i18n: &I18n) -> Result<Report> {
     let mut doc = open(path)?;
     let fmt = LocalizedFormat::new(i18n.locale().clone());
-    let page_box = doc.page_box();
-    let embedded = doc
-        .fonts()
-        .registry()
-        .iter()
-        .filter(|entry| matches!(entry.source, FontSource::Embedded { .. }))
-        .count();
+    let summary = doc.summary();
     let mut lines = vec![
-        i18n.text_with(MessageId::CliVersion, [("version", doc.version().into())]),
+        i18n.text_with(MessageId::CliVersion, [("version", summary.version.into())]),
         i18n.text_with(
             MessageId::CliPages,
-            [("count", fmt.integer(doc.page_count() as i64).into())],
+            [("count", fmt.integer(summary.pages as i64).into())],
         ),
         i18n.text_with(
             MessageId::CliPageSize,
             [
-                ("w", fmt.decimal(page_box.w, 1).into()),
-                ("h", fmt.decimal(page_box.h, 1).into()),
+                ("w", fmt.decimal(summary.width_mm, 1).into()),
+                ("h", fmt.decimal(summary.height_mm, 1).into()),
             ],
         ),
         i18n.text_with(
             MessageId::CliEmbeddedFonts,
-            [("count", fmt.integer(embedded as i64).into())],
+            [("count", fmt.integer(summary.embedded_fonts as i64).into())],
         ),
     ];
     if doc.page_count() == 0 {
@@ -164,10 +158,9 @@ fn info(path: &Path, i18n: &I18n) -> Result<Report> {
     resolve_fonts(&doc);
     let mut warnings = Vec::new();
     lines.extend(font_lines(&doc, i18n, &fmt, &mut warnings));
-    let signatures = doc.signatures().map(|list| list.len()).unwrap_or(0);
     lines.push(i18n.text_with(
         MessageId::CliSignatures,
-        [("count", fmt.integer(signatures as i64).into())],
+        [("count", fmt.integer(summary.signatures as i64).into())],
     ));
     Ok(Report::ok(lines.join("\n")).warn(warnings))
 }

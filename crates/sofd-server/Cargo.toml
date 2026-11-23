@@ -17,9 +17,8 @@ name = "sofd-server"
 path = "src/main.rs"
 
 [dependencies]
-sofd = { path = "../sofd", version = "0.9", features = ["render", "sign", "convert", "search", "pdf"] }
+sofd = { path = "../sofd", version = "0.9", default-features = false, features = ["render", "sign", "convert", "search", "pdf", "png"] }
 sofd-error = { path = "../sofd-error", version = "0.5" }
-sofd-font = { path = "../sofd-font", version = "0.5" }
 sofd-bindings = { path = "../sofd-bindings", version = "0.2" }
 axum.workspace = true
 tokio.workspace = true

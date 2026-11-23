@@ -5,11 +5,28 @@ use std::collections::{BTreeSet, HashMap};
 use sofd_common::Rect;
 use sofd_display::{DisplayList, DrawOp, PageDisplay};
 use sofd_error::Result;
-use sofd_font::{FontId, FontManager};
+use sofd_font::{FontId, FontManager, FontSource};
 use sofd_io::ByteSource;
 use sofd_model::document::Document as ModelDocument;
 use sofd_package::Package;
 use sofd_parser::{ParsedDocument, Parser};
+
+/// What an open document declares about itself, in one place.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DocumentSummary {
+    /// Version the document declares, such as `1.0`.
+    pub version: String,
+    /// Pages the document holds.
+    pub pages: usize,
+    /// Page width in millimetres.
+    pub width_mm: f64,
+    /// Page height in millimetres.
+    pub height_mm: f64,
+    /// Faces the container embeds rather than names.
+    pub embedded_fonts: usize,
+    /// Signatures the document points at; zero in a build without `sign`.
+    pub signatures: usize,
+}
 
 /// One page's vector-conversion counts, folded into a whole-run outcome.
 #[cfg(feature = "convert")]
@@ -71,6 +88,29 @@ impl Document {
     pub fn open_bytes(data: &[u8]) -> Result<Self> {
         let source = sofd_io::SliceSource::new(data, "document");
         Self::open(&source)
+    }
+
+    /// The declaration-level facts a reader or a binding shows at a glance.
+    pub fn summary(&mut self) -> DocumentSummary {
+        let page_box = self.page_box();
+        let embedded_fonts = self
+            .fonts
+            .registry()
+            .iter()
+            .filter(|entry| matches!(entry.source, FontSource::Embedded { .. }))
+            .count();
+        #[cfg(feature = "sign")]
+        let signatures = self.signatures().map(|list| list.len()).unwrap_or(0);
+        #[cfg(not(feature = "sign"))]
+        let signatures = 0;
+        DocumentSummary {
+            version: self.version(),
+            pages: self.page_count(),
+            width_mm: page_box.w,
+            height_mm: page_box.h,
+            embedded_fonts,
+            signatures,
+        }
     }
 
     /// Pages the document declares.

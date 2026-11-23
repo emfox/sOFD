@@ -8,7 +8,6 @@
 use serde::{Deserialize, Serialize};
 use sofd::{Document, SearchOptions, VerifyStatus};
 use sofd_error::OfdError;
-use sofd_font::FontSource;
 
 /// What an open document declares, at a glance.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -30,21 +29,14 @@ pub struct DocumentInfo {
 impl DocumentInfo {
     /// Gather the declaration-level facts.
     pub fn of(doc: &mut Document) -> Self {
-        let page_box = doc.page_box();
-        let embedded = doc
-            .fonts()
-            .registry()
-            .iter()
-            .filter(|entry| matches!(entry.source, FontSource::Embedded { .. }))
-            .count();
-        let signatures = doc.signatures().map(|list| list.len()).unwrap_or(0);
+        let summary = doc.summary();
         Self {
-            version: doc.version(),
-            pages: doc.page_count(),
-            width_mm: page_box.w,
-            height_mm: page_box.h,
-            embedded_fonts: embedded,
-            signatures,
+            version: summary.version,
+            pages: summary.pages,
+            width_mm: summary.width_mm,
+            height_mm: summary.height_mm,
+            embedded_fonts: summary.embedded_fonts,
+            signatures: summary.signatures,
         }
     }
 }
