@@ -39,6 +39,9 @@ release is written up is in
   that fits the 16-unit grid; the set is now 51.0 throughout. The valid-status
   glyph moves to `object-select-symbolic`, which 51.0 ships in place of
   `emblem-ok-symbolic`.
+- **The tree's cookie parser is past a nonce advisory.** `cookie` moved to
+  0.18.3 for RUSTSEC-2026-0594, where private cookie nonces could repeat in
+  processes that fork.
 - **A seal stays transparent over what it signs.** Three faults stacked on one
   page: an object's `Alpha` attribute was never read, so a producer's
   `Alpha="0"` backplate painted out the whole sheet; an image exported to PDF
