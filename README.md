@@ -162,6 +162,10 @@ standard. Its layout is required to stay identical across software and hardware,
 which is why it serves as the legal carrier for official documents, licences,
 invoices and archives.
 
+PDF is an output format here, not a source: sOFD does not open, render or read
+PDF files. The `lopdf` dependency is the writer behind the PDF backend, and
+converting PDF to OFD is not planned.
+
 Rust fits here for two reasons. Document processing is CPU bound and has to run
 in a browser, on a server and on the desktop, so zero-cost abstraction lets the
 layering stay clean without a performance penalty. And since OFD files arrive
